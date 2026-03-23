@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>數學辨識功能 — 可行性評估與開發時程報告</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{--bg:#0a0e1a;--s:#111827;--s2:#1e293b;--bd:#334155;--t:#e2e8f0;--t2:#94a3b8;--a:#6366f1;--a2:#818cf8;--g:#34d399;--o:#fb923c;--r:#f87171;--cy:#22d3ee;--m:#f472b6;--m2:#ec4899;--rd:16px}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{font-family:'Inter','Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.7}
+.ctn{max-width:1140px;margin:0 auto;padding:40px 24px 60px}
+h1{font-size:2.1rem;font-weight:900;background:linear-gradient(135deg,var(--m),var(--cy));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:6px}
+.sub{text-align:center;color:var(--t2);font-size:.95rem;margin-bottom:16px}
+h2{font-size:1.35rem;font-weight:700;color:var(--m);margin:44px 0 18px;padding-left:14px;border-left:4px solid var(--m2)}
+h3{font-size:1rem;font-weight:600;color:var(--cy);margin:14px 0 8px}
+h4{font-size:.92rem;font-weight:600;color:var(--a2);margin:10px 0 6px}
+.cd{background:var(--s);border:1px solid var(--bd);border-radius:var(--rd);padding:22px;margin-bottom:18px}
+.cd:hover{border-color:var(--a)}
+p,li{color:var(--t2);font-size:.91rem}ul,ol{padding-left:20px}li{margin:4px 0}strong{color:var(--t)}
+code{background:var(--s2);color:var(--g);padding:2px 6px;border-radius:5px;font-size:.83rem;font-family:'JetBrains Mono',monospace}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{padding:10px 14px;text-align:left;border:1px solid var(--bd);font-size:.86rem}
+th{background:var(--s2);color:var(--m);font-weight:600}td{color:var(--t2)}
+tr:hover td{background:rgba(99,102,241,0.04)}
+.bg{display:inline-block;padding:2px 10px;border-radius:18px;font-size:.74rem;font-weight:700}
+.bg-m{background:rgba(244,114,182,0.15);color:var(--m)}.bg-g{background:rgba(52,211,153,0.15);color:var(--g)}.bg-r{background:rgba(248,113,113,0.15);color:var(--r)}.bg-o{background:rgba(251,146,60,0.15);color:var(--o)}.bg-c{background:rgba(34,211,238,0.15);color:var(--cy)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:768px){.two{grid-template-columns:1fr}h1{font-size:1.5rem}.nav a{padding:10px 7px;font-size:.7rem}}
+.nav{position:sticky;top:0;z-index:999;background:rgba(10,14,26,0.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);display:flex;justify-content:center;flex-wrap:wrap}
+.nav a{display:inline-block;padding:12px 12px;color:var(--t2);text-decoration:none;font-size:.8rem;font-weight:600;transition:all .25s;border-bottom:2px solid transparent;white-space:nowrap}
+.nav a:hover{color:var(--m);background:rgba(244,114,182,0.06)}.nav a.active{color:var(--m);border-bottom-color:var(--m)}
+.hl{border-radius:12px;padding:14px 18px;margin:10px 0}.hl-g{background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2)}.hl-r{background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2)}.hl-m{background:rgba(244,114,182,0.06);border:1px solid rgba(244,114,182,0.2)}.hl-o{background:rgba(251,146,60,0.06);border:1px solid rgba(251,146,60,0.2)}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0;text-align:center}
+.mi{background:var(--s);border:1px solid var(--bd);border-radius:12px;padding:14px 8px}.mi .lb{color:var(--t2);font-size:.76rem;margin-bottom:3px}.mi .vl{font-size:1.3rem;font-weight:800}
+pre{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px;overflow-x:auto;margin:8px 0}
+pre code{background:none;padding:0;font-size:.8rem;color:var(--t2)}
+.ok{color:var(--g)}
+.no{color:var(--r)}
+/* Expandable examples */
+details{margin:8px 0}
+details summary{cursor:pointer;color:var(--cy);font-weight:600;font-size:.88rem;padding:8px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;user-select:none;transition:all .2s}
+details summary:hover{border-color:var(--m);color:var(--m)}
+details[open] summary{border-radius:8px 8px 0 0;border-bottom:none}
+details .ex-body{background:var(--s2);border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;padding:14px;max-height:500px;overflow:auto}
+.tl{position:relative;padding-left:38px;margin:14px 0}
+.tl::before{content:'';position:absolute;left:13px;top:0;bottom:0;width:2px;background:var(--bd)}
+.tl .dt{position:absolute;left:6px;top:5px;width:16px;height:16px;border-radius:50%;background:var(--m2);border:3px solid var(--bg)}
+.tl .dy{color:var(--m);font-size:.8rem;font-weight:700;margin-bottom:3px}
+.diagram-box{background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0;text-align:center;cursor:pointer;transition:border-color .3s}
+.diagram-box:hover{border-color:var(--m)}
+.lbx{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.92);z-index:9999;justify-content:center;align-items:center}
+.lbx.show{display:flex}.lbx svg{max-width:95vw;max-height:90vh;cursor:grab}
+.lbx-cl{position:absolute;top:18px;right:28px;color:#fff;font-size:2rem;cursor:pointer;z-index:10000}
+</style>
+</head>
+<body>
+<div class="lbx" id="lbx"><span class="lbx-cl" id="lbC">✕</span></div>
+<nav class="nav" id="nav">
+  <a href="#s-sum" class="active">摘要</a>
+  <a href="#s-bg">背景</a>
+  <a href="#s-mime">MimeType 全覽</a>
+  <a href="#s-compat">相容矩陣</a>
+  <a href="#s-examples">Response 範例</a>
+  <a href="#s-eval">方案評估</a>
+  <a href="#s-pngjiix">PNG vs JIIX</a>
+  <a href="#s-engine">引擎原理</a>
+  <a href="#s-obj">物件對照</a>
+  <a href="#s-timeline">開發時程</a>
+  <a href="#s-risk">風險</a>
+</nav>
+<div class="ctn">
+<h1>數學手寫辨識 (Math Recognition)</h1>
+<p class="sub">可行性評估與開發時程報告 — MyScript Output 格式深度分析</p>
+<div class="mg">
+  <div class="mi"><div class="lb">預估工時</div><div class="vl" style="color:var(--cy)">6-8 天</div></div>
+  <div class="mi"><div class="lb">開發人力</div><div class="vl" style="color:var(--o)">1 人</div></div>
+  <div class="mi"><div class="lb">可行性</div><div class="vl" style="color:var(--g)">✅ 可行</div></div>
+  <div class="mi"><div class="lb">風險等級</div><div class="vl" style="color:var(--o)">中</div></div>
+</div>
+
+<!-- === Summary === -->
+<h2 id="s-sum">一、執行摘要</h2>
+<div class="cd"><div class="hl hl-g">
+  <p><strong>結論：技術完全可行。</strong>MyScript iink SDK 原生支援 Math Part，提供 <strong>15 種 Export 格式</strong>（含 LaTeX、MathML、PNG、JIIX 等），其中 Math Part 支援 5 種。</p>
+  <p>經分析 4 種實作方案，建議採用 <strong>Native PNG 渲染 + LaTeX 備用 (方案 D)</strong>，預估 6-8 天。</p>
+</div></div>
+
+<!-- === Background === -->
+<h2 id="s-bg">二、背景</h2>
+<div class="cd">
+  <table>
+    <tr><td><strong>nNoteAS（Client）</strong></td><td>筆記本 App — 手寫、套索選取、結果顯示</td></tr>
+    <tr><td><strong>nOCR（Server）</strong></td><td>辨識引擎 Service — 內嵌 MyScript iink SDK</td></tr>
+    <tr><td><strong>通訊</strong></td><td>AIDL (Binder IPC) 跨程序同步呼叫</td></tr>
+    <tr><td><strong>已實作</strong></td><td>文字辨識 <code>strokeTextData()</code>、圖形辨識 <code>strokeGraphicsData()</code></td></tr>
+    <tr><td><strong>目標</strong></td><td>新增數學辨識 — 手寫公式 → 印刷級品質渲染 → 插入畫布 → 可雙擊還原</td></tr>
+  </table>
+</div>
+
+<!-- === MimeType 全覽 === -->
+<h2 id="s-mime">三、MyScript SDK MimeType 全覽</h2>
+<div class="cd">
+  <p>反編譯 <code>com.myscript.iink.MimeType</code> 類別（<code>Enum</code>），SDK 共定義 <strong>15 種</strong> Export 格式：</p>
+  <h3>純文字與標籤語言類</h3>
+  <table>
+    <thead><tr><th>#</th><th>MimeType</th><th>說明</th><th>數學用途</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>TEXT</code></td><td>純文字字串</td><td>結果預覽（如 <code>1+2=3</code>）</td></tr>
+      <tr><td>2</td><td><code>LATEX</code></td><td>LaTeX 排版語法</td><td>可將公式以文字語法儲存、搜尋、跨平台使用</td></tr>
+      <tr><td>3</td><td><code>MATHML</code></td><td>MathML XML 標記語言</td><td>W3C 標準，可在網頁 / WebView 渲染</td></tr>
+      <tr><td>4</td><td><code>HTML</code></td><td>包裝好的完整 HTML 原始碼</td><td>無失真網頁預覽</td></tr>
+      <tr><td>5</td><td><code>GRAPHML</code></td><td>GraphML 圖結構</td><td>不適用於數學</td></tr>
+      <tr><td>6</td><td><code>MUSICXML</code></td><td>MusicXML 樂譜</td><td>不適用</td></tr>
+      <tr><td>7</td><td><code>OFFICE_CLIPBOARD</code></td><td>可貼進 Word / PowerPoint 的方程式格式</td><td>Office 整合用途</td></tr>
+    </tbody>
+  </table>
+  <h3>圖片與繪圖類</h3>
+  <table>
+    <thead><tr><th>#</th><th>MimeType</th><th>說明</th><th>數學用途</th></tr></thead>
+    <tbody>
+      <tr><td>8</td><td><code>PNG</code></td><td>透明背景點陣圖（需 ImagePainter）</td><td><span class="bg bg-g">⭐ 推薦</span> 教科書級渲染</td></tr>
+      <tr><td>9</td><td><code>JPEG</code></td><td>白底靜態圖</td><td>品質較 PNG 差、有白底</td></tr>
+      <tr><td>10</td><td><code>GIF</code></td><td>GIF 動畫/靜態圖</td><td>不適合高品質數學</td></tr>
+      <tr><td>11</td><td><code>SVG</code></td><td>可縮放向量圖</td><td>無限放大不模糊，但需 WebView 渲染</td></tr>
+    </tbody>
+  </table>
+  <h3>文件與引擎原生類</h3>
+  <table>
+    <thead><tr><th>#</th><th>MimeType</th><th>說明</th><th>數學用途</th></tr></thead>
+    <tbody>
+      <tr><td>12</td><td><code>JIIX</code></td><td>JSON 結構化資料（bounding-box、符號樹 AST）</td><td>邏輯處理 / 二次分析用</td></tr>
+      <tr><td>13</td><td><code>PDF</code></td><td>PDF 文件</td><td>文件匯出</td></tr>
+      <tr><td>14</td><td><code>DOCX</code></td><td>Word 文件</td><td>Office 匯出</td></tr>
+      <tr><td>15</td><td><code>PPTX</code></td><td>PowerPoint 文件</td><td>簡報匯出</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- === Compatibility === -->
+<h2 id="s-compat">四、Part Type × Export 格式相容矩陣</h2>
+<div class="cd">
+  <p>MyScript 每種 Part 類型支援的 Export 格式不同。<strong>Math Part 支援 5 種格式</strong>：</p>
+  <table>
+    <thead><tr><th>格式</th><th>Text</th><th style="background:rgba(244,114,182,0.1)">Math</th><th>Diagram</th><th>Drawing</th></tr></thead>
+    <tbody>
+      <tr><td><code>TEXT</code></td><td class="ok">✅</td><td class="ok"><strong>✅</strong></td><td class="no">❌</td><td class="no">❌</td></tr>
+      <tr><td><code>LATEX</code></td><td class="no">❌</td><td class="ok"><strong>✅</strong></td><td class="no">❌</td><td class="no">❌</td></tr>
+      <tr><td><code>JIIX</code></td><td class="ok">✅</td><td class="ok"><strong>✅</strong></td><td class="ok">✅</td><td class="no">❌</td></tr>
+      <tr><td><code>MATHML</code></td><td class="no">❌</td><td class="ok"><strong>✅</strong></td><td class="no">❌</td><td class="no">❌</td></tr>
+      <tr><td><code>HTML</code></td><td class="ok">✅</td><td class="no">❌</td><td class="ok">✅</td><td class="no">❌</td></tr>
+      <tr><td><code>SVG</code></td><td class="no">❌</td><td class="no">❌</td><td class="ok">✅</td><td class="ok">✅</td></tr>
+      <tr><td><code>PNG</code></td><td class="ok">✅</td><td class="ok"><strong>✅</strong></td><td class="ok">✅</td><td class="ok">✅</td></tr>
+      <tr><td><code>DOCX/PPTX/PDF</code></td><td class="ok">✅</td><td class="no">❌</td><td class="no">❌</td><td class="no">❌</td></tr>
+    </tbody>
+  </table>
+  <div class="hl hl-m"><p>💡 <strong>Math Part 可用的 5 種格式：</strong>TEXT、LATEX、JIIX、MATHML、PNG — 但每種在 Android 原生 App 中的實用性差異極大（詳見方案評估）。</p></div>
+</div>
+
+<!-- === Response Examples === -->
+<h2 id="s-examples">五、各格式 Response 實際範例</h2>
+<div class="cd">
+  <p>以下為<strong>實機測試</strong>取得的真實 Response，可展開查看完整內容：</p>
+
+  <h3>📝 TEXT — 純文字輸出</h3>
+  <details><summary>📋 展開查看 TEXT Export 範例</summary><div class="ex-body"><pre><code>===== TEXT =====
+1+2=3
+
+a²+b²=c²
+
+X==[-b±√[b²-4ac]]/[2a]</code></pre>
+  <p style="color:var(--t2);font-size:.82rem;margin-top:8px">⚠️ 純文字無法表達上下標、分數線等二維結構，只能用 <code>[]</code> 近似。</p></div></details>
+
+  <h3>📐 LATEX — LaTeX 語法輸出</h3>
+  <details><summary>📋 展開查看 LATEX Export 範例</summary><div class="ex-body"><pre><code>===== LATEX =====
+1+2=3
+
+a^{2}+b^{2}=c^{2}
+
+X=\dfrac{-b\pm \sqrt{b^{2}-4ac}}{2a}</code></pre>
+  <p style="color:var(--t2);font-size:.82rem;margin-top:8px">✅ 完美表達二維結構。需要 KaTeX/MathJax 等渲染引擎才能視覺化。</p></div></details>
+
+  <h3>🌐 MATHML — XML 標記語言</h3>
+  <details><summary>📋 展開查看 MATHML Export 範例（1+2=3）</summary><div class="ex-body"><pre><code>&lt;math xmlns='http://www.w3.org/1998/Math/MathML'&gt;
+  &lt;mn&gt; 1 &lt;/mn&gt;
+  &lt;mo&gt; + &lt;/mo&gt;
+  &lt;mn&gt; 2 &lt;/mn&gt;
+  &lt;mo&gt; = &lt;/mo&gt;
+  &lt;mn&gt; 3 &lt;/mn&gt;
+&lt;/math&gt;</code></pre>
+  <p style="color:var(--t2);font-size:.82rem;margin-top:8px">W3C 標準格式。Android WebView 對 MathML 支援極差（Chromium 2023 才開始部分支援）。</p></div></details>
+
+  <h3>🔬 JIIX — JSON 結構化資料（Math: 1+2=3）</h3>
+  <details><summary>📋 展開查看 JIIX Export 完整 JSON（含抽象語法樹 AST）</summary><div class="ex-body"><pre><code>{
+  "type": "Math",
+  "expressions": [{
+    "type": "=",
+    "id": "math/31",
+    <strong style="color:var(--g)">"value": 3</strong>,              // ← Solver 自動計算的結果
+    "items": [{
+      "type": "glyph",
+      "label": "=",
+      "bounding-box": { "x": 67.86, "y": 67.48, "width": 5.71, "height": 3.95 }
+    }],
+    "operands": [
+      {
+        "type": "+",
+        "id": "math/35",
+        <strong style="color:var(--g)">"value": 3</strong>,
+        "operands": [
+          {
+            "type": "number", "label": "1", <strong style="color:var(--g)">"value": 1</strong>,
+            "bounding-box": { "x": 38.35, "y": 64.13, "width": 5.82, "height": 12.04 }
+          },
+          {
+            "type": "number", "label": "2", <strong style="color:var(--g)">"value": 2</strong>,
+            "bounding-box": { "x": 56.10, "y": 63.05, "width": 8.71, "height": 12.12 }
+          }
+        ]
+      },
+      { "type": "number", "label": "3", "value": 3 }
+    ]
+  }],
+  "label": "1+2=3",
+  "version": "3", "id": "MainBlock"
+}</code></pre>
+  <p style="color:var(--t2);font-size:.82rem;margin-top:8px">JIIX 包含完整的 AST 語法樹、每個符號的 bounding-box 座標、Solver 計算值。<strong>資訊最豐富但需大量程式碼解析渲染。</strong></p></div></details>
+
+  <h3>📊 JIIX — Diagram（三角形）</h3>
+  <details><summary>📋 展開查看 Diagram JIIX 範例（三角形）</summary><div class="ex-body"><pre><code>{
+  "type": "Diagram",
+  "elements": [{
+    "type": "Node",
+    <strong style="color:var(--cy)">"kind": "triangle"</strong>,
+    "orientation": 0.177,
+    "items": [
+      { "type": "line", "x1": 97.31, "y1": 108.46, "x2": 85.78, "y2": 122.13 },
+      { "type": "line", "x1": 85.78, "y1": 122.13, "x2": 103.38, "y2": 125.28 },
+      { "type": "line", "x1": 103.38, "y1": 125.28, "x2": 97.31, "y2": 108.46 }
+    ],
+    "fill-color": "#00000000",
+    "points": [97.31, 108.46, 85.78, 122.13, 103.38, 125.28]
+  }],
+  "version": "3"
+}</code></pre></div></details>
+
+  <details><summary>📋 展開查看 Diagram JIIX 範例（矩形）</summary><div class="ex-body"><pre><code>{
+  "type": "Diagram",
+  "elements": [{
+    "type": "Node",
+    <strong style="color:var(--cy)">"kind": "rectangle"</strong>,
+    "x": 20.95, "y": 19.45, "width": 10.32, "height": 10.32,
+    "items": [
+      { "type": "line", "x1": 20.95, "y1": 19.45, "x2": 31.26, "y2": 19.45 },
+      { "type": "line", "x1": 31.26, "y1": 19.45, "x2": 31.26, "y2": 29.77 },
+      { "type": "line", "x1": 31.26, "y1": 29.77, "x2": 20.95, "y2": 29.77 },
+      { "type": "line", "x1": 20.95, "y1": 29.77, "x2": 20.95, "y2": 19.45 }
+    ]
+  }],
+  "version": "3"
+}</code></pre></div></details>
+</div>
+
+<!-- === 方案評估 === -->
+<h2 id="s-eval">六、四種實作方案評估</h2>
+<div class="cd">
+  <table>
+    <thead><tr><th>方案</th><th>原理</th><th>優點</th><th>致命缺點</th></tr></thead>
+    <tbody>
+      <tr><td><strong>A. LaTeX+KaTeX</strong><br><span class="bg bg-r">不推薦</span></td><td>export LATEX → WebView + KaTeX.js 渲染</td><td>渲染品質佳、跨平台</td><td>❌ 需嵌入 WebView（肥大、慢、E-ink 閃爍）<br>❌ 需打包 KaTeX JS/CSS (~300KB+)</td></tr>
+      <tr><td><strong>B. MathML</strong><br><span class="bg bg-r">不推薦</span></td><td>export MATHML → WebView 原生 MathML</td><td>W3C 標準</td><td>❌ Android WebView MathML 支援極差<br>❌ 仍需 WebView</td></tr>
+      <tr><td><strong>C. JIIX 自繪</strong><br><span class="bg bg-o">可行但過於複雜</span></td><td>export JIIX → 解析 JSON → Canvas 自行繪製</td><td>原生、結構化</td><td>❌ 需自行實作所有符號渲染（=重寫 Math Renderer）<br>❌ 工時 16-23 天</td></tr>
+      <tr><td><strong>D. Native PNG</strong><br><span class="bg bg-g">✅ 推薦</span></td><td>convert → STIX 字型 + ImagePainter → export PNG<br>同時 export LATEX 備用</td><td>✅ 不需 WebView<br>✅ 品質最高<br>✅ Demo App 已驗證<br>✅ nNoteAS 只要貼圖</td><td>⚠️ 點陣圖放大可能模糊（足夠 DPI 可緩解）</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="cd">
+  <h3>方案綜合評分</h3>
+  <table>
+    <thead><tr><th>評估維度</th><th>A. LaTeX+KaTeX</th><th>B. MathML</th><th>C. JIIX 自繪</th><th style="background:rgba(244,114,182,0.1)">D. PNG ⭐</th></tr></thead>
+    <tbody>
+      <tr><td><strong>渲染品質</strong></td><td>⭐⭐⭐⭐</td><td>⭐⭐</td><td>⭐⭐⭐</td><td><strong>⭐⭐⭐⭐⭐</strong></td></tr>
+      <tr><td><strong>開發工時</strong></td><td>8-11 天</td><td>9-12 天</td><td>16-23 天</td><td><strong>6-8 天</strong></td></tr>
+      <tr><td><strong>不需 WebView</strong></td><td class="no">❌</td><td class="no">❌</td><td class="ok">✅</td><td class="ok"><strong>✅</strong></td></tr>
+      <tr><td><strong>E-ink 相容</strong></td><td>⚠️ 閃爍</td><td>⚠️ 閃爍</td><td class="ok">✅</td><td class="ok"><strong>✅</strong></td></tr>
+      <tr><td><strong>官方驗證</strong></td><td class="no">❌</td><td class="no">❌</td><td class="no">❌</td><td class="ok"><strong>✅ Demo App</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- === PNG vs JIIX === -->
+<h2 id="s-pngjiix">七、深入比較：PNG 方案 vs JIIX 新物件方案</h2>
+<div class="cd">
+  <h3>核心差異</h3>
+  <table>
+    <thead><tr><th>比較項目</th><th style="background:rgba(52,211,153,0.08)">PNG 方案（推薦）</th><th>JIIX 新物件方案</th></tr></thead>
+    <tbody>
+      <tr><td><strong>開發量</strong></td><td><strong>8 人天</strong></td><td>17 人天（2.1 倍）</td></tr>
+      <tr><td><strong>核心檔案改動數</strong></td><td>3 個</td><td>7+ 個</td></tr>
+      <tr><td><strong>最大風險</strong></td><td>低（沿用 GraphicsImage）</td><td>高（字型渲染 + 序列化相容）</td></tr>
+      <tr><td><strong>使用者可見差異</strong></td><td>無</td><td>無</td></tr>
+      <tr><td><strong>維護成本</strong></td><td>低（不增加物件類型）</td><td>每次改 PageLayer 都要多顧一個類型</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="cd">
+  <h3>為何 JIIX 自繪品質不如 MyScript 原生 PNG？</h3>
+  <div class="hl hl-o">
+    <p>JIIX 的 <code>bounding-box</code> 是 MyScript 用<strong>自己的字型和排版引擎</strong>算出來的。我們用 <code>Paint.drawText()</code> 去畫：</p>
+    <ul>
+      <li><strong>字型不同</strong> → 大小微偏</li>
+      <li><strong>baseline 不同</strong> → 上下錯位</li>
+      <li>根號 √ 的弧線、括號 () 等<strong>無法用 drawText 完美還原</strong></li>
+      <li>分數線、上標/下標的精確對齊很難做到 MyScript 的品質</li>
+    </ul>
+    <p>→ <strong>自己畫的效果不如 MyScript 原生 PNG</strong></p>
+  </div>
+</div>
+
+<!-- === Engine Internals === -->
+<h2 id="s-engine">八、MyScript 引擎內部原理</h2>
+<div class="cd">
+  <h3>為什麼 MyScript Demo App 可以做到「擦掉部分符號、重新計算」的魔法？</h3>
+  <p>這歸功於 MyScript 的 <strong>Interactive Ink（互動式墨水）</strong>技術和內部的 <strong>JIIX 樹狀模型</strong>：</p>
+
+  <h4>Step 1：空間座標保留 — Tree Model</h4>
+  <p>手寫 <code>1 + 2 =</code> 時，引擎在記憶體建立一棵「樹」：</p>
+  <pre><code>節點1：筆跡 (辨識為 "1")  → 座標 (x:10, y:10)
+節點2：筆跡 (辨識為 "+")  → 座標 (x:30, y:10)
+節點3：筆跡 (辨識為 "2")  → 座標 (x:50, y:10)
+節點4：筆跡 (辨識為 "=")  → 座標 (x:70, y:10)</code></pre>
+
+  <h4>Step 2：Convert — 偷天換日</h4>
+  <p><code>editor.convert(DIGITAL_EDIT)</code> 並<strong>不是截圖</strong>。而是：</p>
+  <ul>
+    <li>刪除原本的「手寫筆跡」節點</li>
+    <li>替換成「數位字元」節點</li>
+    <li><strong>保留原始座標</strong>，在該座標上使用 STIX 字型渲染印刷體</li>
+  </ul>
+  <p>在引擎眼裡，畫面上<strong>不是圖片</strong>，是一群「<strong>帶有座標和語意的數位物件</strong>」。</p>
+
+  <h4>Step 3：橡皮擦 — 碰撞偵測</h4>
+  <p>橡皮擦滑過 <code>2</code> 的區域 → 引擎計算碰撞 → 從樹中移除對應節點 → 重新排版。</p>
+
+  <h4>Step 4：Live Solver — 即時重算</h4>
+  <p>擦掉 <code>2</code>，手寫 <code>5</code> → 引擎偵測新筆跡 → 觸發 Reflow → Solver 重算 <code>1+5=6</code> → 自動更新結果。</p>
+</div>
+<div class="cd">
+  <h3>為何 nNoteAS 目前做不到？</h3>
+  <div class="hl hl-r">
+    <ol>
+      <li><strong>切斷物件連結：</strong>nNoteAS 把筆跡丟給 nOCR「黑箱」處理</li>
+      <li><strong>nOCR 完成排版：</strong>引擎內部建好完整的互動式樹狀結構</li>
+      <li><strong>截圖成 PNG：</strong>由於架構設計（避免引擎佔用 nNoteAS 記憶體），nOCR 最終只是把樹「截圖成一張靜態 PNG」 → <strong>拍遺照 (Rasterize)</strong></li>
+      <li><strong>貼回 nNoteAS：</strong>對畫布來說這只是一塊 Bitmap，無法知道哪裡是 <code>1</code>、哪裡是 <code>3</code></li>
+    </ol>
+    <p>→ 橡皮擦只能擦像素，無法通知引擎「使用者擦掉了 2，請重算 1+5」</p>
+  </div>
+  <div class="hl hl-g" style="margin-top:10px">
+    <p>💡 <strong>妥協方案：雙擊還原</strong>。使用者雙擊公式圖片 → 圖片消失 → 原始筆跡恢復 → 可重新編輯或重新辨識。以最小改動實現「<strong>可逆辨識</strong>」。</p>
+  </div>
+</div>
+
+<!-- === Object Mapping === -->
+<h2 id="s-obj">九、辨識類型 → nNoteAS 物件對照表</h2>
+<div class="cd">
+  <table>
+    <thead><tr><th>OCR 類型</th><th>建立的物件</th><th>來源格式</th><th>關鍵參數</th></tr></thead>
+    <tbody>
+      <tr><td><strong>文字辨識</strong></td><td>📝 <code>TextBox</code></td><td>文字字串</td><td>textString, position(x,y), fontFamily, fontSize, fontColor</td></tr>
+      <tr><td rowspan="5"><strong>圖形辨識</strong></td><td>📏 <code>GraphicsLine</code></td><td>JIIX</td><td>x1, y1, x2, y2, penColor, penThickness, arrowDecoration</td></tr>
+      <tr><td>📐 <code>GraphicsRectangle</code></td><td>JIIX</td><td>topLeft(x,y), bottomRight(x,y), penColor, penThickness</td></tr>
+      <tr><td>⭕ <code>GraphicsOval</code></td><td>JIIX</td><td>topLeft(x,y), bottomRight(x,y), penColor, penThickness</td></tr>
+      <tr><td>🔺 <code>GraphicsTriangle</code></td><td>JIIX</td><td>3 個頂點 (x,y), penColor, penThickness</td></tr>
+      <tr><td>🌙 <code>GraphicsArc</code></td><td>JIIX</td><td>控制點, penColor, penThickness</td></tr>
+      <tr><td><strong>數學辨識</strong></td><td>🖼️ <code>GraphicsImage</code></td><td><strong>PNG 檔案</strong></td><td>pngFilePath, position(x,y), width, height, <strong>isMathImage</strong>, <strong>originalHandwriting</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="hl hl-m">
+    <p>📌 <strong>設計邏輯：</strong></p>
+    <ul>
+      <li><strong>圖形</strong>：JIIX → 解析 JSON → 拆成多個獨立原生物件（每個圖形本身獨立）</li>
+      <li><strong>文字</strong>：辨識字串 → 一個 TextBox</li>
+      <li><strong>數學</strong>：PNG → 一個 GraphicsImage（公式是一個整體，不適合拆散）</li>
+    </ul>
+  </div>
+</div>
+
+<!-- === Timeline === -->
+<h2 id="s-timeline">十、開發時程（6-8 天）</h2>
+<div class="cd">
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 1 — AIDL 介面 + nOCR 基礎</div><ul><li>AIDL 新增 <code>strokeMathData()</code> / <code>strokeMathDataWithSolver()</code></li><li><code>MainService</code> 實作入口</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 2 — Math Engine 核心</div><ul><li><code>getMyScriptEditorMathType()</code> — Math ContentPart</li><li><code>setMathSolverEnable()</code></li><li><code>getStrokePointsArrayRecognitionMath()</code> — pointerEvents + convert</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 3 — PNG 渲染 + STIX 字型</div><ul><li>移植 ImagePainter、FontUtils、stix_regular.otf</li><li>setTheme(STIX CSS) + export_(PNG) + export_(LATEX)</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 4 — nNoteAS Client（上）</div><ul><li>AIDL 橋接 + 套索選取觸發</li><li>新增 OcrMathBoxEditorDialogFragment + Layout</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 5 — nNoteAS Client（下）</div><ul><li>createMathGraphicsImage() — 尺寸/偏移/檔案複製</li><li>Undo/Redo + 保留/取代筆跡</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 6 — 雙擊還原機制</div><ul><li>GraphicsImage 新增 isMathImage + originalHandwriting</li><li>Protocol v2 序列化 + onDoubleTap() 還原</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 7 — 測試與除錯</div><ul><li>各類公式測試 + Solver + E-ink 實機</li></ul></div>
+  <div class="tl"><div class="dt"></div><div class="dy">DAY 8 — Buffer + 優化</div><ul><li>Edge case + 解析度優化 + Code Review</li></ul></div>
+</div>
+
+<!-- === Risk === -->
+<h2 id="s-risk">十一、風險評估</h2>
+<div class="cd">
+  <table>
+    <thead><tr><th>風險</th><th>等級</th><th>應對</th></tr></thead>
+    <tbody>
+      <tr><td>STIX 字型移植</td><td>🟡 中</td><td>完整移植 Demo App FontUtils + 字型檔</td></tr>
+      <tr><td>E-ink PNG 品質</td><td>🟡 中</td><td>調高 DPI、黑白主題</td></tr>
+      <tr><td>AIDL 結果溢位</td><td>🟢 低</td><td>已有暫存檔機制（>5000字元走檔案）</td></tr>
+      <tr><td>序列化向後相容</td><td>🟡 中</td><td>Protocol v2 偵測版本、v1 預設 isMathImage=false</td></tr>
+      <tr><td>ImagePainter 依賴</td><td>🟡 中</td><td>僅移植必要類別，減少耦合</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="cd"><div class="hl hl-g">
+  <h3>✅ 結論：建議執行方案 D（Native PNG + LaTeX 備用）</h3>
+  <p>nNoteAS 不需知道怎麼畫數學符號，只要「顯示一張圖」。所有排版與字型處理交給 MyScript 原生引擎（nOCR 內）。<strong>工時最短、品質最高、風險最低。</strong></p>
+</div></div>
+
+<p style="text-align:center;color:var(--t2);margin-top:44px;font-size:.83rem">Prepared by Engineering Team · Confidential · Estimated: 6-8 Working Days</p>
+</div>
+
+<script>
+(function(){var n=document.querySelectorAll('.nav a'),s=[];n.forEach(function(a){s.push(document.querySelector(a.getAttribute('href')))});window.addEventListener('scroll',function(){var y=window.scrollY+80,idx=0;for(var i=s.length-1;i>=0;i--){if(s[i]&&s[i].offsetTop<=y){idx=i;break}}n.forEach(function(a,i){a.classList.toggle('active',i===idx)})})})();
+(function(){var lb=document.getElementById('lbx'),cl=document.getElementById('lbC');document.querySelectorAll('.diagram-box').forEach(function(b){b.addEventListener('click',function(){var svg=b.querySelector('svg');if(!svg)return;var c=svg.cloneNode(true);c.style.maxWidth='95vw';c.style.maxHeight='90vh';lb.querySelectorAll('svg').forEach(function(s){s.remove()});lb.appendChild(c);lb.classList.add('show')})});function clb(){lb.classList.remove('show');lb.querySelectorAll('svg').forEach(function(s){s.remove()})}cl.addEventListener('click',clb);lb.addEventListener('click',function(e){if(e.target===lb)clb()});document.addEventListener('keydown',function(e){if(e.key==='Escape')clb()})})();
+</script>
+</body>
+</html>

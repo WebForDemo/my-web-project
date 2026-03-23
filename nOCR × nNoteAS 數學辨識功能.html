@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nOCR × nNoteAS 數學辨識功能 — 完整技術報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #6366f1; --accent2: #818cf8; --green: #34d399;
+    --orange: #fb923c; --red: #f87171; --cyan: #22d3ee;
+    --math: #f472b6; --math2: #ec4899; --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
+  h1 { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--math), var(--cyan)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: var(--text2); font-size: 1rem; margin-bottom: 48px; }
+  h2 { font-size: 1.4rem; font-weight: 700; color: var(--math); margin: 48px 0 20px; padding-left: 16px; border-left: 4px solid var(--math2); }
+  h3 { font-size: 1.05rem; font-weight: 600; color: var(--cyan); margin: 16px 0 8px; }
+  h4 { font-size: 0.95rem; font-weight: 600; color: var(--accent2); margin: 12px 0 6px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+  .card:hover { border-color: var(--accent); box-shadow: 0 0 24px rgba(99,102,241,0.06); }
+  p, li { color: var(--text2); font-size: 0.93rem; }
+  ul, ol { padding-left: 20px; } li { margin: 5px 0; }
+  strong { color: var(--text); }
+  code { background: var(--surface2); color: var(--green); padding: 2px 7px; border-radius: 6px; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border); font-size: 0.88rem; }
+  th { background: var(--surface2); color: var(--math); font-weight: 600; }
+  td { color: var(--text2); }
+  tr:hover td { background: rgba(99,102,241,0.04); }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.76rem; font-weight: 700; }
+  .badge-math { background: rgba(244,114,182,0.15); color: var(--math); }
+  .badge-old { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-new { background: rgba(52,211,153,0.15); color: var(--green); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.5rem; } .top-nav a { padding: 10px 8px; font-size: 0.72rem; } }
+  .top-nav { position: sticky; top: 0; z-index: 999; background: rgba(10,14,26,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0; display: flex; justify-content: center; flex-wrap: wrap; }
+  .top-nav a { display: inline-block; padding: 14px 14px; color: var(--text2); text-decoration: none; font-size: 0.82rem; font-weight: 600; transition: all 0.25s; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .top-nav a:hover { color: var(--math); background: rgba(244,114,182,0.06); }
+  .top-nav a.active { color: var(--math); border-bottom-color: var(--math); }
+  .highlight-box { border-radius: 12px; padding: 16px 20px; margin: 12px 0; }
+  .highlight-green { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); }
+  .highlight-red { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); }
+  .highlight-math { background: rgba(244,114,182,0.06); border: 1px solid rgba(244,114,182,0.2); }
+  .highlight-orange { background: rgba(251,146,60,0.06); border: 1px solid rgba(251,146,60,0.2); }
+  .flow li { margin: 8px 0; padding: 6px 0; border-bottom: 1px solid rgba(51,65,85,0.5); }
+  .flow li:last-child { border-bottom: none; }
+  .flow-math li::marker { color: var(--math); font-weight: 700; }
+  .diagram-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 12px 0; text-align: center; cursor: pointer; position: relative; transition: border-color 0.3s; }
+  .diagram-box:hover { border-color: var(--math); }
+  .diagram-box::after { content:'🔍 點擊放大'; position:absolute; bottom:4px; right:12px; font-size:0.7rem; color:var(--text2); opacity:0; transition:opacity 0.3s; }
+  .diagram-box:hover::after { opacity:1; }
+  .video-container { position: relative; width: 100%; padding-bottom: 56.25%; margin: 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  .video-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+  pre { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; overflow-x: auto; margin: 10px 0; }
+  pre code { background: none; padding: 0; font-size: 0.82rem; color: var(--text2); }
+  .diff-add { color: var(--green); }
+  .diff-del { color: var(--red); }
+  .note-box { background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.2); border-radius: 12px; padding: 14px 18px; margin: 12px 0; }
+  .note-box::before { content: '📝 NOTE'; display: block; font-size: 0.75rem; font-weight: 700; color: var(--cyan); margin-bottom: 6px; }
+  .step-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--math2); color: #fff; font-size: 0.82rem; font-weight: 700; margin-right: 8px; flex-shrink: 0; }
+  /* Lightbox */
+  .lightbox { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); z-index:9999; justify-content:center; align-items:center; cursor:grab; }
+  .lightbox.show { display:flex; }
+  .lightbox svg { max-width:95vw; max-height:90vh; transition:transform 0.1s; cursor:grab; }
+  .lightbox-close { position:absolute; top:18px; right:28px; color:#fff; font-size:2rem; cursor:pointer; z-index:10000; }
+</style>
+</head>
+<body>
+<div class="lightbox" id="lightbox"><span class="lightbox-close" id="lbClose">✕</span></div>
+
+<nav class="top-nav" id="topNav">
+  <a href="#sec-overview" class="active">總覽</a>
+  <a href="#sec-terms">專有名詞</a>
+  <a href="#sec-arch">架構圖</a>
+  <a href="#sec-stage1">階段一：觸發</a>
+  <a href="#sec-stage2">階段二：引擎</a>
+  <a href="#sec-stage3">階段三：確認</a>
+  <a href="#sec-stage4">階段四：畫布</a>
+  <a href="#sec-compare">新舊對比</a>
+  <a href="#sec-revert">雙擊還原</a>
+  <a href="#sec-files">檔案清單</a>
+  <a href="#sec-demo">🎬 Demo</a>
+</nav>
+
+<div class="container">
+
+<h1>nOCR × nNoteAS 數學辨識功能</h1>
+<p class="subtitle">Math Recognition + Double-Tap Revert — 從手寫到印刷級 PNG 的完整技術報告</p>
+
+<!-- ============ Overview ============ -->
+<h2 id="sec-overview">總覽</h2>
+<div class="card">
+  <h3>這份報告包含兩大功能</h3>
+  <table>
+    <thead><tr><th>功能</th><th>說明</th><th>核心改變</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-math">Math 實作</span></td>
+        <td>手寫數學公式 → 辨識 → 產出教科書級 PNG 圖片</td>
+        <td>淘汰 KaTeX WebView，改用 MyScript 原生 PNG 渲染</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-new">雙擊還原</span></td>
+        <td>雙擊數學圖片 → 圖片消失 → 恢復原始手寫筆跡</td>
+        <td>GraphicsImage 嵌入原始筆跡，支援後悔操作</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Terms ============ -->
+<h2 id="sec-terms">專有名詞解釋</h2>
+
+<div class="two-col">
+  <div class="card">
+    <h3>LaTeX — 文字版的簡譜</h3>
+    <p>你手寫了 <strong>½</strong>，辨識引擎給你的是一串<strong>純文字密碼</strong>：<code>\frac{1}{2}</code></p>
+    <ul>
+      <li><strong>全名：</strong>Lamport TeX</li>
+      <li><strong>定位：</strong>排版語言標準</li>
+      <li><strong>缺點：</strong>只是文字，普通人看不懂</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>KaTeX — 網頁版的翻譯機</h3>
+    <p><span class="badge badge-old">舊作法</span> 在 App 裡開一個隱藏的 WebView，把 LaTeX 字串丟給 KaTeX 翻譯成數學圖形。</p>
+    <ul>
+      <li><strong>全名：</strong>Khan Academy TeX</li>
+      <li><strong>定位：</strong>JavaScript 渲染函式庫</li>
+      <li><strong>缺點：</strong>開網頁慢、耗效能、排版有時怪</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <h3>其他關鍵名詞</h3>
+  <table>
+    <thead><tr><th>縮寫</th><th>全名</th><th>用在哪？</th></tr></thead>
+    <tbody>
+      <tr><td><strong>STIX</strong></td><td>Scientific and Technical Information eXchange</td><td>決定 App 顯示公式時<strong>好不好看</strong>（數學專用字型）</td></tr>
+      <tr><td><strong>JIIX</strong></td><td>JSON Interactive Ink eXchange</td><td>讓 App 做<strong>邏輯處理</strong>（MyScript 的結構化輸出格式）</td></tr>
+      <tr><td><strong>MathML</strong></td><td>Mathematical Markup Language</td><td>讓 App <strong>跨平台呈現</strong>（在網頁或 WebView 顯示）</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Architecture ============ -->
+<h2 id="sec-arch">架構圖</h2>
+<div class="card">
+  <h3>簡易架構圖 — 數學辨識的資料流向</h3>
+  <div class="diagram-box">
+    <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;">
+      <rect x="10" y="10" width="350" height="280" rx="16" fill="rgba(99,102,241,0.06)" stroke="#334155"/>
+      <text x="185" y="40" text-anchor="middle" fill="#818cf8" font-size="15" font-weight="800">nNoteAS (Client)</text>
+      <rect x="540" y="10" width="350" height="280" rx="16" fill="rgba(52,211,153,0.06)" stroke="#334155"/>
+      <text x="715" y="40" text-anchor="middle" fill="#34d399" font-size="15" font-weight="800">nOCR (Server)</text>
+      <rect x="30" y="60" width="150" height="44" rx="10" fill="#1e293b" stroke="#818cf8"/>
+      <text x="105" y="78" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="600">HandwriterView</text>
+      <text x="105" y="93" text-anchor="middle" fill="#94a3b8" font-size="8">套索選取 + 序列化</text>
+      <rect x="190" y="60" width="150" height="44" rx="10" fill="#1e293b" stroke="#818cf8"/>
+      <text x="265" y="78" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="600">NtxNoteApplication</text>
+      <text x="265" y="93" text-anchor="middle" fill="#94a3b8" font-size="8">AIDL 橋接層</text>
+      <rect x="30" y="140" width="310" height="44" rx="10" fill="#1e293b" stroke="#f472b6"/>
+      <text x="185" y="158" text-anchor="middle" fill="#f472b6" font-size="10" font-weight="600">OcrMathBoxEditorDialogFragment</text>
+      <text x="185" y="173" text-anchor="middle" fill="#94a3b8" font-size="8">PNG 預覽 + 保留/取代 + Solver 開關</text>
+      <rect x="30" y="220" width="310" height="44" rx="10" fill="#1e293b" stroke="#34d399"/>
+      <text x="185" y="238" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">createMathGraphicsImage()</text>
+      <text x="185" y="253" text-anchor="middle" fill="#94a3b8" font-size="8">PNG → GraphicsImage + Undo/Redo</text>
+      <rect x="560" y="60" width="150" height="44" rx="10" fill="#1e293b" stroke="#34d399"/>
+      <text x="635" y="78" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">MainService</text>
+      <text x="635" y="93" text-anchor="middle" fill="#94a3b8" font-size="8">AIDL 入口</text>
+      <rect x="720" y="60" width="150" height="44" rx="10" fill="#1e293b" stroke="#34d399"/>
+      <text x="795" y="78" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">CommonMethods</text>
+      <text x="795" y="93" text-anchor="middle" fill="#94a3b8" font-size="8">Math 辨識 + PNG 渲染</text>
+      <rect x="560" y="140" width="150" height="44" rx="10" fill="#1e293b" stroke="#f472b6"/>
+      <text x="635" y="158" text-anchor="middle" fill="#f472b6" font-size="10" font-weight="600">Math Editor</text>
+      <text x="635" y="173" text-anchor="middle" fill="#94a3b8" font-size="8">Part="Math" + STIX</text>
+      <rect x="720" y="140" width="150" height="44" rx="10" fill="#1e293b" stroke="#f472b6"/>
+      <text x="795" y="158" text-anchor="middle" fill="#f472b6" font-size="10" font-weight="600">ImagePainter</text>
+      <text x="795" y="173" text-anchor="middle" fill="#94a3b8" font-size="8">STIX 字型 → PNG</text>
+      <defs><marker id="arr1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f472b6"/></marker><marker id="arr2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#34d399"/></marker></defs>
+      <line x1="340" y1="82" x2="558" y2="82" stroke="#f472b6" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#arr1)"/>
+      <text x="449" y="72" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">AIDL strokeMathDataWithSolver()</text>
+      <line x1="558" y1="162" x2="340" y2="155" stroke="#34d399" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arr2)"/>
+      <text x="449" y="149" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">pngPath|||latex</text>
+    </svg>
+  </div>
+</div>
+
+<div class="card">
+  <h3>詳細資料流 — 四階段管線圖</h3>
+  <div class="diagram-box">
+    <svg viewBox="0 0 950 480" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:950px;">
+      <defs>
+        <marker id="a1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f472b6"/></marker>
+        <marker id="a1r" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#34d399"/></marker>
+      </defs>
+      <!-- Phase labels -->
+      <rect x="10" y="8" width="225" height="20" rx="4" fill="rgba(129,140,248,0.15)"/><text x="122" y="22" text-anchor="middle" fill="#818cf8" font-size="10" font-weight="700">階段一：觸發與收集</text>
+      <rect x="240" y="8" width="225" height="20" rx="4" fill="rgba(244,114,182,0.15)"/><text x="352" y="22" text-anchor="middle" fill="#f472b6" font-size="10" font-weight="700">階段二：引擎魔法</text>
+      <rect x="470" y="8" width="225" height="20" rx="4" fill="rgba(52,211,153,0.15)"/><text x="582" y="22" text-anchor="middle" fill="#34d399" font-size="10" font-weight="700">階段三：使用者確認</text>
+      <rect x="700" y="8" width="240" height="20" rx="4" fill="rgba(34,211,238,0.15)"/><text x="820" y="22" text-anchor="middle" fill="#22d3ee" font-size="10" font-weight="700">階段四：寫入畫布</text>
+
+      <!-- Stage 1 -->
+      <rect x="15" y="40" width="210" height="40" rx="8" fill="#1e293b" stroke="#818cf8"/><text x="120" y="57" text-anchor="middle" fill="#818cf8" font-size="9" font-weight="600">① 套索選取筆跡</text><text x="120" y="72" text-anchor="middle" fill="#94a3b8" font-size="8">recognizeNooseSelectMath()</text>
+      <rect x="15" y="95" width="210" height="40" rx="8" fill="#1e293b" stroke="#334155"/><text x="120" y="112" text-anchor="middle" fill="#e2e8f0" font-size="9">② StrokePoints → JSON</text><text x="120" y="127" text-anchor="middle" fill="#94a3b8" font-size="8">Gson 序列化（≥100筆 → 暫存檔）</text>
+      <rect x="15" y="150" width="210" height="40" rx="8" fill="#1e293b" stroke="#f472b6"/><text x="120" y="167" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">③ AIDL 同步呼叫</text><text x="120" y="182" text-anchor="middle" fill="#94a3b8" font-size="8">strokeMathDataWithSolver()</text>
+
+      <line x1="225" y1="170" x2="250" y2="55" stroke="#f472b6" stroke-width="1.5" marker-end="url(#a1)"/>
+
+      <!-- Stage 2 -->
+      <rect x="250" y="40" width="210" height="44" rx="8" fill="#1e293b" stroke="#f472b6"/><text x="355" y="57" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">④ 建立 Math Editor</text><text x="355" y="72" text-anchor="middle" fill="#94a3b8" font-size="8">ContentPart("Math") + STIX CSS</text>
+      <rect x="250" y="100" width="210" height="40" rx="8" fill="#1e293b" stroke="#f472b6"/><text x="355" y="117" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">⑤ 設定 Solver</text><text x="355" y="132" text-anchor="middle" fill="#94a3b8" font-size="8">math.solver.enable = true/false</text>
+      <rect x="250" y="155" width="210" height="48" rx="8" fill="#1e293b" stroke="#f472b6"/><text x="355" y="172" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">⑥ 辨識 + 排版</text><text x="355" y="186" text-anchor="middle" fill="#94a3b8" font-size="8">pointerEvents → waitForIdle</text><text x="355" y="197" text-anchor="middle" fill="#94a3b8" font-size="8">convert(DIGITAL_EDIT) 🪄</text>
+      <rect x="250" y="218" width="210" height="48" rx="8" fill="#1e293b" stroke="#f472b6"/><text x="355" y="235" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">⑦ 雙重 Export</text><text x="355" y="249" text-anchor="middle" fill="#94a3b8" font-size="8">export_(PNG, ImagePainter) 📸</text><text x="355" y="260" text-anchor="middle" fill="#94a3b8" font-size="8">export_(LATEX) → "x^{2}+1"</text>
+
+      <line x1="460" y1="242" x2="485" y2="55" stroke="#34d399" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="470" y="130" text-anchor="middle" fill="#34d399" font-size="8" transform="rotate(-80,470,130)">pngPath|||latex</text>
+
+      <!-- Stage 3 -->
+      <rect x="485" y="40" width="200" height="44" rx="8" fill="#1e293b" stroke="#34d399"/><text x="585" y="57" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">⑧ 解析回傳字串</text><text x="585" y="72" text-anchor="middle" fill="#94a3b8" font-size="8">split("|||") → pngPath + latex</text>
+      <rect x="485" y="100" width="200" height="48" rx="8" fill="#1e293b" stroke="#34d399"/><text x="585" y="117" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">⑨ 預覽對話框</text><text x="585" y="131" text-anchor="middle" fill="#94a3b8" font-size="8">OcrMathBoxEditorDialogFragment</text><text x="585" y="142" text-anchor="middle" fill="#94a3b8" font-size="8">ImageView 顯示 PNG</text>
+      <rect x="485" y="167" width="200" height="48" rx="8" fill="#1e293b" stroke="#34d399"/><text x="585" y="184" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">⑩ 使用者選擇</text><text x="585" y="198" text-anchor="middle" fill="#94a3b8" font-size="8">保留筆跡 / 取代筆跡</text><text x="585" y="209" text-anchor="middle" fill="#94a3b8" font-size="8">Solver ON/OFF 可切換重辨</text>
+
+      <line x1="685" y1="190" x2="710" y2="55" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#a1)"/>
+
+      <!-- Stage 4 -->
+      <rect x="710" y="40" width="230" height="48" rx="8" fill="#1e293b" stroke="#22d3ee"/><text x="825" y="57" text-anchor="middle" fill="#22d3ee" font-size="9" font-weight="600">⑪ createMathGraphicsImage()</text><text x="825" y="72" text-anchor="middle" fill="#94a3b8" font-size="8">讀取 PNG → 計算尺寸(1.5x) → 偏移</text><text x="825" y="83" text-anchor="middle" fill="#94a3b8" font-size="8">複製到 BookDirectory</text>
+      <rect x="710" y="105" width="230" height="44" rx="8" fill="#1e293b" stroke="#22d3ee"/><text x="825" y="122" text-anchor="middle" fill="#22d3ee" font-size="9" font-weight="600">⑫ 嵌入原始筆跡</text><text x="825" y="137" text-anchor="middle" fill="#94a3b8" font-size="8">isMathImage=true</text><text x="825" y="148" text-anchor="middle" fill="#94a3b8" font-size="8">setOriginalHandwriting(cloneStrokes)</text>
+      <rect x="710" y="165" width="230" height="40" rx="8" fill="#1e293b" stroke="#22d3ee"/><text x="825" y="182" text-anchor="middle" fill="#22d3ee" font-size="9" font-weight="600">⑬ Undo/Redo 整合</text><text x="825" y="197" text-anchor="middle" fill="#94a3b8" font-size="8">GraphicsImage → 歷史軌跡</text>
+
+      <!-- Double-tap area -->
+      <rect x="710" y="240" width="230" height="95" rx="12" fill="rgba(244,114,182,0.05)" stroke="#f472b6" stroke-dasharray="4,3"/>
+      <text x="825" y="260" text-anchor="middle" fill="#f472b6" font-size="10" font-weight="700">✌️ 雙擊還原</text>
+      <rect x="720" y="270" width="210" height="52" rx="8" fill="#1e293b" stroke="#f472b6"/><text x="825" y="288" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">onDoubleTap()</text><text x="825" y="302" text-anchor="middle" fill="#94a3b8" font-size="8">移除圖片 → 恢復筆跡</text><text x="825" y="313" text-anchor="middle" fill="#94a3b8" font-size="8">重繪 Canvas</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ============ Stage 1 ============ -->
+<h2 id="sec-stage1">階段一：觸發與收集筆跡 (nNoteAS 端)</h2>
+<div class="card">
+  <p>使用者在畫布上框選手寫算式，並點擊「數學辨識」按鈕：</p>
+  <ol class="flow flow-math">
+    <li><code>HandwriterView</code> 收集被選取的筆跡（<code>List&lt;Graphics&gt; selectedStrokes</code>），排除螢光筆</li>
+    <li>將筆跡的 x, y 座標打包為 <code>ArrayList&lt;StrokePoints&gt;</code>，用 <code>Gson</code> 序列化為 JSON</li>
+    <li>若筆跡數 <strong>≥ 100</strong> → 先寫入暫存檔（避免 AIDL Binder 傳輸上限）</li>
+    <li>透過 AIDL 呼叫 <code>NtxNoteApplication.recognizeNooseSelectMathResult(json, enableSolver)</code></li>
+    <li>內部先呼叫 <code>screenDirection()</code> 設定螢幕方向，再呼叫 <code>strokeMathDataWithSolver()</code>，<strong>同步阻塞等待結果</strong></li>
+  </ol>
+</div>
+
+<!-- ============ Stage 2 ============ -->
+<h2 id="sec-stage2">階段二：MyScript 引擎魔法 (nOCR 端)</h2>
+<div class="card">
+  <div class="highlight-math">
+    <p>🔑 <strong>這是此次改版最核心的地方，所有的「排版魔法」都在這裡發生。</strong></p>
+  </div>
+  <ol class="flow flow-math">
+    <li>
+      <h4>初始化 Math Editor</h4>
+      <p>呼叫 <code>getMyScriptEditorMathType()</code>，核心差異是 <code>ContentPart(<strong>"Math"</strong>)</code>（文字辨識用 <code>"Text"</code>）</p>
+    </li>
+    <li>
+      <h4>套用排版主題 (Theme CSS)</h4>
+      <pre><code>editor.setTheme(".math { font-family: STIX; } .math-variable { font-style: italic; }");</code></pre>
+      <p>告訴引擎：「<strong>用專業的 STIX 字型畫符號，且變數要斜體</strong>」。這是 Demo App 能產出精美公式的關鍵。</p>
+    </li>
+    <li>
+      <h4>設定 Math Solver</h4>
+      <p><code>setMathSolverEnable(enableSolver)</code> → 設定 <code>math.solver.enable</code>。啟用後 SDK 不僅辨識公式，還嘗試<strong>計算結果</strong>（例如 <code>2+3=</code> → 自動補上 <code>5</code>）</p>
+    </li>
+    <li>
+      <h4>筆跡注入 + 排版轉換 <span class="badge badge-math">Math 獨有</span></h4>
+      <p><code>pointerEvents(events, false)</code> 載入筆跡座標</p>
+      <p><code>convert(null, DIGITAL_EDIT)</code> ← <strong>非常關鍵的一步！</strong>指示引擎將手寫筆跡辨識並轉換為<strong>標準印刷體字形 (Typeset Glyphs)</strong>。文字辨識不做此步驟。</p>
+    </li>
+    <li>
+      <h4>準備字型與畫布</h4>
+      <ul>
+        <li>從 <code>assets/fonts/</code> 載入 <code>stix_regular.otf</code></li>
+        <li>建立 <code>TypefaceMap</code>，將字型註冊為 <code>"STIX"</code> key（對應上面的 CSS）</li>
+        <li>傳給自定義的 <code>ImagePainter</code></li>
+      </ul>
+    </li>
+    <li>
+      <h4>雙重 Export</h4>
+      <p>① <code>editor.export_(null, filePath, <strong>MimeType.PNG</strong>, imagePainter)</code> → 引擎接管 Android Canvas，使用 STIX 字型渲染成透明背景 PNG（存在快取目錄，如 <code>math_render_1234.png</code>）</p>
+      <p>② <code>editor.export_(null, <strong>MimeType.LATEX</strong>)</code> → 匯出 LaTeX 字串（備用，例如 <code>x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}</code>）</p>
+    </li>
+    <li>
+      <h4>回傳串接格式</h4>
+      <pre><code>" /data/.../cache/math_render_1234.png<span class="diff-add">|||</span>x=\frac{-b\pm\sqrt{b^2-4ac}}{2a} "</code></pre>
+      <p>大結果（>5000 字元）則寫入暫存 JSON 檔案，回傳檔案路徑。</p>
+    </li>
+  </ol>
+</div>
+
+<!-- ============ Stage 3 ============ -->
+<h2 id="sec-stage3">階段三：使用者確認介面 (nNoteAS Dialog)</h2>
+<div class="card">
+  <ol class="flow flow-math">
+    <li>收到字串後，用 <code>|||</code> 切割出 <code>pngPath</code> 和 <code>latexString</code></li>
+    <li>彈出 <code>OcrMathBoxEditorDialogFragment</code> 預覽視窗：
+      <ul>
+        <li>用 <code>BitmapFactory.decodeFile(pngPath)</code> 將 PNG 載入 <code>ImageView</code></li>
+        <li>隱藏原本的 KaTeX/LaTeX 輸入框和鍵盤，只顯示<strong>精美數學圖片</strong></li>
+        <li>提供 <code>SwitchCompat</code> 控制 Math Solver 開/關（切換後重新辨識）</li>
+      </ul>
+    </li>
+    <li>使用者選擇：
+      <ul>
+        <li><strong>取代筆跡（Replace）</strong>：傳 PNG 路徑，移除原始手寫筆跡</li>
+        <li><strong>保留筆跡（Keep）</strong>：傳 PNG 路徑，保留原始手寫筆跡</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<!-- ============ Stage 4 ============ -->
+<h2 id="sec-stage4">階段四：寫入畫布與儲存 (nNoteAS Canvas)</h2>
+<div class="card">
+  <p>Dialog 關閉後，進入 <code>createMathGraphicsImage()</code>：</p>
+  <ol class="flow flow-math">
+    <li>
+      <h4>讀取與計算尺寸 (Aspect Ratio)</h4>
+      <p>用 <code>BitmapFactory.Options.inJustDecodeBounds</code> 讀取 PNG 真實長寬。<strong>寬度設定為原筆跡的 1.5 倍</strong>（更好的閱讀體驗），依長寬比計算高度。</p>
+    </li>
+    <li>
+      <h4>位置偏移 (Offset)</h4>
+      <p>X 座標對齊原筆跡，Y 座標設在原筆跡<strong>下方 20px</strong>，避免直接重疊。</p>
+    </li>
+    <li>
+      <h4>實體檔案轉移 ⚠️ 非常重要</h4>
+      <p>原 PNG 在 nOCR 快取目錄，可能被系統刪除。透過 <strong>UUID 命名</strong>，將圖片<strong>複製到筆記本專屬的 BookDirectory</strong>，確保匯出筆記時圖片不丟失。</p>
+    </li>
+    <li>
+      <h4>嵌入原始筆跡（為雙擊還原準備）</h4>
+      <pre><code><span class="diff-add">+</span> mathImage.isMathImage = true;
+<span class="diff-add">+</span> mathImage.setOriginalHandwriting(cloneStrokes);</code></pre>
+      <p>Clone 原始 selectedStrokes 的副本存入 <code>GraphicsImage</code>，序列化時一併寫入儲存。</p>
+    </li>
+    <li>
+      <h4>Undo/Redo 整合</h4>
+      <p>建立 <code>new GraphicsImage(transform, x, y)</code>，呼叫 <code>setFile()</code> 綁定檔案，送入 Undo/Redo 歷史紀錄。Canvas 透過 <code>drawBitmap</code> 顯示。</p>
+    </li>
+  </ol>
+</div>
+
+<!-- ============ Compare ============ -->
+<h2 id="sec-compare">新舊作法對比</h2>
+<div class="card">
+  <p>假設使用者在畫布上手寫了 <strong>½</strong>（二分之一）：</p>
+</div>
+<div class="two-col">
+  <div class="card highlight-red">
+    <h3><span class="badge badge-old">❌ 舊作法</span> KaTeX 繞遠路</h3>
+    <ol>
+      <li>引擎把手寫變成 LaTeX：<code>\frac{1}{2}</code></li>
+      <li>nNoteAS 辛苦地開一個 <strong>WebView</strong></li>
+      <li>載入 KaTeX 的 JS/CSS 函式庫</li>
+      <li>拜託 KaTeX 翻譯機把字串畫出來</li>
+      <li>截圖貼到畫面上，字體普通</li>
+    </ol>
+    <p><strong>問題：</strong>慢、耗效能、WebView 肥大、排版有時出錯</p>
+  </div>
+  <div class="card highlight-green">
+    <h3><span class="badge badge-new">✅ 新作法</span> Native PNG 直通車</h3>
+    <ol>
+      <li>引擎直接辨識手寫</li>
+      <li><code>convert(DIGITAL_EDIT)</code> 轉為印刷體</li>
+      <li>拿出 <strong>STIX 字型</strong>，內部渲染</li>
+      <li>直接存成一張教科書級 PNG</li>
+      <li>nNoteAS 把它當圖片貼上畫布</li>
+    </ol>
+    <p><strong>好處：</strong>完全解耦、不需要 WebView、速度快、品質高</p>
+  </div>
+</div>
+<div class="card">
+  <div class="highlight-green">
+    <p>💡 <strong>核心哲學：</strong>nNoteAS 不需要知道怎麼畫數學符號，它就只是「顯示一張圖」。所有複雜的排版與字型處理，都交給本來就很擅長這件事的 <strong>MyScript 原生引擎</strong>（在 nOCR 裡）。</p>
+  </div>
+</div>
+
+<!-- ============ Double-tap Revert ============ -->
+<h2 id="sec-revert">雙擊還原功能</h2>
+<div class="card">
+  <h3>問題背景</h3>
+  <p>數學辨識將手寫筆跡轉為 PNG 圖片後，使用者<strong>無法編輯或擦除公式中的部分內容</strong>。需要一個「後悔藥」機制：雙擊數學圖片時，圖片消失，恢復原始手寫筆跡。</p>
+</div>
+
+<div class="card">
+  <h3>實作步驟</h3>
+  <table>
+    <thead><tr><th>步驟</th><th>修改檔案</th><th>做什麼</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="step-num">1</span></td>
+        <td><code>GraphicsImage.java</code></td>
+        <td>
+          新增兩個欄位：<br>
+          <code>boolean isMathImage</code> — 標記是否為數學辨識產生的圖片<br>
+          <code>List&lt;Graphics&gt; originalHandwriting</code> — 存放原始筆跡副本<br>
+          Protocol v2 序列化支援新欄位
+        </td>
+      </tr>
+      <tr>
+        <td><span class="step-num">2</span></td>
+        <td><code>HandwriterView.java</code><br><code>createMathGraphicsImage()</code></td>
+        <td>建立 Math Image 時先 clone 筆跡再存入：
+          <pre><code>ArrayList&lt;Graphics&gt; cloneStrokes = new ArrayList&lt;&gt;();
+for (Graphics g : selectedStrokes) {
+    if (g instanceof Stroke)
+        cloneStrokes.add(((Stroke) g).getCloneGraphics());
+}
+mathImage.isMathImage = true;
+mathImage.setOriginalHandwriting(cloneStrokes);</code></pre>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="step-num">3</span></td>
+        <td><code>HandwriterView.java</code><br><code>GestureListener</code></td>
+        <td><strong>手指雙擊還原（唯一入口）：</strong>
+          <pre><code>@Override
+public boolean onDoubleTap(MotionEvent e) {
+    for (GraphicsImage img : pageLayer.images) {
+        if (img.isMathImage && img.getOriginalHandwriting() != null) {
+            if (img.getBoundingBox().contains(tapX, tapY)) {
+                page.removeImage(img);          // 1. 移除圖片
+                for (Graphics s : img.getOriginalHandwriting()) {
+                    page.addStroke((Stroke) s);  // 2. 恢復筆跡
+                }
+                nDrawHelper.aDrawClearCanvas();  // 3. 重繪
+                return true;
+            }
+        }
+    }
+    return false;
+}</code></pre>
+        </td>
+      </tr>
+      <tr>
+        <td><span class="step-num">4</span></td>
+        <td><code>HandwriterView.java</code><br><code>strokesToGraphics()</code></td>
+        <td>修復重繪問題：確保還原的筆跡能正確渲染在 Canvas 上</td>
+      </tr>
+      <tr>
+        <td><span class="step-num">5</span></td>
+        <td><code>HandwriterView.java</code><br><code>remove_for_erase()</code></td>
+        <td>修復橡皮擦行為：確保數學圖片被擦除時正確處理</td>
+      </tr>
+      <tr>
+        <td><span class="step-num">6</span></td>
+        <td><code>OcrMathBoxEditor<br>DialogFragment</code></td>
+        <td>移除不需要的 Math Dialog 插入按鈕（簡化 UI）</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="note-box">
+    觸控筆雙擊和橡皮擦<strong>不會觸發還原</strong>，維持原本的 zoomOut / 擦除行為。只有<strong>手指雙擊</strong>觸發。<br>
+    E-ink 裝置上，手指事件走 <code>GestureDetector</code>，不走 <code>TouchHandler</code>。
+  </div>
+</div>
+
+<div class="card">
+  <h3>序列化格式（Protocol v2）</h3>
+  <pre><code>Protocol v1: uuid, 座標, constrainAspect
+Protocol v2: v1 的所有欄位 + <span class="diff-add">isMathImage</span> + <span class="diff-add">originalHandwriting</span> 筆跡數量 + 每條筆跡的完整資料</code></pre>
+  <p><code>writeToStream()</code> 和 <code>DataInputStream</code> 建構子支援讀寫這兩個新欄位，<strong>向後相容</strong>：v1 格式的檔案讀入時 <code>isMathImage</code> 預設為 <code>false</code>。</p>
+</div>
+
+<!-- ============ Files ============ -->
+<h2 id="sec-files">關鍵檔案清單</h2>
+<div class="card">
+  <table>
+    <thead><tr><th>App</th><th>檔案</th><th>角色</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="5"><strong>nOCR</strong></td><td><code>OcrAidl.aidl</code></td><td>AIDL 介面：<code>strokeMathData()</code> / <code>strokeMathDataWithSolver()</code></td></tr>
+      <tr><td><code>MainService.java</code></td><td>AIDL 實作入口，接收數學辨識請求</td></tr>
+      <tr><td><code>CommonMethods.java</code></td><td>Math Editor 建立 + STIX 字型 + PNG/LaTeX Export</td></tr>
+      <tr><td><code>NtxOcrApplication.java</code></td><td><code>getMyScriptEditorMathType()</code> + <code>setMathSolverEnable()</code></td></tr>
+      <tr><td><code>assets/fonts/stix_regular.otf</code></td><td>STIX 數學字型</td></tr>
+      <tr><td rowspan="5"><strong>nNoteAS</strong></td><td><code>HandwriterView.java</code></td><td>套索選取 + Math GraphicsImage 建立 + 雙擊還原</td></tr>
+      <tr><td><code>NtxNoteApplication.java</code></td><td>AIDL 橋接</td></tr>
+      <tr><td><code>OcrMathBoxEditorDialogFragment.java</code></td><td>數學辨識結果 UI（PNG + Solver Toggle）</td></tr>
+      <tr><td><code>GraphicsImage.java</code></td><td>新增 <code>isMathImage</code> + <code>originalHandwriting</code> + Protocol v2</td></tr>
+      <tr><td><code>dialog_math_text_box.xml</code></td><td>數學對話框 Layout</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Demo ============ -->
+<h2 id="sec-demo">🎬 Demo 影片</h2>
+<div class="two-col">
+  <div class="card">
+    <h3><span class="badge badge-math">Math 實作</span> Demo</h3>
+    <div class="video-container">
+      <iframe src="https://drive.google.com/file/d/1f1cTKfOaNRFLPu6G4vgzfck91M4ULm_A/preview" allow="autoplay" allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="card">
+    <h3><span class="badge badge-new">雙擊還原</span> Demo</h3>
+    <div class="video-container">
+      <iframe src="https://drive.google.com/file/d/1-tdwz3u7-wiq-A4V_XRtp_Pb7nXbV-Pz/preview" allow="autoplay" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center;color:var(--text2);margin-top:48px;font-size:0.85rem;">
+  nOCR × nNoteAS Math Feature Report · Confidential
+</p>
+
+</div>
+
+<script>
+// Top nav active highlight
+(function() {
+  var navLinks = document.querySelectorAll('#topNav a');
+  var sections = [];
+  navLinks.forEach(function(a) { sections.push(document.querySelector(a.getAttribute('href'))); });
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY + 80;
+    var activeIdx = 0;
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (sections[i] && sections[i].offsetTop <= scrollY) { activeIdx = i; break; }
+    }
+    navLinks.forEach(function(a, i) { a.classList.toggle('active', i === activeIdx); });
+  });
+})();
+// Lightbox
+(function(){
+  var lb = document.getElementById('lightbox');
+  var lbClose = document.getElementById('lbClose');
+  document.querySelectorAll('.diagram-box').forEach(function(box){
+    box.addEventListener('click', function(){
+      var svg = box.querySelector('svg');
+      if(!svg) return;
+      var clone = svg.cloneNode(true);
+      clone.style.maxWidth='95vw'; clone.style.maxHeight='90vh';
+      lb.querySelectorAll('svg').forEach(function(s){s.remove();});
+      lb.appendChild(clone);
+      lb.classList.add('show');
+      var scale=1, translate={x:0,y:0}, dragging=false, last={x:0,y:0};
+      function applyTransform(){ clone.style.transform='translate('+translate.x+'px,'+translate.y+'px) scale('+scale+')'; }
+      clone.addEventListener('wheel',function(e){ e.preventDefault(); scale*=e.deltaY<0?1.15:0.87; if(scale<0.3)scale=0.3; if(scale>8)scale=8; applyTransform(); });
+      clone.addEventListener('mousedown',function(e){ dragging=true; last={x:e.clientX,y:e.clientY}; clone.style.cursor='grabbing'; });
+      document.addEventListener('mousemove',function(e){ if(!dragging) return; translate.x+=e.clientX-last.x; translate.y+=e.clientY-last.y; last={x:e.clientX,y:e.clientY}; applyTransform(); });
+      document.addEventListener('mouseup',function(){ dragging=false; clone.style.cursor='grab'; });
+    });
+  });
+  function closeLb(){ lb.classList.remove('show'); lb.querySelectorAll('svg').forEach(function(s){s.remove();}); }
+  lbClose.addEventListener('click', closeLb);
+  lb.addEventListener('click', function(e){ if(e.target===lb) closeLb(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLb(); });
+})();
+</script>
+</body>
+</html>
