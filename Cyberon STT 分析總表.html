@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>語音辨識系統錯誤率比較分析</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", "微軟正黑體", Arial, sans-serif;
+            padding: 40px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            font-size: 32px;
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        h3 {
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        
+        .auto-mode {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .manual-mode {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .casre2e thead {
+            background-color: #2563eb;
+            color: white;
+        }
+        
+        .cnwe2epro thead {
+            background-color: #7c3aed;
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        th:first-child {
+            text-align: left;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        td:first-child {
+            font-weight: 500;
+            text-align: left;
+            color: #374151;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        tbody tr:nth-child(odd) {
+            background-color: white;
+        }
+        
+        /* 平均值行樣式 */
+        .avg-row {
+            background-color: #f3f4f6 !important;
+            font-weight: bold;
+            border-top: 3px solid #6b7280 !important;
+        }
+        
+        .avg-row td {
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        /* 錯誤率顏色標示 */
+        .error-high {
+            color: #dc2626;
+            font-weight: bold;
+        }
+        
+        .error-medium {
+            color: #d97706;
+            font-weight: bold;
+        }
+        
+        .error-zero {
+            color: #000000;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .note-box {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 40px;
+        }
+        
+        .note-box h3 {
+            color: #374151;
+            margin-top: 0;
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .note-box ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .note-box li {
+            margin: 8px 0;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        
+        .note-box strong {
+            color: #1f2937;
+        }
+        
+        /* 結論區塊 */
+        .conclusion-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            margin-top: 40px;
+        }
+        
+        .conclusion-box h2 {
+            color: white;
+            margin-top: 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 15px;
+        }
+        
+        .conclusion-item {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #fbbf24;
+        }
+        
+        .conclusion-item h4 {
+            margin-top: 0;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .conclusion-item p {
+            margin: 5px 0;
+            line-height: 1.8;
+        }
+        
+        .winner {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            margin-top: 20px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>語音辨識系統錯誤率比較分析</h1>
+    
+    <div class="section">
+        <h2>CASRE2E</h2>
+        
+        <h3 class="auto-mode">自動模式 (Auto)</h3>
+        <table class="casre2e">
+            <thead>
+                <tr>
+                    <th>測試項目</th>
+                    <th>總字數</th>
+                    <th>Missing Error Rate</th>
+                    <th>Recognize Error Rate</th>
+                    <th>Repeat Error Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>中文短例句</td>
+                    <td>44</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>中文長例句</td>
+                    <td>119</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-medium">1.26%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文短例句</td>
+                    <td>19</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-medium">5.26%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文長例句</td>
+                    <td>93</td>
+                    <td class="error-high">27.96%</td>
+                    <td class="error-medium">1.08%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr class="avg-row">
+                    <td>平均錯誤率</td>
+                    <td>-</td>
+                    <td class="error-medium">6.99%</td>
+                    <td class="error-medium">1.90%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3 class="manual-mode">手動模式 (Manual)</h3>
+        <table class="casre2e">
+            <thead>
+                <tr>
+                    <th>測試項目</th>
+                    <th>總字數</th>
+                    <th>Missing Error Rate</th>
+                    <th>Recognize Error Rate</th>
+                    <th>Repeat Error Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>中文短例句</td>
+                    <td>44</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-medium">1.14%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>中文長例句</td>
+                    <td>119</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-medium">1.26%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文短例句</td>
+                    <td>19</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-medium">2.63%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文長例句</td>
+                    <td>93</td>
+                    <td class="error-high">10.75%</td>
+                    <td class="error-medium">5.38%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr class="avg-row">
+                    <td>平均錯誤率</td>
+                    <td>-</td>
+                    <td class="error-medium">2.69%</td>
+                    <td class="error-medium">2.60%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h2>CNWE2EPro</h2>
+        
+        <h3 class="auto-mode">自動模式 (Auto)</h3>
+        <table class="cnwe2epro">
+            <thead>
+                <tr>
+                    <th>測試項目</th>
+                    <th>總字數</th>
+                    <th>Missing Error Rate</th>
+                    <th>Recognize Error Rate</th>
+                    <th>Repeat Error Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>中文短例句</td>
+                    <td>44</td>
+                    <td class="error-medium">6.82%</td>
+                    <td class="error-medium">7.95%</td>
+                    <td class="error-high">20.45%</td>
+                </tr>
+                <tr>
+                    <td>中文長例句</td>
+                    <td>119</td>
+                    <td class="error-high">60.92%</td>
+                    <td class="error-medium">0.42%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文短例句</td>
+                    <td>19</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文長例句</td>
+                    <td>93</td>
+                    <td class="error-high">74.19%</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr class="avg-row">
+                    <td>平均錯誤率</td>
+                    <td>-</td>
+                    <td class="error-high">35.48%</td>
+                    <td class="error-medium">2.09%</td>
+                    <td class="error-medium">5.11%</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3 class="manual-mode">手動模式 (Manual)</h3>
+        <table class="cnwe2epro">
+            <thead>
+                <tr>
+                    <th>測試項目</th>
+                    <th>總字數</th>
+                    <th>Missing Error Rate</th>
+                    <th>Recognize Error Rate</th>
+                    <th>Repeat Error Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>中文短例句</td>
+                    <td>44</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-high">56.82%</td>
+                </tr>
+                <tr>
+                    <td>中文長例句</td>
+                    <td>119</td>
+                    <td class="error-high">52.10%</td>
+                    <td class="error-medium">0.84%</td>
+                    <td class="error-high">20.17%</td>
+                </tr>
+                <tr>
+                    <td>英文短例句</td>
+                    <td>19</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-medium">5.26%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr>
+                    <td>英文長例句</td>
+                    <td>93</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                    <td class="error-zero">0.00%</td>
+                </tr>
+                <tr class="avg-row">
+                    <td>平均錯誤率</td>
+                    <td>-</td>
+                    <td class="error-high">13.03%</td>
+                    <td class="error-medium">1.53%</td>
+                    <td class="error-high">19.25%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="note-box">
+        <h3>錯誤率標示說明</h3>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #dc2626;"></div>
+                <span><strong style="color: #dc2626;">紅色:</strong> 錯誤率 ≥ 10%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #d97706;"></div>
+                <span><strong style="color: #d97706;">黃色:</strong> 0% < 錯誤率 < 10%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #000000;"></div>
+                <span><strong>黑色:</strong> 錯誤率 = 0%</span>
+            </div>
+        </div>
+        <ul style="margin-top: 20px;">
+            <li><strong>Missing Error Rate:</strong> 遺漏錯誤率 - 應辨識但未辨識的比率</li>
+            <li><strong>Recognize Error Rate:</strong> 辨識錯誤率 - 辨識錯誤的比率</li>
+            <li><strong>Repeat Error Rate:</strong> 重複錯誤率 - 重複辨識的比率</li>
+        </ul>
+    </div>
+    
+    <div class="conclusion-box">
+        <h2>📊 綜合評比結論</h2>
+        
+        <div class="conclusion-item">
+            <h4>🏆 CASRE2E 系統表現</h4>
+            <p><strong>優勢:</strong></p>
+            <p>• 中文辨識表現優異,短例句達到零錯誤率</p>
+            <p>• 所有測試項目的重複錯誤率均為 0%,顯示系統穩定性高</p>
+            <p>• 辨識錯誤率整體控制良好,多數在 5% 以下</p>
+            <p>• 手動模式平均遺漏率僅 2.69%,表現優異</p>
+            <p><strong>弱點:</strong></p>
+            <p>• 英文長例句在自動模式下遺漏率較高 (27.96%)</p>
+            <p>• 手動模式下英文長例句仍有 10.75% 的遺漏率</p>
+        </div>
+        
+        <div class="conclusion-item">
+            <h4>⚠️ CNWE2EPro 系統表現</h4>
+            <p><strong>優勢:</strong></p>
+            <p>• 英文短例句(自動)和英文長例句(手動)表現完美,零錯誤率</p>
+            <p><strong>弱點:</strong></p>
+            <p>• 長例句辨識問題嚴重,自動模式平均遺漏率達 35.48%</p>
+            <p>• 手動模式下中文短例句重複率極高 (56.82%),實用性堪憂</p>
+            <p>• 手動模式平均重複率達 19.25%,影響使用體驗</p>
+            <p>• 整體穩定性不佳,錯誤率變異度大</p>
+        </div>
+        
+        <div class="winner">
+            🎯 推薦系統: CASRE2E
+            <p style="font-size: 16px; margin-top: 10px; font-weight: normal;">
+                CASRE2E 在各項測試中展現更高的穩定性與準確度,<br>
+                特別適合需要可靠中文辨識的應用場景。<br>
+                雖然在英文長例句有改進空間,但整體表現遠優於 CNWE2EPro。
+            </p>
+        </div>
+    </div>
+</body>
+</html>
