@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nOCR × LimeIME 手寫辨識架構分析</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #6366f1; --accent2: #818cf8; --green: #34d399;
+    --orange: #fb923c; --red: #f87171; --cyan: #22d3ee;
+    --batch: #f59e0b; --incr: #8b5cf6; --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Top Nav */
+  .top-nav { position: sticky; top: 0; z-index: 999; background: rgba(10,14,26,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0; display: flex; justify-content: center; gap: 0; }
+  .top-nav a { display: inline-block; padding: 14px 20px; color: var(--text2); text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.25s; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .top-nav a:hover { color: var(--accent2); background: rgba(99,102,241,0.06); }
+  .top-nav a.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+  @media (max-width: 768px) { .top-nav a { padding: 10px 10px; font-size: 0.75rem; } }
+  h1 { font-size: 2.4rem; font-weight: 900; background: linear-gradient(135deg, var(--accent2), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: var(--text2); font-size: 1rem; margin-bottom: 48px; }
+  h2 { font-size: 1.5rem; font-weight: 700; color: var(--accent2); margin: 48px 0 20px; padding-left: 16px; border-left: 4px solid var(--accent); }
+  h3 { font-size: 1.15rem; font-weight: 600; color: var(--cyan); margin: 28px 0 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 24px; }
+  .card:hover { border-color: var(--accent); box-shadow: 0 0 30px rgba(99,102,241,0.08); }
+  p, li { color: var(--text2); font-size: 0.95rem; }
+  ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  strong { color: var(--text); }
+  code { background: var(--surface2); color: var(--green); padding: 2px 8px; border-radius: 6px; font-size: 0.88rem; font-family: 'Fira Code', monospace; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; }
+  .tab { padding: 12px 28px; background: var(--surface2); color: var(--text2); border: 1px solid var(--border); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; border-bottom: none; border-radius: 12px 12px 0 0; }
+  .tab.active { background: var(--surface); color: var(--accent2); border-color: var(--accent); }
+  .tab-content { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 0 var(--radius) var(--radius) var(--radius); padding: 32px; }
+  .tab-content.active { display: block; }
+
+  /* Diagram */
+  .diagram-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 24px; overflow-x: auto; margin: 16px 0; cursor: zoom-in; position: relative; transition: border-color 0.3s; }
+  .diagram-box:hover { border-color: var(--accent2); }
+  .diagram-box::after { content: '🔍 點擊放大'; position: absolute; top: 8px; right: 12px; font-size: 0.75rem; color: var(--text2); background: var(--surface2); padding: 2px 10px; border-radius: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .diagram-box:hover::after { opacity: 1; }
+  svg text { font-family: 'Inter', sans-serif; }
+
+  /* Lightbox Modal */
+  .lightbox-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+  .lightbox-overlay.active { display: flex; }
+  .lightbox-close { position: fixed; top: 16px; right: 24px; z-index: 10001; width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .lightbox-close:hover { background: var(--accent); color: #fff; }
+  .lightbox-hint { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10001; color: var(--text2); font-size: 0.82rem; background: var(--surface2); padding: 6px 16px; border-radius: 8px; pointer-events: none; }
+  .lightbox-container { position: relative; cursor: grab; overflow: hidden; max-width: 95vw; max-height: 95vh; }
+  .lightbox-container:active { cursor: grabbing; }
+  .lightbox-container svg { display: block; transition: transform 0.1s ease-out; transform-origin: 0 0; }
+
+  /* Comparison Table */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { padding: 14px 18px; text-align: left; border: 1px solid var(--border); font-size: 0.9rem; }
+  th { background: var(--surface2); color: var(--accent2); font-weight: 600; }
+  td { color: var(--text2); }
+  tr:hover td { background: rgba(99,102,241,0.05); }
+
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; }
+  .badge-batch { background: rgba(245,158,11,0.15); color: var(--batch); }
+  .badge-incr { background: rgba(139,92,246,0.15); color: var(--incr); }
+
+  /* Flow list */
+  .flow { counter-reset: flow; list-style: none; padding: 0; }
+  .flow li { counter-increment: flow; padding: 10px 12px 10px 48px; position: relative; border-left: 2px solid var(--border); margin-left: 16px; }
+  .flow li::before { content: counter(flow); position: absolute; left: -14px; top: 8px; width: 28px; height: 28px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; }
+  .flow-batch li { border-color: var(--batch); }
+  .flow-batch li::before { background: var(--batch); }
+  .flow-incr li { border-color: var(--incr); }
+  .flow-incr li::before { background: var(--incr); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.6rem; } }
+
+  .highlight-box { border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .highlight-batch { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+  .highlight-incr { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25); }
+
+  .file-ref { color: var(--green); font-size: 0.82rem; }
+</style>
+</head>
+<body>
+<nav class="top-nav" id="topNav">
+  <a href="#sec-overview" class="active">一、背景</a>
+  <a href="#sec-simple">二、架構圖</a>
+  <a href="#sec-aidl">三、AIDL 通訊</a>
+  <a href="#sec-batch">四、Batch 流程</a>
+  <a href="#sec-incr">五、Incremental 流程</a>
+  <a href="#sec-pipeline">六、資料管線</a>
+  <a href="#sec-session">七、Session 管理</a>
+  <a href="#sec-compare">八、差異比較</a>
+  <a href="#sec-files">九、檔案對照</a>
+  <a href="#sec-video">🎬 Demo</a>
+</nav>
+
+<div class="container">
+
+<h1>nOCR × LimeIME 手寫辨識架構分析</h1>
+<p class="subtitle">從觸控事件到辨識結果 — Batch vs Incremental 完整技術報告</p>
+
+<!-- ============ Section 1: Overview ============ -->
+<h2 id="sec-overview">一、背景與系統總覽</h2>
+<div class="card">
+  <h3>問題：手寫辨識要怎麼運作？</h3>
+  <p>我們的產品有兩個獨立的 App 需要協作：</p>
+  <ul>
+    <li><strong>LimeIME (LimeStudio)</strong> — 輸入法 App，提供手寫畫布讓使用者書寫，但<strong>自己不會辨識</strong></li>
+    <li><strong>nOCR</strong> — 辨識引擎 Service App，內嵌 <strong>MyScript iink SDK</strong>，負責將筆跡轉為文字</li>
+  </ul>
+  <p>因為是兩個<strong>不同程序 (Process)</strong>，無法直接共用記憶體，所以透過 <strong>Android AIDL (Binder IPC)</strong> 進行跨程序通訊。</p>
+</div>
+<div class="card">
+  <h3>兩種辨識模式</h3>
+  <p>我們實作了兩種辨識策略，各有優劣：</p>
+  <table>
+    <thead><tr><th></th><th><span class="badge badge-batch">Batch</span> 批次辨識</th><th><span class="badge badge-incr">Incremental</span> 增量辨識</th></tr></thead>
+    <tbody>
+      <tr><td><strong>概念</strong></td><td>寫完全部 → 一次送出辨識</td><td>邊寫邊辨識 → 即時顯示結果</td></tr>
+      <tr><td><strong>體驗</strong></td><td>像寫完一句話再翻譯</td><td>像語音即時翻譯，邊說邊出字</td></tr>
+      <tr><td><strong>優勢</strong></td><td>實作簡單、辨識精確</td><td>反應快、互動性高</td></tr>
+    </tbody>
+  </table>
+  <p>以下將詳細說明兩種模式的架構差異。</p>
+</div>
+
+<!-- ============ Section 2: Simple Diagram ============ -->
+<h2 id="sec-simple">二、簡易架構圖</h2>
+<div class="card">
+  <div class="diagram-box">
+    <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:900px;">
+      <!-- LimeIME Box -->
+      <rect x="20" y="30" width="350" height="260" rx="16" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+      <text x="195" y="62" text-anchor="middle" fill="#818cf8" font-size="16" font-weight="700">LimeIME (Client)</text>
+      <rect x="50" y="80" width="140" height="50" rx="10" fill="#0a0e1a" stroke="#334155"/>
+      <text x="120" y="110" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="600">HandwritingView</text>
+      <rect x="210" y="80" width="130" height="50" rx="10" fill="#0a0e1a" stroke="#334155"/>
+      <text x="275" y="110" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="600">LIMEService</text>
+      <rect x="50" y="150" width="140" height="44" rx="10" fill="#0a0e1a" stroke="#334155"/>
+      <text x="120" y="177" text-anchor="middle" fill="#34d399" font-size="11" font-weight="500">CandidateView</text>
+      <rect x="210" y="150" width="130" height="44" rx="10" fill="#0a0e1a" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="275" y="170" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">OcrAidl Proxy</text>
+      <text x="275" y="183" text-anchor="middle" fill="#94a3b8" font-size="9">(AIDL Client)</text>
+      <rect x="210" y="210" width="130" height="44" rx="10" fill="#0a0e1a" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="275" y="230" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">IOcrCallback</text>
+      <text x="275" y="243" text-anchor="middle" fill="#94a3b8" font-size="9">(結果接收)</text>
+
+      <!-- Arrow: AIDL -->
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#fb923c"/></marker>
+        <marker id="ah2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#8b5cf6"/></marker>
+      </defs>
+      <line x1="370" y1="168" x2="520" y2="168" stroke="#fb923c" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#ah)"/>
+      <text x="445" y="158" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="600">AIDL Calls</text>
+      <text x="445" y="186" text-anchor="middle" fill="#94a3b8" font-size="9">Binder IPC</text>
+      <line x1="520" y1="228" x2="370" y2="228" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="8,4" marker-end="url(#ah2)"/>
+      <text x="445" y="222" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">Callback</text>
+
+      <!-- nOCR Box -->
+      <rect x="530" y="30" width="350" height="260" rx="16" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+      <text x="705" y="62" text-anchor="middle" fill="#34d399" font-size="16" font-weight="700">nOCR (Server)</text>
+      <rect x="560" y="80" width="140" height="50" rx="10" fill="#0a0e1a" stroke="#334155"/>
+      <text x="630" y="102" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="600">MainService</text>
+      <text x="630" y="118" text-anchor="middle" fill="#94a3b8" font-size="9">OcrAidlImpl</text>
+      <rect x="720" y="80" width="130" height="50" rx="10" fill="#0a0e1a" stroke="#334155"/>
+      <text x="785" y="102" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="600">CommonMethods</text>
+      <text x="785" y="118" text-anchor="middle" fill="#94a3b8" font-size="9">(Batch 辨識)</text>
+      <rect x="560" y="150" width="140" height="44" rx="10" fill="#0a0e1a" stroke="#8b5cf6" stroke-width="1.5"/>
+      <text x="630" y="170" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">IncrementalSession</text>
+      <text x="630" y="183" text-anchor="middle" fill="#94a3b8" font-size="9">(持久 Editor)</text>
+      <rect x="720" y="150" width="130" height="44" rx="10" fill="#0a0e1a" stroke="#334155"/>
+      <text x="785" y="177" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="500">SessionManager</text>
+      <rect x="630" y="220" width="130" height="50" rx="10" fill="#0a0e1a" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="695" y="242" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">MyScript iink</text>
+      <text x="695" y="258" text-anchor="middle" fill="#94a3b8" font-size="9">Engine / Editor</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ============ Section 3: AIDL ============ -->
+<h2 id="sec-aidl">三、AIDL 通訊機制 — oneway vs 同步</h2>
+<div class="card">
+  <h3>為什麼要用 AIDL？</h3>
+  <p>LimeIME 和 nOCR 是<strong>兩個不同的程序 (Process)</strong>，Android 不允許直接呼叫對方的函式。<br>
+  <strong>AIDL (Android Interface Definition Language)</strong> 是 Android 提供的跨程序呼叫機制，讓兩個 App 可以像呼叫本地函式一樣互相通訊。</p>
+</div>
+<div class="two-col">
+  <div class="card highlight-batch">
+    <h3>同步呼叫（預設模式）</h3>
+    <p>又稱 <strong>twoway</strong>（雙向），資料走「去程＋回程」：</p>
+    <div class="diagram-box" style="cursor:default;">
+      <svg viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:400px;">
+        <rect x="10" y="20" width="120" height="40" rx="8" fill="#1e293b" stroke="#6366f1"/><text x="70" y="45" text-anchor="middle" fill="#818cf8" font-size="11" font-weight="600">LimeIME</text>
+        <rect x="270" y="20" width="120" height="40" rx="8" fill="#1e293b" stroke="#34d399"/><text x="330" y="45" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">nOCR</text>
+        <defs><marker id="sy1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f59e0b"/></marker><marker id="sy2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#34d399"/></marker></defs>
+        <line x1="130" y1="45" x2="270" y2="80" stroke="#f59e0b" stroke-width="2" marker-end="url(#sy1)"/>
+        <text x="200" y="58" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="600">去程：送出請求</text>
+        <rect x="130" y="80" width="40" height="36" rx="4" fill="rgba(245,158,11,0.1)" stroke="#f59e0b" stroke-dasharray="4,3"/><text x="150" y="102" text-anchor="middle" fill="#f59e0b" font-size="10">⏳</text>
+        <text x="107" y="102" text-anchor="end" fill="#94a3b8" font-size="9">阻塞等待</text>
+        <line x1="270" y1="105" x2="130" y2="130" stroke="#34d399" stroke-width="2" marker-end="url(#sy2)"/>
+        <text x="200" y="126" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">回程：回傳結果</text>
+        <text x="200" y="165" text-anchor="middle" fill="#94a3b8" font-size="10">像去櫃台辦事 — 等到辦完才離開</text>
+      </svg>
+    </div>
+    <p><strong>Batch 用這種方式</strong>：呼叫 <code>strokeTextCandidates()</code> 後等辨識完才拿到結果。</p>
+  </div>
+  <div class="card highlight-incr">
+    <h3>oneway 呼叫（非阻塞模式）</h3>
+    <p>資料只走「<strong>去程</strong>」，火箭發射後不回頭：</p>
+    <div class="diagram-box" style="cursor:default;">
+      <svg viewBox="0 0 400 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:400px;">
+        <rect x="10" y="20" width="120" height="40" rx="8" fill="#1e293b" stroke="#6366f1"/><text x="70" y="45" text-anchor="middle" fill="#818cf8" font-size="11" font-weight="600">LimeIME</text>
+        <rect x="270" y="20" width="120" height="40" rx="8" fill="#1e293b" stroke="#34d399"/><text x="330" y="45" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">nOCR</text>
+        <defs><marker id="ow1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8b5cf6"/></marker><marker id="ow2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#34d399"/></marker></defs>
+        <line x1="130" y1="45" x2="270" y2="65" stroke="#8b5cf6" stroke-width="2" marker-end="url(#ow1)"/>
+        <text x="200" y="49" text-anchor="middle" fill="#8b5cf6" font-size="9" font-weight="600">去程：送出事件（立即返回）</text>
+        <text x="70" y="82" text-anchor="middle" fill="#22d3ee" font-size="9">繼續畫下一筆 ✓</text>
+        <text x="330" y="88" text-anchor="middle" fill="#94a3b8" font-size="9">背景辨識中...</text>
+        <line x1="270" y1="115" x2="130" y2="135" stroke="#34d399" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#ow2)"/>
+        <text x="200" y="118" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">Callback 推送結果</text>
+        <text x="200" y="165" text-anchor="middle" fill="#94a3b8" font-size="10">像丟信進郵筒 — 丟完就走，回信另外送來</text>
+      </svg>
+    </div>
+    <p><strong>Incremental 用這種方式</strong>：每個觸控事件以 <code>oneway feedPointerEvents()</code> 發送，UI 完全不卡頓。結果透過 <code>IOcrCallback</code> 非同步推回。</p>
+  </div>
+</div>
+<div class="card">
+  <h3>為什麼 Incremental 必須用 oneway？</h3>
+  <p>因為手指在螢幕上移動時，Android 系統<strong>每秒產生數十到上百個觸控事件</strong>。如果每個事件都用同步呼叫（等 nOCR 回應才繼續），UI 會嚴重卡頓、畫線斷斷續續。<br>
+  <code>oneway</code> 讓事件「射後不理 (fire-and-forget)」，LimeIME 可以持續流暢地畫線和發送事件。</p>
+</div>
+
+<!-- ============ Section 4: Batch Flow ============ -->
+<h2 id="sec-batch">四、Batch 批次辨識流程</h2>
+<div class="card">
+  <h3>核心特徵：Editor 用完即丟</h3>
+  <p>Batch 模式的關鍵是 MyScript SDK 的 <code>pointerEvents(events, <strong>false</strong>)</code>：</p>
+  <ul>
+    <li>第二個參數 <code>false</code> = <strong>取代模式</strong>，每次呼叫會清除 Editor 裡所有舊筆跡</li>
+    <li>既然每次都會清空，那 Editor 就<strong>沒必要保留</strong>，用完直接銷毀釋放資源</li>
+    <li>背後的 <code>ContentPackage(.iink)</code>、<code>Renderer</code> 等資源也一併釋放，避免記憶體洩漏</li>
+  </ul>
+</div>
+<div class="card">
+  <ol class="flow flow-batch">
+    <li>使用者在 <code>HandwritingView</code> 上書寫，手指/筆離開 (ACTION_UP) 後觸發 <code>onStrokeCollected()</code></li>
+    <li><code>LIMEService</code> 啟動 idle timer，等待使用者停止書寫（可設定延遲時間）</li>
+    <li>Timer 到期，將所有累積筆跡序列化為 JSON 字串，透過 <code>serializeStrokes()</code></li>
+    <li><strong>同步 AIDL 呼叫</strong> <code>mOcrService.strokeTextCandidates(json)</code>，阻塞等待結果</li>
+    <li>nOCR 的 <code>CommonMethods</code> <strong>建立新 Editor</strong>，以 <code>pointerEvents(events, false)</code> 一次性載入全部筆跡，辨識後 export 結果</li>
+    <li><strong>銷毀 Editor</strong> — <code>closeMyScriptEditor()</code></li>
+    <li>結果回傳 LimeIME，透過 <code>handleHandwritingResult()</code> 顯示於 <code>CandidateView</code></li>
+  </ol>
+</div>
+
+<!-- ============ Section 5: Incremental Flow ============ -->
+<h2 id="sec-incr">五、Incremental 增量辨識流程</h2>
+<div class="card">
+  <h3>核心特徵：Editor 持久化存活</h3>
+  <p>Incremental 模式使用 <code>pointerEvents(events, <strong>true</strong>)</code>：</p>
+  <ul>
+    <li>第二個參數 <code>true</code> = <strong>累加模式</strong>，新筆跡追加到 Editor 現有筆跡上面，不清除</li>
+    <li>因此 Editor <strong>必須持續存活</strong>，如果銷毀就等於丟掉之前所有累加的筆跡</li>
+    <li>用 <code>IncrementalSession</code> 包裝 Editor，用 <code>SessionManager</code> 管理其生命週期</li>
+  </ul>
+</div>
+<div class="card">
+  <ol class="flow flow-incr">
+    <li>使用者切換至增量模式，<code>switchToIncrementalMode()</code> 呼叫 <code>beginIncrementalSession()</code></li>
+    <li>nOCR 建立 <code>IncrementalSession</code>，<strong>持久化 Editor 不銷毀</strong>，回傳 sessionId</li>
+    <li>每個觸控事件 (DOWN/MOVE/UP) 透過 <code>onRawTouchEvent()</code> → <code>onStrokeEventIncremental()</code></li>
+    <li>將 <code>MotionEvent</code> 轉換為 <code>InkPointerEvent[]</code>（含歷史事件），以 <strong>oneway AIDL</strong> 非阻塞呼叫 <code>feedPointerEvents()</code></li>
+    <li>nOCR 在背景以 <code>pointerEvents(events, true)</code> <strong>累加式</strong>寫入筆跡</li>
+    <li>偵測到 UP 事件時自動辨識並透過 <code>IOcrCallback.onIncrementalResult()</code> <strong>主動推送</strong>結果</li>
+    <li><code>LIMEService</code> 收到 callback，在主執行緒透過 <code>handleIncrementalResult()</code> 更新候選欄</li>
+  </ol>
+</div>
+
+<!-- ============ Section 6: Data Pipeline ============ -->
+<h2 id="sec-pipeline">六、Incremental 資料管線詳解</h2>
+<div class="card">
+  <h3>一筆觸控的完整旅程</h3>
+  <p>以下說明使用者手指按下到辨識結果出現，資料經過的每一個 function：</p>
+</div>
+<div class="card">
+  <h3>① HandwritingView.onTouchEvent()</h3>
+  <p><strong>Android 系統自動呼叫</strong> — 手指觸碰畫布時，系統傳入 <code>MotionEvent</code>，包含座標、壓力、時間戳。</p>
+  <p>重要概念：Android 會將短時間內多個觸控點<strong>打包成一個 MotionEvent</strong>（歷史事件），例如手指移動了 4 個位置，只收到 1 個 MOVE 事件，但裡面有 3 個歷史點 + 1 個當前點。</p>
+</div>
+<div class="card">
+  <h3>② onRawTouchEvent(MotionEvent)</h3>
+  <p><strong>轉接層</strong> — HandwritingView 透過 listener 介面把原始觸控事件傳遞給 <code>LIMEService</code>，實現 UI 與業務邏輯的<strong>關注點分離</strong>。</p>
+</div>
+<div class="card">
+  <h3>③ onStrokeEventIncremental(MotionEvent) — 核心轉換</h3>
+  <p>這是<strong>最關鍵的轉換步驟</strong>，做三件事：</p>
+  <table>
+    <thead><tr><th>步驟</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td><strong>動作對應</strong></td><td>ACTION_DOWN → <code>InkPointerEvent.ACTION_DOWN</code><br>ACTION_MOVE → <code>ACTION_MOVE</code><br>ACTION_UP → <code>ACTION_UP</code></td></tr>
+      <tr><td><strong>展開歷史事件</strong></td><td>將 MotionEvent 中的歷史點全部展開為獨立的 <code>InkPointerEvent</code>，確保辨識精度</td></tr>
+      <tr><td><strong>時間校正</strong></td><td>將 <code>uptimeMillis</code>（系統啟動後）轉換為 <code>currentTimeMillis</code>（epoch 時間）</td></tr>
+    </tbody>
+  </table>
+  <p>為什麼不能直接傳 <code>MotionEvent</code>？因為它是 Android UI 框架物件，無法通過 AIDL 跨程序傳輸。需轉成自定義的 <code>InkPointerEvent</code>（實作了 <code>Parcelable</code>）。</p>
+</div>
+<div class="card">
+  <h3>④ feedPointerEvents() — oneway AIDL 跨程序</h3>
+  <p>透過 <strong>oneway AIDL</strong> 將 <code>InkPointerEvent[]</code> 送到 nOCR 程序。因為是 oneway，LimeIME <strong>立即返回</strong>，繼續處理下一個觸控事件。</p>
+</div>
+<div class="card">
+  <h3>⑤ editor.pointerEvents(events, true) — MyScript 引擎</h3>
+  <p>nOCR 的 <code>IncrementalSession</code> 將事件餵進 MyScript Editor（<code>true</code> = 累加模式）。偵測到 ACTION_UP 時，呼叫 <code>editor.export_()</code> 取得辨識結果，再透過 <code>IOcrCallback.onIncrementalResult()</code> 推回 LimeIME。</p>
+</div>
+
+<!-- ============ Batch/Incr Flow Diagrams (Tabs) ============ -->
+<div class="card">
+  <h3>完整流程圖（可點擊放大）</h3>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)"><span class="badge badge-batch">Batch</span> 批次辨識</div>
+  <div class="tab" onclick="switchTab(1)"><span class="badge badge-incr">Incremental</span> 增量辨識</div>
+</div>
+
+<!-- Batch Tab -->
+<div class="tab-content active" id="tab0">
+  <div class="diagram-box">
+    <svg viewBox="0 0 920 430" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:920px;">
+      <defs>
+        <marker id="a1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f59e0b"/></marker>
+        <marker id="a1r" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#34d399"/></marker>
+      </defs>
+      <!-- Swim lanes -->
+      <rect x="10" y="10" width="200" height="410" rx="12" fill="rgba(99,102,241,0.06)" stroke="#334155"/>
+      <text x="110" y="36" text-anchor="middle" fill="#818cf8" font-size="13" font-weight="700">HandwritingView</text>
+      <rect x="230" y="10" width="200" height="410" rx="12" fill="rgba(99,102,241,0.06)" stroke="#334155"/>
+      <text x="330" y="36" text-anchor="middle" fill="#818cf8" font-size="13" font-weight="700">LIMEService</text>
+      <rect x="450" y="10" width="210" height="410" rx="12" fill="rgba(52,211,153,0.06)" stroke="#334155"/>
+      <text x="555" y="36" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">nOCR MainService</text>
+      <rect x="680" y="10" width="220" height="410" rx="12" fill="rgba(52,211,153,0.06)" stroke="#334155"/>
+      <text x="790" y="36" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">MyScript Engine</text>
+
+      <!-- Steps -->
+      <rect x="30" y="55" width="165" height="36" rx="8" fill="#1e293b" stroke="#f59e0b"/>
+      <text x="112" y="78" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="600">① 使用者手寫筆跡</text>
+
+      <rect x="30" y="110" width="165" height="36" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="112" y="128" text-anchor="middle" fill="#e2e8f0" font-size="10">ACTION_UP 觸發</text>
+      <text x="112" y="141" text-anchor="middle" fill="#94a3b8" font-size="9">onStrokeCollected()</text>
+
+      <line x1="195" y1="128" x2="250" y2="168" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#a1)"/>
+
+      <rect x="248" y="155" width="165" height="48" rx="8" fill="#1e293b" stroke="#f59e0b"/>
+      <text x="330" y="174" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">② 等待 idle timeout</text>
+      <text x="330" y="190" text-anchor="middle" fill="#94a3b8" font-size="9">收集所有筆跡 → JSON</text>
+
+      <line x1="413" y1="180" x2="468" y2="225" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#a1)"/>
+
+      <rect x="468" y="212" width="175" height="60" rx="8" fill="#1e293b" stroke="#f59e0b"/>
+      <text x="555" y="232" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">③ AIDL 同步呼叫</text>
+      <text x="555" y="247" text-anchor="middle" fill="#94a3b8" font-size="9">strokeTextCandidates(json)</text>
+      <text x="555" y="262" text-anchor="middle" fill="#94a3b8" font-size="9">⏳ 阻塞等待結果</text>
+
+      <line x1="643" y1="242" x2="698" y2="280" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#a1)"/>
+
+      <rect x="698" y="268" width="185" height="60" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="790" y="288" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">④ 建立 Editor → 辨識</text>
+      <text x="790" y="303" text-anchor="middle" fill="#94a3b8" font-size="9">pointerEvents(events, false)</text>
+      <text x="790" y="318" text-anchor="middle" fill="#94a3b8" font-size="9">export → 銷毀 Editor</text>
+
+      <line x1="698" y1="318" x2="413" y2="370" stroke="#34d399" stroke-width="1.5" marker-end="url(#a1r)"/>
+
+      <rect x="248" y="358" width="165" height="48" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="330" y="378" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">⑤ 顯示候選字</text>
+      <text x="330" y="393" text-anchor="middle" fill="#94a3b8" font-size="9">setSuggestions()</text>
+    </svg>
+  </div>
+</div>
+
+<!-- Incremental Tab -->
+<div class="tab-content" id="tab1">
+  <div class="diagram-box">
+    <svg viewBox="0 0 920 460" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:920px;">
+      <defs>
+        <marker id="a2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8b5cf6"/></marker>
+        <marker id="a2r" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><path d="M8,0 L0,3 L8,6" fill="#34d399"/></marker>
+      </defs>
+      <!-- Swim lanes -->
+      <rect x="10" y="10" width="200" height="440" rx="12" fill="rgba(99,102,241,0.06)" stroke="#334155"/>
+      <text x="110" y="36" text-anchor="middle" fill="#818cf8" font-size="13" font-weight="700">HandwritingView</text>
+      <rect x="230" y="10" width="200" height="440" rx="12" fill="rgba(99,102,241,0.06)" stroke="#334155"/>
+      <text x="330" y="36" text-anchor="middle" fill="#818cf8" font-size="13" font-weight="700">LIMEService</text>
+      <rect x="450" y="10" width="220" height="440" rx="12" fill="rgba(52,211,153,0.06)" stroke="#334155"/>
+      <text x="560" y="36" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">nOCR MainService</text>
+      <rect x="690" y="10" width="210" height="440" rx="12" fill="rgba(52,211,153,0.06)" stroke="#334155"/>
+      <text x="795" y="36" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">IncrementalSession</text>
+
+      <!-- Steps -->
+      <rect x="248" y="55" width="165" height="40" rx="8" fill="#1e293b" stroke="#8b5cf6"/>
+      <text x="330" y="72" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">① 建立 Session</text>
+      <text x="330" y="86" text-anchor="middle" fill="#94a3b8" font-size="9">beginIncrementalSession()</text>
+
+      <line x1="413" y1="75" x2="468" y2="75" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <rect x="468" y="55" width="185" height="40" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="560" y="72" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">建立持久 Editor</text>
+      <text x="560" y="86" text-anchor="middle" fill="#94a3b8" font-size="9">回傳 sessionId</text>
+
+      <rect x="30" y="115" width="165" height="36" rx="8" fill="#1e293b" stroke="#8b5cf6"/>
+      <text x="112" y="138" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">② 觸控事件串流</text>
+
+      <line x1="195" y1="133" x2="248" y2="170" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <rect x="248" y="160" width="165" height="50" rx="8" fill="#1e293b" stroke="#8b5cf6"/>
+      <text x="330" y="178" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">③ 即時轉換事件</text>
+      <text x="330" y="192" text-anchor="middle" fill="#94a3b8" font-size="9">MotionEvent →</text>
+      <text x="330" y="204" text-anchor="middle" fill="#94a3b8" font-size="9">InkPointerEvent[]</text>
+
+      <line x1="413" y1="185" x2="468" y2="230" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <rect x="468" y="218" width="185" height="50" rx="8" fill="#1e293b" stroke="#8b5cf6"/>
+      <text x="560" y="237" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="600">④ oneway 非阻塞發送</text>
+      <text x="560" y="252" text-anchor="middle" fill="#94a3b8" font-size="9">feedPointerEvents()</text>
+      <text x="560" y="264" text-anchor="middle" fill="#94a3b8" font-size="9">🔥 不等待回傳</text>
+
+      <line x1="653" y1="243" x2="708" y2="290" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <rect x="708" y="280" width="175" height="50" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="795" y="298" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">⑤ 累加筆跡辨識</text>
+      <text x="795" y="312" text-anchor="middle" fill="#94a3b8" font-size="9">pointerEvents(e, true)</text>
+      <text x="795" y="325" text-anchor="middle" fill="#94a3b8" font-size="9">Editor 保持不銷毀</text>
+
+      <line x1="708" y1="340" x2="413" y2="385" stroke="#34d399" stroke-width="1.5" marker-end="url(#a2r)"/>
+
+      <rect x="468" y="345" width="185" height="36" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="560" y="367" text-anchor="middle" fill="#34d399" font-size="10">UP 事件 → getResult()</text>
+
+      <rect x="248" y="395" width="165" height="40" rx="8" fill="#1e293b" stroke="#34d399"/>
+      <text x="330" y="412" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">⑥ IOcrCallback 推送</text>
+      <text x="330" y="427" text-anchor="middle" fill="#94a3b8" font-size="9">onIncrementalResult()</text>
+    </svg>
+  </div>
+</div>
+</div>
+
+<!-- ============ Section 7: Session Lifecycle ============ -->
+<h2 id="sec-session">七、Session 生命週期詳解</h2>
+
+<div class="card">
+  <h3>為什麼需要 Session？</h3>
+  <p><span class="badge badge-batch">Batch</span> 模式下，每次辨識都是「<strong>建立 Editor → 載入所有筆跡 → 辨識 → 銷毀 Editor</strong>」的一次性操作，沒有任何狀態保留。<br>
+  但 <span class="badge badge-incr">Incremental</span> 模式需要 Editor <strong>持續存活</strong>，因為筆跡是一筆一筆逐步累加的，每次 <code>feedPointerEvents()</code> 都在同一個 Editor 上追加新筆跡。因此需要一個 <strong>Session</strong> 來管理這個 Editor 的生命週期。</p>
+</div>
+
+<div class="two-col">
+  <div class="card highlight-batch">
+    <h3><span class="badge badge-batch">Batch</span> Editor 生命週期</h3>
+    <div class="diagram-box" style="cursor:default;" onmouseenter="" onmouseleave="">
+      <svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:400px;">
+        <defs><marker id="sb1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f59e0b"/></marker></defs>
+        <rect x="130" y="10" width="140" height="36" rx="18" fill="#1e293b" stroke="#f59e0b" stroke-width="2"/>
+        <text x="200" y="33" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="700">用戶停止書寫</text>
+        <line x1="200" y1="46" x2="200" y2="70" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#sb1)"/>
+        <rect x="110" y="70" width="180" height="36" rx="8" fill="#1e293b" stroke="#334155"/>
+        <text x="200" y="93" text-anchor="middle" fill="#34d399" font-size="11" font-weight="600">建立 Editor</text>
+        <line x1="200" y1="106" x2="200" y2="130" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#sb1)"/>
+        <rect x="110" y="130" width="180" height="36" rx="8" fill="#1e293b" stroke="#334155"/>
+        <text x="200" y="153" text-anchor="middle" fill="#e2e8f0" font-size="11">載入全部筆跡 + 辨識</text>
+        <line x1="200" y1="166" x2="200" y2="190" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#sb1)"/>
+        <rect x="110" y="190" width="180" height="36" rx="8" fill="#1e293b" stroke="#f87171" stroke-width="2"/>
+        <text x="200" y="213" text-anchor="middle" fill="#f87171" font-size="11" font-weight="700">銷毀 Editor ☠️</text>
+        <text x="200" y="248" text-anchor="middle" fill="#94a3b8" font-size="10">每次辨識都重複此流程</text>
+      </svg>
+    </div>
+    <p style="margin-top:8px;">✕ 沒有 Session 概念<br>✕ Editor 無法累加筆跡<br>✕ 每次都是從零開始</p>
+  </div>
+
+  <div class="card highlight-incr">
+    <h3><span class="badge badge-incr">Incremental</span> Session 生命週期</h3>
+    <div class="diagram-box" style="cursor:default;">
+      <svg viewBox="0 0 400 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:400px;">
+        <defs><marker id="sb2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8b5cf6"/></marker>
+        <marker id="sb2r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f87171"/></marker></defs>
+        <rect x="115" y="10" width="170" height="36" rx="18" fill="#1e293b" stroke="#8b5cf6" stroke-width="2"/>
+        <text x="200" y="33" text-anchor="middle" fill="#8b5cf6" font-size="12" font-weight="700">beginSession()</text>
+        <line x1="200" y1="46" x2="200" y2="70" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#sb2)"/>
+        <rect x="105" y="70" width="190" height="40" rx="8" fill="rgba(139,92,246,0.12)" stroke="#8b5cf6" stroke-width="2"/>
+        <text x="200" y="88" text-anchor="middle" fill="#34d399" font-size="11" font-weight="700">建立 Editor（持久化）</text>
+        <text x="200" y="104" text-anchor="middle" fill="#94a3b8" font-size="9">取得 sessionId</text>
+        <line x1="200" y1="110" x2="200" y2="134" stroke="#8b5cf6" stroke-width="1.5" marker-end="url(#sb2)"/>
+        <rect x="105" y="134" width="190" height="40" rx="8" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-width="2"/>
+        <text x="200" y="152" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="600">Active 狀態 ✅</text>
+        <text x="200" y="167" text-anchor="middle" fill="#94a3b8" font-size="9">接受 feedPointerEvents()</text>
+        <!-- loop arrow -->
+        <path d="M295,154 C340,154 340,100 295,100" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="345" y="130" text-anchor="middle" fill="#34d399" font-size="9">累加筆跡</text>
+        <text x="345" y="142" text-anchor="middle" fill="#34d399" font-size="9">循環辨識</text>
+        <line x1="200" y1="174" x2="200" y2="198" stroke="#fb923c" stroke-width="1.5" marker-end="url(#sb2)"/>
+        <text x="272" y="192" fill="#fb923c" font-size="9">無操作 60秒</text>
+        <rect x="105" y="198" width="190" height="36" rx="8" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="200" y="220" text-anchor="middle" fill="#fb923c" font-size="11" font-weight="600">Idle 狀態 ⏳</text>
+        <line x1="200" y1="234" x2="200" y2="258" stroke="#f87171" stroke-width="1.5" marker-end="url(#sb2r)"/>
+        <text x="270" y="250" fill="#f87171" font-size="9">自動回收 / 手動結束</text>
+        <rect x="115" y="258" width="170" height="36" rx="8" fill="#1e293b" stroke="#f87171" stroke-width="2"/>
+        <text x="200" y="280" text-anchor="middle" fill="#f87171" font-size="11" font-weight="700">Closed ☠️</text>
+        <text x="200" y="315" text-anchor="middle" fill="#94a3b8" font-size="9">釋放 Editor + 刪除 .iink 檔案</text>
+        <text x="200" y="332" text-anchor="middle" fill="#94a3b8" font-size="9">下次書寫時自動建立新 Session</text>
+      </svg>
+    </div>
+    <p style="margin-top:8px;">✔ Editor 持續存活，可累加筆跡<br>✔ 用 <code>sessionId</code> 識別各 Session<br>✔ 自動管理生命週期</p>
+  </div>
+</div>
+
+<div class="card">
+  <h3>SessionManager 管理規則</h3>
+  <table>
+    <thead><tr><th>規則</th><th>說明</th><th>對應程式碼</th></tr></thead>
+    <tbody>
+      <tr><td><strong>最大並行數</strong></td><td>同時最多 <strong>3 個</strong> Session，超過時自動移除最舊的</td><td><code>MAX_SESSIONS = 3</code></td></tr>
+      <tr><td><strong>Idle 逾時</strong></td><td>無操作超過 <strong>60 秒</strong>自動回收 (釋放 Editor + 刪除 .iink)</td><td><code>IDLE_TIMEOUT_MS = 60_000</code></td></tr>
+      <tr><td><strong>定期掃描</strong></td><td>每 <strong>15 秒</strong>檢查一次是否有 idle session</td><td><code>CLEANUP_INTERVAL_MS = 15_000</code></td></tr>
+      <tr><td><strong>儲存結構</strong></td><td><code>ConcurrentHashMap&lt;sessionId, IncrementalSession&gt;</code></td><td><code>SessionManager.sessions</code></td></tr>
+      <tr><td><strong>建立流程</strong></td><td>建立獨立 <code>Renderer</code> + <code>Editor</code> + <code>ContentPackage(.iink)</code> + <code>ContentPart("Text")</code></td><td><code>IncrementalSession 構造函式</code></td></tr>
+      <tr><td><strong>關閉流程</strong></td><td><code>editor.clear()</code> → <code>editor.setPart(null)</code> → <code>editor.close()</code> → 刪除 .iink 檔</td><td><code>IncrementalSession.close()</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Session 摧毀與重建機制</h3>
+  <ul>
+    <li><strong>清除畫布 (Eraser)</strong>：呼叫 <code>clearIncrementalSession()</code> → 結束當前 Session，但<strong>保持在增量模式</strong>。下次用戶開始書寫時自動建立新 Session。</li>
+    <li><strong>切換回 Batch</strong>：呼叫 <code>switchToBatchMode()</code> → <code>endIncrementalSession()</code> 完全關閉 Session + 清除狀態。</li>
+    <li><strong>離開輸入法</strong>：<code>onFinishInput()</code> → <code>exitHandwritingMode()</code> 自動清理。</li>
+    <li><strong>nOCR 程序崩潰</strong>：<code>DeathRecipient.binderDied()</code> 觸發重新 <code>bindOcrService()</code>，下次書寫時重新建 Session。</li>
+  </ul>
+</div>
+
+<!-- ============ Section 6: Comparison Table ============ -->
+<h2 id="sec-compare">八、Batch vs Incremental 關鍵差異比較</h2>
+<div class="card">
+<table>
+  <thead>
+    <tr>
+      <th>比較項目</th>
+      <th><span class="badge badge-batch">Batch</span> 批次辨識</th>
+      <th><span class="badge badge-incr">Incremental</span> 增量辨識</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>觸發時機</strong></td>
+      <td>使用者停止書寫後 idle timeout 才觸發</td>
+      <td>每次 touch event 即時觸發</td>
+    </tr>
+    <tr>
+      <td><strong>資料傳輸格式</strong></td>
+      <td>所有筆跡序列化為 JSON 字串</td>
+      <td><code>InkPointerEvent[]</code> Parcelable 陣列（含歷史事件）</td>
+    </tr>
+    <tr>
+      <td><strong>AIDL 呼叫方式</strong></td>
+      <td><strong>同步阻塞</strong> — <code>strokeTextCandidates()</code> 等待辨識完成回傳</td>
+      <td><strong>oneway 非阻塞</strong> — <code>feedPointerEvents()</code> 立即返回</td>
+    </tr>
+    <tr>
+      <td><strong>結果回傳機制</strong></td>
+      <td>AIDL 方法的 return value（同步）</td>
+      <td><code>IOcrCallback.onIncrementalResult()</code> 非同步推送</td>
+    </tr>
+    <tr>
+      <td><strong>MyScript Editor 生命週期</strong></td>
+      <td><strong>每次請求建立 → 辨識 → 銷毀</strong><br><span class="file-ref">CommonMethods → closeMyScriptEditor()</span></td>
+      <td><strong>Session 建立後持續存在</strong>，直到 session 結束<br><span class="file-ref">IncrementalSession keeps Editor alive</span></td>
+    </tr>
+    <tr>
+      <td><strong>pointerEvents 參數</strong></td>
+      <td><code>editor.pointerEvents(events, <strong>false</strong>)</code><br>一次性載入，不累加</td>
+      <td><code>editor.pointerEvents(events, <strong>true</strong>)</code><br>增量累加模式</td>
+    </tr>
+    <tr>
+      <td><strong>Session 管理</strong></td>
+      <td>無 session 概念</td>
+      <td><code>SessionManager</code> 管理（最多 3 個，60 秒 idle 自動回收）</td>
+    </tr>
+    <tr>
+      <td><strong>辨識延遲</strong></td>
+      <td>較高：需等待 idle + 完整辨識</td>
+      <td>較低：每筆 UP 就即時辨識並推送</td>
+    </tr>
+    <tr>
+      <td><strong>UI 阻塞</strong></td>
+      <td>辨識期間 Canvas & CandidateView 被攔截觸控</td>
+      <td>非阻塞，使用者可持續書寫</td>
+    </tr>
+    <tr>
+      <td><strong>適用場景</strong></td>
+      <td>寫完一句再辨識，精確度較高</td>
+      <td>即寫即辨，即時預覽候選，互動性高</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============ Section 6: Key Files ============ -->
+<h2 id="sec-files">九、關鍵檔案對照表</h2>
+<div class="card">
+<table>
+  <thead><tr><th>App</th><th>檔案</th><th>角色</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="3">共用 AIDL</td><td><code>OcrAidl.aidl</code></td><td>主 AIDL 介面（batch + incremental 方法）</td></tr>
+    <tr><td><code>IOcrCallback.aidl</code></td><td>增量結果非同步回呼介面</td></tr>
+    <tr><td><code>InkPointerEvent.aidl/.java</code></td><td>跨程序觸控事件 Parcelable</td></tr>
+    <tr><td rowspan="3">nOCR (Server)</td><td><code>MainService.java</code></td><td>Service 入口 + OcrAidlImpl（AIDL 方法實作）</td></tr>
+    <tr><td><code>IncrementalSession.java</code></td><td>增量辨識持久化 Session（包含 Editor）</td></tr>
+    <tr><td><code>SessionManager.java</code></td><td>Session 池管理（建立/回收/逐出）</td></tr>
+    <tr><td rowspan="2">LimeIME (Client)</td><td><code>LIMEService.java</code></td><td>輸入法主服務，AIDL binding、batch/incremental 邏輯</td></tr>
+    <tr><td><code>HandwritingView.java</code></td><td>手寫畫布，收集筆跡 + 觸發回呼</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============ Section 7: Demo Video ============ -->
+<h2 id="sec-video">🎬 Demo 影片</h2>
+<div class="card" style="padding:16px;">
+  <div style="position:relative;width:100%;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000;">
+    <iframe src="https://drive.google.com/file/d/1SLdFPB8t3X7ehsvGmBg7FImg-TD80oBC/preview"
+            style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+            allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+</div>
+
+<p style="text-align:center;color:var(--text2);margin-top:48px;font-size:0.85rem;">Generated 2026-03-23 · Architecture Analysis Report</p>
+
+</div>
+
+<!-- Lightbox Modal -->
+<div class="lightbox-overlay" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose" title="關閉 (ESC)">✕</button>
+  <div class="lightbox-container" id="lightboxContainer"></div>
+  <div class="lightbox-hint">滾輪縮放 · 拖曳平移 · ESC 關閉</div>
+</div>
+
+<script>
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('active', i===idx));
+}
+
+// Top nav active highlight on scroll
+(function() {
+  var navLinks = document.querySelectorAll('#topNav a');
+  var sections = [];
+  navLinks.forEach(function(a) { sections.push(document.querySelector(a.getAttribute('href'))); });
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY + 80;
+    var activeIdx = 0;
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (sections[i] && sections[i].offsetTop <= scrollY) { activeIdx = i; break; }
+    }
+    navLinks.forEach(function(a, i) { a.classList.toggle('active', i === activeIdx); });
+  });
+})();
+
+// Lightbox logic
+(function() {
+  const overlay = document.getElementById('lightbox');
+  const container = document.getElementById('lightboxContainer');
+  const closeBtn = document.getElementById('lightboxClose');
+  let scale = 1, panX = 0, panY = 0, dragging = false, startX, startY;
+
+  function openLightbox(svgEl) {
+    const clone = svgEl.cloneNode(true);
+    clone.removeAttribute('style');
+    clone.style.width = '85vw';
+    clone.style.height = 'auto';
+    clone.style.maxHeight = '85vh';
+    container.innerHTML = '';
+    container.appendChild(clone);
+    scale = 1; panX = 0; panY = 0;
+    applyTransform(clone);
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    overlay.classList.remove('active');
+    container.innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  function applyTransform(el) {
+    if (!el) el = container.querySelector('svg');
+    if (el) el.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+  }
+
+  // Click diagram-box to open
+  document.querySelectorAll('.diagram-box').forEach(function(box) {
+    box.addEventListener('click', function() {
+      var svg = box.querySelector('svg');
+      if (svg) openLightbox(svg);
+    });
+  });
+
+  // Close
+  closeBtn.addEventListener('click', closeLightbox);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeLightbox();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // Zoom with scroll
+  container.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? -0.15 : 0.15;
+    var newScale = Math.min(Math.max(scale + delta, 0.3), 5);
+    // Zoom towards cursor
+    var rect = container.getBoundingClientRect();
+    var cx = e.clientX - rect.left;
+    var cy = e.clientY - rect.top;
+    panX = cx - (cx - panX) * (newScale / scale);
+    panY = cy - (cy - panY) * (newScale / scale);
+    scale = newScale;
+    applyTransform();
+  }, {passive: false});
+
+  // Drag to pan
+  container.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX - panX; startY = e.clientY - panY;
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    panX = e.clientX - startX; panY = e.clientY - startY;
+    applyTransform();
+  });
+  window.addEventListener('mouseup', function() { dragging = false; });
+})();
+</script>
+</body>
+</html>
