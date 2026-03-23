@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>增量手寫辨識 — 可行性評估與開發時程</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --surface2: #1e293b;
+    --border: #334155; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #6366f1; --accent2: #818cf8; --green: #34d399;
+    --orange: #fb923c; --red: #f87171; --cyan: #22d3ee;
+    --batch: #f59e0b; --incr: #8b5cf6; --radius: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--accent2), var(--cyan)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: var(--text2); font-size: 1rem; margin-bottom: 48px; }
+  h2 { font-size: 1.4rem; font-weight: 700; color: var(--accent2); margin: 48px 0 20px; padding-left: 16px; border-left: 4px solid var(--accent); }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--cyan); margin: 20px 0 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+  .card:hover { border-color: var(--accent); box-shadow: 0 0 24px rgba(99,102,241,0.06); }
+  p, li { color: var(--text2); font-size: 0.93rem; }
+  ul, ol { padding-left: 20px; }
+  li { margin: 5px 0; }
+  strong { color: var(--text); }
+  code { background: var(--surface2); color: var(--green); padding: 2px 7px; border-radius: 6px; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border); font-size: 0.88rem; }
+  th { background: var(--surface2); color: var(--accent2); font-weight: 600; }
+  td { color: var(--text2); }
+  tr:hover td { background: rgba(99,102,241,0.04); }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.76rem; font-weight: 700; }
+  .badge-batch { background: rgba(245,158,11,0.15); color: var(--batch); }
+  .badge-incr { background: rgba(139,92,246,0.15); color: var(--incr); }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--green); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } h1 { font-size: 1.5rem; } .top-nav a { padding: 10px 8px; font-size: 0.72rem; } }
+  .top-nav { position: sticky; top: 0; z-index: 999; background: rgba(10,14,26,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0; display: flex; justify-content: center; gap: 0; }
+  .top-nav a { display: inline-block; padding: 14px 18px; color: var(--text2); text-decoration: none; font-size: 0.82rem; font-weight: 600; transition: all 0.25s; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .top-nav a:hover { color: var(--accent2); background: rgba(99,102,241,0.06); }
+  .top-nav a.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 32px; }
+  .timeline::before { content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 3px; background: linear-gradient(to bottom, var(--incr), var(--green)); border-radius: 3px; }
+  .tl-item { position: relative; margin-bottom: 28px; }
+  .tl-item::before { content: ''; position: absolute; left: -26px; top: 6px; width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--incr); background: var(--bg); }
+  .tl-item.done::before { background: var(--green); border-color: var(--green); }
+  .tl-day { font-size: 0.78rem; font-weight: 700; color: var(--incr); text-transform: uppercase; margin-bottom: 4px; }
+  .tl-title { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .tl-desc { font-size: 0.88rem; color: var(--text2); }
+
+  .highlight-box { border-radius: 12px; padding: 16px 20px; margin: 12px 0; }
+  .highlight-green { background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.2); }
+  .highlight-orange { background: rgba(251,146,60,0.06); border: 1px solid rgba(251,146,60,0.2); }
+  .highlight-red { background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.2); }
+
+  .meta-info { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; margin: 20px 0 40px; }
+  .meta-item { text-align: center; }
+  .meta-label { font-size: 0.75rem; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .meta-value { font-size: 1.3rem; font-weight: 800; color: var(--cyan); }
+</style>
+</head>
+<body>
+
+<nav class="top-nav" id="topNav">
+  <a href="#sec-summary" class="active">摘要</a>
+  <a href="#sec-current">現況分析</a>
+  <a href="#sec-goal">目標需求</a>
+  <a href="#sec-feasibility">可行性</a>
+  <a href="#sec-design">架構設計</a>
+  <a href="#sec-timeline">開發時程</a>
+  <a href="#sec-risk">風險評估</a>
+  <a href="#sec-conclusion">結論</a>
+</nav>
+
+<div class="container">
+
+<h1>增量手寫辨識 (Incremental Recognition)</h1>
+<p class="subtitle">可行性評估與開發時程報告</p>
+
+<div class="meta-info">
+  <div class="meta-item"><div class="meta-label">預估工時</div><div class="meta-value">5–7 天</div></div>
+  <div class="meta-item"><div class="meta-label">開發人力</div><div class="meta-value">1 人</div></div>
+  <div class="meta-item"><div class="meta-label">可行性</div><div class="meta-value" style="color:var(--green);">✅ 可行</div></div>
+  <div class="meta-item"><div class="meta-label">風險等級</div><div class="meta-value" style="color:var(--orange);">中</div></div>
+</div>
+
+<!-- ============ Section 1: Summary ============ -->
+<h2 id="sec-summary">一、執行摘要</h2>
+<div class="card">
+  <p>本報告評估在現有 <strong>批次辨識 (Batch)</strong> 架構基礎上，新增<strong>增量辨識 (Incremental Recognition)</strong> 功能的可行性與開發時程。</p>
+  <div class="highlight-green">
+    <p><strong>結論：技術上完全可行</strong>，現有架構（AIDL、MyScript iink SDK）已具備支撐增量辨識的基礎能力。預估需 <strong>5–7 個工作天</strong>，由 1 名開發人員完成，包含設計、實作、測試與整合。</p>
+  </div>
+</div>
+
+<!-- ============ Section 2: Current State ============ -->
+<h2 id="sec-current">二、現況分析</h2>
+<div class="card">
+  <h3>現有系統架構</h3>
+  <table>
+    <tr><td><strong>Client 端</strong></td><td><strong>LimeIME</strong>（輸入法 App）— 提供手寫畫布，收集筆跡</td></tr>
+    <tr><td><strong>Server 端</strong></td><td><strong>nOCR</strong>（辨識引擎 Service）— 內嵌 MyScript iink SDK</td></tr>
+    <tr><td><strong>通訊方式</strong></td><td>Android AIDL (Binder IPC) 跨程序通訊</td></tr>
+    <tr><td><strong>辨識模式</strong></td><td><span class="badge badge-batch">Batch</span> 僅支援批次辨識</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>現有 Batch 流程</h3>
+  <p>使用者寫完所有筆跡 → 等待 idle timeout → 將全部筆跡序列化為 JSON → <strong>同步 AIDL</strong> 送到 nOCR → 建立 Editor → 辨識 → 銷毀 Editor → 回傳結果</p>
+  <h3 style="margin-top:16px;">現有方案的痛點</h3>
+  <ul>
+    <li>⏳ <strong>延遲高</strong>：需等使用者停止書寫 + 完整辨識時間，體感等待 1-2 秒</li>
+    <li>🔒 <strong>UI 阻塞</strong>：辨識期間畫布和候選欄鎖定，無法繼續操作</li>
+    <li>🔁 <strong>資源浪費</strong>：每次辨識都重建/銷毀 Editor，產生不必要的初始化開銷</li>
+    <li>📉 <strong>互動性差</strong>：使用者無法在書寫過程中即時看到辨識結果</li>
+  </ul>
+</div>
+
+<!-- ============ Section 3: Goal ============ -->
+<h2 id="sec-goal">三、目標需求</h2>
+<div class="card">
+  <h3>需求描述</h3>
+  <p>在保留現有 Batch 功能的前提下，新增 <span class="badge badge-incr">Incremental</span> 增量辨識模式，讓使用者<strong>邊寫邊看到辨識結果</strong>，提升即時互動體驗。</p>
+  <h3 style="margin-top:16px;">預期效果</h3>
+  <table>
+    <thead><tr><th>項目</th><th>現況 (Batch)</th><th>目標 (Incremental)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>辨識觸發</strong></td><td>寫完後 idle timeout</td><td>每筆離開 (ACTION_UP) 即觸發</td></tr>
+      <tr><td><strong>結果延遲</strong></td><td>1–2 秒</td><td>&lt; 300ms</td></tr>
+      <tr><td><strong>書寫中體驗</strong></td><td>看不到結果</td><td>即時顯示候選字</td></tr>
+      <tr><td><strong>UI 阻塞</strong></td><td>辨識期間鎖定</td><td>完全不阻塞</td></tr>
+      <tr><td><strong>模式切換</strong></td><td>—</td><td>提供 Toggle 按鈕，可隨時切換</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Section 4: Feasibility ============ -->
+<h2 id="sec-feasibility">四、可行性分析</h2>
+<div class="card">
+  <h3>MyScript iink SDK 支援度</h3>
+  <div class="highlight-green">
+    <p><strong>✅ SDK 原生支援增量模式</strong></p>
+    <p>MyScript iink 的 <code>Editor.pointerEvents()</code> 方法提供第二參數：</p>
+    <ul>
+      <li><code>pointerEvents(events, false)</code> — 取代模式（現有 Batch 使用）</li>
+      <li><code>pointerEvents(events, true)</code> — <strong>累加模式</strong>（Incremental 將使用）</li>
+    </ul>
+    <p>不需要額外購買授權或升級 SDK 版本，現有 SDK 已完整支援。</p>
+  </div>
+</div>
+<div class="card">
+  <h3>AIDL 通訊可行性</h3>
+  <div class="highlight-green">
+    <p><strong>✅ AIDL 支援 oneway 非阻塞呼叫</strong></p>
+    <p>Android AIDL 原生提供 <code>oneway</code> 修飾詞，可實現非阻塞的跨程序事件傳輸，完美適合高頻觸控事件的即時傳遞。</p>
+  </div>
+</div>
+<div class="card">
+  <h3>需要新增的技術元件</h3>
+  <table>
+    <thead><tr><th>元件</th><th>說明</th><th>複雜度</th></tr></thead>
+    <tbody>
+      <tr><td><code>InkPointerEvent</code></td><td>跨程序傳輸觸控事件的 Parcelable 類別</td><td><span class="badge badge-green">低</span></td></tr>
+      <tr><td><code>IOcrCallback.aidl</code></td><td>Server → Client 非同步推送結果的回呼介面</td><td><span class="badge badge-green">低</span></td></tr>
+      <tr><td><code>OcrAidl</code> 擴充</td><td>新增 <code>beginSession</code>、<code>feedPointerEvents</code>、<code>endSession</code> 方法</td><td><span class="badge badge-orange">中</span></td></tr>
+      <tr><td><code>IncrementalSession</code></td><td>維持 MyScript Editor 持久化存活的 Session 封裝</td><td><span class="badge badge-orange">中</span></td></tr>
+      <tr><td><code>SessionManager</code></td><td>Session 池管理：並行數限制、idle 逾時回收</td><td><span class="badge badge-orange">中</span></td></tr>
+      <tr><td>LimeIME 整合</td><td>觸控事件轉換、callback 處理、UI 候選欄更新</td><td><span class="badge badge-red">高</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Section 5: Design ============ -->
+<h2 id="sec-design">五、架構設計方案</h2>
+<div class="card">
+  <h3>核心設計原則</h3>
+  <ul>
+    <li><strong>向後相容</strong>：Batch 模式完全保留，Incremental 為新增功能</li>
+    <li><strong>非阻塞通訊</strong>：使用 <code>oneway</code> AIDL 發送觸控事件，UI 不卡頓</li>
+    <li><strong>非同步結果推送</strong>：透過 <code>IOcrCallback</code> 從 nOCR 推回辨識結果</li>
+    <li><strong>Session 持久化</strong>：Editor 在 Session 存活期間不銷毀，支援筆跡累加</li>
+    <li><strong>自動資源回收</strong>：idle Session 超時自動清理，避免記憶體洩漏</li>
+  </ul>
+</div>
+<div class="two-col">
+  <div class="card highlight-box highlight-orange">
+    <h3><span class="badge badge-batch">Batch</span> 現有架構</h3>
+    <p>LimeIME → <strong>同步 AIDL</strong> → nOCR<br>
+    建立 Editor → 辨識 → 銷毀 Editor<br>
+    結果直接 return</p>
+  </div>
+  <div class="card highlight-box" style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.2);">
+    <h3><span class="badge badge-incr">Incremental</span> 新增架構</h3>
+    <p>LimeIME → <strong>oneway AIDL</strong> → nOCR<br>
+    持久化 Editor（Session 管理）<br>
+    結果透過 <code>IOcrCallback</code> 推回</p>
+  </div>
+</div>
+<div class="card">
+  <h3>修改範圍評估</h3>
+  <table>
+    <thead><tr><th>App</th><th>檔案</th><th>修改類型</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="5">nOCR (Server)</td><td><code>OcrAidl.aidl</code></td><td>新增增量方法</td></tr>
+      <tr><td><code>IOcrCallback.aidl</code></td><td><span class="badge badge-green">新建</span></td></tr>
+      <tr><td><code>InkPointerEvent.java/.aidl</code></td><td><span class="badge badge-green">新建</span></td></tr>
+      <tr><td><code>IncrementalSession.java</code></td><td><span class="badge badge-green">新建</span></td></tr>
+      <tr><td><code>SessionManager.java</code></td><td><span class="badge badge-green">新建</span></td></tr>
+      <tr><td rowspan="2">LimeIME (Client)</td><td><code>LIMEService.java</code></td><td>修改（AIDL binding、事件轉換、UI 更新）</td></tr>
+      <tr><td><code>HandwritingView.java</code></td><td>修改（新增 <code>onRawTouchEvent</code> 回呼）</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Section 6: Timeline ============ -->
+<h2 id="sec-timeline">六、開發時程（5–7 天）</h2>
+<div class="card">
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-day">Day 1 — AIDL 介面設計</div>
+      <div class="tl-title">定義跨程序通訊介面</div>
+      <div class="tl-desc">
+        <ul>
+          <li>設計 <code>InkPointerEvent</code> Parcelable（座標、壓力、時間戳、actionType）</li>
+          <li>擴充 <code>OcrAidl.aidl</code>：新增 <code>beginIncrementalSession()</code>、<code>oneway feedPointerEvents()</code>、<code>endIncrementalSession()</code></li>
+          <li>建立 <code>IOcrCallback.aidl</code>：定義 <code>onIncrementalResult()</code>、<code>onSessionError()</code></li>
+          <li>確保兩端 AIDL 檔案同步，build 通過</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-day">Day 2 — nOCR Server 端核心</div>
+      <div class="tl-title">Session 管理 + MyScript Editor 持久化</div>
+      <div class="tl-desc">
+        <ul>
+          <li>實作 <code>IncrementalSession</code>：封裝持久化 Editor，支援 <code>feedEvents()</code> 和 <code>getResult()</code></li>
+          <li>實作 <code>SessionManager</code>：Session 池、最大並行數 (3)、idle 逾時 (60s)、定期清理</li>
+          <li>在 <code>MainService.OcrAidlImpl</code> 中實作新 AIDL 方法</li>
+          <li>內部單元測試：Session 建立/關閉/逾時回收</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-day">Day 3 — LimeIME Client 端整合（上）</div>
+      <div class="tl-title">AIDL 綁定 + 觸控事件轉換</div>
+      <div class="tl-desc">
+        <ul>
+          <li><code>HandwritingView</code> 新增 <code>onRawTouchEvent</code> 回呼，轉發原始觸控事件</li>
+          <li><code>LIMEService</code> 實作 <code>onStrokeEventIncremental()</code>：MotionEvent → InkPointerEvent[] 轉換（含歷史事件展開、時間校正）</li>
+          <li>實作 <code>IOcrCallback.Stub</code>，接收 nOCR 推回的辨識結果</li>
+          <li>AIDL Service 綁定、callback 註冊、DeathRecipient 處理</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-day">Day 4 — LimeIME Client 端整合（下）</div>
+      <div class="tl-title">模式切換 + UI 更新</div>
+      <div class="tl-desc">
+        <ul>
+          <li>實作 <code>switchToIncrementalMode()</code> / <code>switchToBatchMode()</code> 切換邏輯</li>
+          <li>實作 <code>handleIncrementalResult()</code>：辨識結果 → CandidateView 候選字更新</li>
+          <li>新增 Toggle 按鈕 UI（Batch ↔ Incremental）</li>
+          <li>Session 生命週期管理：清除畫布、離開輸入法時正確清理</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-day">Day 5 — 整合測試 + Debug</div>
+      <div class="tl-title">端對端流程驗證</div>
+      <div class="tl-desc">
+        <ul>
+          <li>Batch → Incremental 模式切換測試</li>
+          <li>連續書寫：多筆累加辨識正確性</li>
+          <li>邊界情況：nOCR 程序崩潰重連、Session 逾時回收</li>
+          <li>效能測試：觸控事件延遲、辨識回應時間</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-day">Day 6 — 優化 + 修復</div>
+      <div class="tl-title">效能調校與邊界問題修復</div>
+      <div class="tl-desc">
+        <ul>
+          <li>記憶體洩漏檢測（Editor、ContentPackage 資源釋放）</li>
+          <li>多語系測試（中文、英文、日文辨識）</li>
+          <li>E-ink 裝置特有問題處理（刷新率、觸控精度）</li>
+          <li>修復整合測試中發現的 bug</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-day">Day 7 — Buffer（如需要）</div>
+      <div class="tl-title">緩衝日：回歸測試 + 文件整理</div>
+      <div class="tl-desc">
+        <ul>
+          <li>全面回歸測試：確保 Batch 模式未受影響</li>
+          <li>程式碼整理、註解補充</li>
+          <li>技術文件撰寫</li>
+          <li>如無重大問題，可提前交付</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="card">
+  <h3>時程甘特圖</h3>
+  <table>
+    <thead><tr><th>天</th><th>任務</th><th style="width:40%;">進度</th></tr></thead>
+    <tbody>
+      <tr><td><strong>D1</strong></td><td>AIDL 介面設計</td><td><div style="background:var(--incr);height:12px;border-radius:6px;width:100%;"></div></td></tr>
+      <tr><td><strong>D2</strong></td><td>nOCR Server 核心</td><td><div style="background:var(--incr);height:12px;border-radius:6px;width:100%;"></div></td></tr>
+      <tr><td><strong>D3</strong></td><td>LimeIME Client（上）</td><td><div style="background:var(--cyan);height:12px;border-radius:6px;width:100%;"></div></td></tr>
+      <tr><td><strong>D4</strong></td><td>LimeIME Client（下）</td><td><div style="background:var(--cyan);height:12px;border-radius:6px;width:100%;"></div></td></tr>
+      <tr><td><strong>D5</strong></td><td>整合測試 + Debug</td><td><div style="background:var(--orange);height:12px;border-radius:6px;width:100%;"></div></td></tr>
+      <tr><td><strong>D6</strong></td><td>優化 + 修復</td><td><div style="background:var(--orange);height:12px;border-radius:6px;width:100%;"></div></td></tr>
+      <tr><td><strong>D7</strong></td><td>Buffer / 回歸測試</td><td><div style="background:var(--green);height:12px;border-radius:6px;width:60%;opacity:0.5;"></div></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Section 7: Risk ============ -->
+<h2 id="sec-risk">七、風險評估</h2>
+<div class="card">
+  <table>
+    <thead><tr><th>風險項目</th><th>等級</th><th>說明</th><th>應對策略</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>MyScript Editor 記憶體洩漏</strong></td>
+        <td><span class="badge badge-orange">中</span></td>
+        <td>持久化 Editor 若未正確關閉，可能導致記憶體持續增長</td>
+        <td>SessionManager 強制 idle 逾時回收 + DeathRecipient 重建機制</td>
+      </tr>
+      <tr>
+        <td><strong>高頻 AIDL 呼叫效能</strong></td>
+        <td><span class="badge badge-orange">中</span></td>
+        <td>每個觸控 MOVE 事件都跨程序傳輸，可能有 Binder 瓶頸</td>
+        <td>使用 oneway 非阻塞 + InkPointerEvent[] 批量傳輸（含歷史事件）</td>
+      </tr>
+      <tr>
+        <td><strong>nOCR 程序崩潰</strong></td>
+        <td><span class="badge badge-green">低</span></td>
+        <td>辨識引擎異常退出，Session 丟失</td>
+        <td>IBinder.DeathRecipient 自動重新綁定，下次書寫時重建 Session</td>
+      </tr>
+      <tr>
+        <td><strong>Batch 功能回歸</strong></td>
+        <td><span class="badge badge-green">低</span></td>
+        <td>新增 Incremental 可能影響原有 Batch 流程</td>
+        <td>兩模式完全獨立路徑，不修改 Batch 相關程式碼</td>
+      </tr>
+      <tr>
+        <td><strong>E-ink 顯示延遲</strong></td>
+        <td><span class="badge badge-orange">中</span></td>
+        <td>E-ink 螢幕刷新率低，即時候選字更新可能不明顯</td>
+        <td>測試階段評估最佳更新頻率，必要時調整辨識觸發時機</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ Section 8: Conclusion ============ -->
+<h2 id="sec-conclusion">八、結論與建議</h2>
+<div class="card">
+  <div class="highlight-green">
+    <h3>✅ 建議執行</h3>
+    <p>增量辨識功能<strong>技術上完全可行</strong>，現有架構具備良好的擴展基礎：</p>
+    <ul>
+      <li>MyScript iink SDK <strong>原生支援</strong>累加模式，無需額外授權</li>
+      <li>Android AIDL 提供 <code>oneway</code> + Callback 機制，滿足非阻塞需求</li>
+      <li>修改範圍明確，<strong>不影響現有 Batch 功能</strong></li>
+    </ul>
+  </div>
+</div>
+<div class="card">
+  <h3>預期效益</h3>
+  <table>
+    <thead><tr><th>指標</th><th>改善幅度</th></tr></thead>
+    <tbody>
+      <tr><td><strong>辨識回應時間</strong></td><td>1–2 秒 → <strong>&lt; 300ms</strong>（改善 70%+）</td></tr>
+      <tr><td><strong>使用者體驗</strong></td><td>即寫即辨，互動性<strong>大幅提升</strong></td></tr>
+      <tr><td><strong>系統資源</strong></td><td>Editor 持久化，減少重複初始化開銷</td></tr>
+      <tr><td><strong>向後相容</strong></td><td>Batch 模式<strong>完全保留</strong>，使用者可自由切換</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p style="text-align:center;color:var(--text2);margin-top:48px;font-size:0.85rem;">
+  Prepared by Engineering Team · Confidential<br>
+  Estimated Timeline: 5–7 Working Days
+</p>
+
+</div>
+
+<script>
+// Top nav active highlight on scroll
+(function() {
+  var navLinks = document.querySelectorAll('#topNav a');
+  var sections = [];
+  navLinks.forEach(function(a) { sections.push(document.querySelector(a.getAttribute('href'))); });
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY + 80;
+    var activeIdx = 0;
+    for (var i = sections.length - 1; i >= 0; i--) {
+      if (sections[i] && sections[i].offsetTop <= scrollY) { activeIdx = i; break; }
+    }
+    navLinks.forEach(function(a, i) { a.classList.toggle('active', i === activeIdx); });
+  });
+})();
+</script>
+</body>
+</html>
