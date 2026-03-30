@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMode 分析報告 — E-Ink 刷新模式控制</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2333;
+    --bg-card: #1a2030;
+    --border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent-blue: #58a6ff;
+    --accent-cyan: #56d4dd;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-purple: #bc8cff;
+    --accent-red: #f85149;
+    --accent-pink: #f778ba;
+    --gradient-1: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
+    --gradient-2: linear-gradient(135deg, #56d4dd 0%, #58a6ff 100%);
+    --gradient-3: linear-gradient(135deg, #3fb950 0%, #56d4dd 100%);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(175deg, #0f1923 0%, #131d2e 40%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 0 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(88,166,255,0.08) 0%, transparent 70%);
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: -50px;
+    width: 350px; height: 350px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(188,140,255,0.06) 0%, transparent 70%);
+  }
+  .hero .container { position: relative; z-index: 1; }
+  .hero h1 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .hero .subtitle { color: var(--text-secondary); font-size: 1.1rem; }
+  .meta-bar {
+    display: flex; flex-wrap: wrap; gap: 20px;
+    margin-top: 24px;
+  }
+  .meta-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.85rem; color: var(--text-secondary);
+  }
+  .meta-item .label { color: var(--text-muted); }
+  .meta-item .value {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 28px; }
+
+  /* Section */
+  .section { padding: 48px 0; }
+  .section + .section { border-top: 1px solid var(--border); }
+  .section-title {
+    font-size: 1.4rem; font-weight: 700;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--gradient-1); color: #fff;
+    font-size: 0.85rem; font-weight: 700;
+  }
+  .section-desc { color: var(--text-secondary); margin-bottom: 28px; font-size: 0.95rem; }
+
+  /* Tables */
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 0.88rem;
+  }
+  th {
+    background: var(--bg-tertiary);
+    text-align: left; padding: 10px 14px;
+    font-weight: 600; font-size: 0.8rem;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(88,166,255,0.03); }
+  td code, th code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px;
+    font-size: 0.82rem; color: var(--accent-cyan);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin: 16px 0;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(88,166,255,0.3); }
+  .card-title {
+    font-size: 1rem; font-weight: 600;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .badge {
+    font-size: 0.7rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-phase1 { background: rgba(88,166,255,0.15); color: var(--accent-blue); }
+  .badge-phase2 { background: rgba(63,185,80,0.15); color: var(--accent-green); }
+
+  /* Commit header */
+  .commit-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .commit-hash {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 10px;
+    color: var(--accent-purple);
+  }
+  .commit-repo {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    padding: 3px 8px; border-radius: 4px;
+  }
+
+  /* Mermaid */
+  .diagram-wrapper {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px; margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-wrapper .mermaid {
+    display: flex; justify-content: center;
+    min-height: 400px;
+  }
+  .diagram-label {
+    font-size: 0.8rem; font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 16px; text-align: center;
+  }
+
+  /* Code */
+  pre {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px; margin: 14px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem; line-height: 1.6;
+    color: var(--text-primary);
+  }
+  pre .comment { color: var(--text-muted); }
+  pre .highlight { color: var(--accent-cyan); }
+
+  /* Callout */
+  .callout {
+    border-radius: 10px; padding: 16px 20px;
+    margin: 16px 0; font-size: 0.88rem;
+    display: flex; gap: 12px;
+    border: 1px solid;
+  }
+  .callout-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+  .callout-warn {
+    background: rgba(210,153,34,0.08);
+    border-color: rgba(210,153,34,0.25);
+    color: var(--accent-orange);
+  }
+  .callout-info {
+    background: rgba(88,166,255,0.06);
+    border-color: rgba(88,166,255,0.2);
+    color: var(--accent-blue);
+  }
+  .callout-important {
+    background: rgba(248,81,73,0.06);
+    border-color: rgba(248,81,73,0.2);
+    color: var(--accent-red);
+  }
+  .callout strong { color: inherit; }
+
+  /* Bit field */
+  .bitfield {
+    display: flex; gap: 0; margin: 20px auto;
+    max-width: 700px; font-family: 'JetBrains Mono', monospace;
+  }
+  .bitfield .bf-cell {
+    flex: 1; text-align: center;
+    padding: 10px 6px; font-size: 0.75rem;
+    border: 1px solid var(--border);
+  }
+  .bitfield .bf-cell:first-child { border-radius: 8px 0 0 8px; }
+  .bitfield .bf-cell:last-child { border-radius: 0 8px 8px 0; }
+  .bf-mask { background: rgba(188,140,255,0.1); color: var(--accent-purple); }
+  .bf-update { background: rgba(88,166,255,0.1); color: var(--accent-blue); }
+  .bf-wait { background: rgba(63,185,80,0.1); color: var(--accent-green); }
+  .bf-wave { background: rgba(86,212,221,0.1); color: var(--accent-cyan); }
+  .bf-label { font-size: 0.65rem; color: var(--text-muted); display: block; margin-top: 4px; }
+
+  /* Mode cards grid */
+  .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 20px 0; }
+  .mode-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px;
+    transition: transform 0.15s, border-color 0.2s;
+  }
+  .mode-card:hover { transform: translateY(-2px); border-color: rgba(88,166,255,0.3); }
+  .mode-card h4 { font-size: 0.95rem; margin-bottom: 6px; }
+  .mode-card p { color: var(--text-secondary); font-size: 0.82rem; }
+  .mode-card .action {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; color: var(--accent-cyan);
+    margin-top: 8px; word-break: break-all;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 1.6rem; }
+    .container { padding: 0 16px; }
+    .card { padding: 18px; }
+  }
+
+  /* ToC */
+  .toc {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px 28px;
+    margin: 30px 0;
+  }
+  .toc h3 { font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  .toc ul { list-style: none; }
+  .toc li { margin: 6px 0; }
+  .toc a {
+    color: var(--accent-blue); text-decoration: none; font-size: 0.9rem;
+    transition: color 0.15s;
+  }
+  .toc a:hover { color: var(--accent-cyan); }
+  .toc .toc-num { color: var(--text-muted); margin-right: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+
+  .file-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent-cyan);
+    background: rgba(86,212,221,0.08);
+    border: 1px solid rgba(86,212,221,0.2);
+    border-radius: 5px;
+    padding: 1px 8px;
+  }
+
+  /* Click-to-zoom hint */
+  .diagram-wrapper { cursor: zoom-in; position: relative; }
+  .diagram-wrapper::after {
+    content: '🔍 點擊放大';
+    position: absolute; top: 10px; right: 14px;
+    font-size: 0.7rem; color: var(--text-muted);
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: 5px; padding: 2px 8px;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .diagram-wrapper:hover::after { opacity: 1; }
+
+  /* Lightbox overlay */
+  .lightbox-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 9999;
+    cursor: zoom-out;
+    justify-content: center; align-items: center;
+    padding: 30px;
+    backdrop-filter: blur(4px);
+  }
+  .lightbox-overlay.active { display: flex; }
+  .lightbox-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 40px;
+    width: 92vw; max-height: 92vh;
+    overflow: auto;
+    transform: scale(0.9); opacity: 0;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .lightbox-overlay.active .lightbox-content {
+    transform: scale(1); opacity: 1;
+  }
+  .lightbox-close {
+    position: fixed; top: 18px; right: 24px;
+    font-size: 1.6rem; color: var(--text-secondary);
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    border-radius: 8px; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 10000;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .lightbox-close:hover { color: var(--accent-red); border-color: var(--accent-red); }
+  .lightbox-content .mermaid { display: flex; justify-content: center; }
+  .lightbox-content svg { width: 100% !important; height: auto !important; max-height: 85vh; }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="container">
+    <h1>SMode 分析報告</h1>
+    <p class="subtitle">E-Ink 刷新模式控制 — Global / Quick / Wait Mode</p>
+    <div class="meta-bar">
+      <div class="meta-item"><span class="label">Author</span><span class="value">Domao Liu</span></div>
+      <div class="meta-item"><span class="label">Date</span><span class="value">2026-03-23 ~ 2026-03-27</span></div>
+      <div class="meta-item"><span class="label">Commits</span><span class="value">5 commits / 3 repos</span></div>
+      <div class="meta-item"><span class="label">Lines</span><span class="value">+373 / -11</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- TOC -->
+  <nav class="toc">
+    <h3>目錄</h3>
+    <ul>
+      <li><span class="toc-num">01</span><a href="#overview">功能總覽與支援模式</a></li>
+      <li><span class="toc-num">02</span><a href="#architecture">系統架構圖</a></li>
+      <li><span class="toc-num">03</span><a href="#encoding">值編碼格式</a></li>
+      <li><span class="toc-num">04</span><a href="#commits">Commit 逐項分析</a></li>
+      <li><span class="toc-num">05</span><a href="#sequence">跨層級呼叫流程</a></li>
+      <li><span class="toc-num">06</span><a href="#file-summary">檔案修改總覽</a></li>
+      <li><span class="toc-num">07</span><a href="#notes">設計要點與注意事項</a></li>
+      <li><span class="toc-num">08</span><a href="#test">測試指令</a></li>
+      <li><span class="toc-num">09</span><a href="#waveform">Waveform Mode 定義</a></li>
+    </ul>
+  </nav>
+
+  <!-- 1. Overview -->
+  <section class="section" id="overview">
+    <h2 class="section-title"><span class="num">01</span>功能總覽</h2>
+    <p class="section-desc">此功能為 Android E-Ink 裝置新增 <strong>SMode（Special Mode）</strong> 刷新控制機制，允許上層 App 透過 Broadcast Intent 動態切換 E-Ink 面板的刷新模式。</p>
+
+    <div class="mode-grid">
+      <div class="mode-card">
+        <h4>🌐 Global Mode</h4>
+        <p>全域刷新模式，持續生效直到關閉（<code>waveformmode=0</code>）。每次 <code>atomicPostBuffer()</code> 都會套用。</p>
+        <div class="action">ntx.eink_control.GLOBAL_REFRESH</div>
+      </div>
+      <div class="mode-card">
+        <h4>⚡ Quick Mode</h4>
+        <p>單次快速刷新，使用後自動清除。會觸發 <code>scheduleComposite()</code> 強制合成一次。</p>
+        <div class="action">ntx.eink_control.QUICK_REFRESH</div>
+      </div>
+      <div class="mode-card">
+        <h4>⏳ Wait Mode</h4>
+        <p>控制 DRM <code>WAIT_COMPLETE</code> 屬性，等待 E-Ink panel 刷新完成才返回（同步刷新）。</p>
+        <div class="action">嵌入 Global / Quick 參數中</div>
+      </div>
+      <div class="mode-card">
+        <h4>🎯 Special Mode</h4>
+        <p>帶額外參數（count / time / region）的特殊刷新模式。</p>
+        <div class="action">ntx.eink_control.SPECIAL_REFRESH</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:1rem; margin:28px 0 12px;">Broadcast 參數說明</h3>
+    <table>
+      <thead><tr><th>參數</th><th>說明</th><th>值域</th></tr></thead>
+      <tbody>
+        <tr><td><code>updatemode</code></td><td>full update (1) / partial update (0)</td><td>0 or 1</td></tr>
+        <tr><td><code>waitmode</code></td><td>等待刷新完成 Enable (1) / Disable (0)</td><td>0 or 1</td></tr>
+        <tr><td><code>waveformmode</code></td><td>波形模式 (du, gc4, gc8, gc16 等)</td><td>整數值</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 2. Architecture -->
+  <section class="section" id="architecture">
+    <h2 class="section-title"><span class="num">02</span>系統架構圖</h2>
+    <p class="section-desc">完整的資料流從 App Broadcast 開始，經過 Framework → Native → HAL → DRM Driver。</p>
+
+    <div class="diagram-wrapper">
+      <div class="diagram-label">整體資料流</div>
+      <div class="mermaid">
+flowchart TB
+    subgraph APP["Application Layer"]
+        A1["App / adb shell\nam broadcast"]
+    end
+
+    subgraph FW["Framework Layer — frameworks/base"]
+        B1["PowerManagerService\n(UpdateModeReceiver)"]
+        B2["Surface.java\nupdateAuxRefreshMode()"]
+        B3["android_view_Surface.cpp\n(JNI Bridge)"]
+    end
+
+    subgraph NATIVE["Native Layer — frameworks/native"]
+        C1["SurfaceComposerClient\nupdateAuxRefreshMode()"]
+        C2["ISurfaceComposer\n(Binder IPC)"]
+        C3["SurfaceFlinger\nupdateAuxRefreshMode()"]
+        C4["HWComposer\nupdateAuxRefreshMode()"]
+    end
+
+    subgraph HAL["HAL Layer — libhwcomposer (vendor)"]
+        D1["HWCDisplay_simple\ngetAttribute → SModeInfo"]
+        D2["DrmModeResource\natomicPostBuffer()"]
+        D3["DRM/KMS Driver\nE-Ink HWTCON"]
+    end
+
+    A1 -- "Broadcast Intent" --> B1
+    B1 -- "encode flags" --> B2
+    B2 -- "JNI call" --> B3
+    B3 -- "static method" --> C1
+    C1 -- "Binder transact" --> C2
+    C2 -- "onTransact" --> C3
+    C3 -- "delegate" --> C4
+    C4 -- "getDisplayAttribute\nhack: attr = mask|value" --> D1
+    D1 -- "store SModeInfo" --> D2
+    D2 -- "DRM plane property\nWAIT_COMPLETE" --> D3
+
+    style APP fill:#1a2744,stroke:#58a6ff,color:#e6edf3
+    style FW fill:#1a2d1a,stroke:#3fb950,color:#e6edf3
+    style NATIVE fill:#2a1a3d,stroke:#bc8cff,color:#e6edf3
+    style HAL fill:#2d2a1a,stroke:#d29922,color:#e6edf3
+      </div>
+    </div>
+
+    <div class="diagram-wrapper">
+      <div class="diagram-label">檔案關係圖</div>
+      <div class="mermaid">
+graph LR
+    subgraph SYS["frameworks/base — system partition"]
+        S3["PowerManagerService.java"]
+        S1["Surface.java"]
+        S2["android_view_Surface.cpp"]
+    end
+
+    subgraph NAT["frameworks/native — system partition"]
+        N2["SurfaceComposerClient"]
+        N1["ISurfaceComposer"]
+        N3["SurfaceFlinger"]
+        N4["HWComposer"]
+    end
+
+    subgraph VND["libhwcomposer — vendor partition"]
+        V1["hwcdisplay_simple"]
+        V2["drmmoderesource.cpp"]
+    end
+
+    S3 --> S1
+    S1 --> S2
+    S2 --> N2
+    N2 --> N1
+    N1 --> N3
+    N3 --> N4
+    N4 --> V1
+    V1 --> V2
+
+    style SYS fill:#1a2d1a,stroke:#3fb950,color:#e6edf3
+    style NAT fill:#2a1a3d,stroke:#bc8cff,color:#e6edf3
+    style VND fill:#2d2a1a,stroke:#d29922,color:#e6edf3
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Encoding -->
+  <section class="section" id="encoding">
+    <h2 class="section-title"><span class="num">03</span>值編碼格式</h2>
+    <p class="section-desc">模式資訊被編碼為 32-bit 整數，透過 <code>getDisplayAttribute()</code> 的 <code>attribute</code> 參數傳遞到 HAL。</p>
+
+    <h3 style="font-size:0.95rem; margin-bottom:12px;">32-bit Attribute 編碼</h3>
+    <div class="bitfield">
+      <div class="bf-cell bf-mask" style="flex:2;">
+        <strong>0xA2~A7</strong><br>
+        <span class="bf-label">Bit 31~24: NTX Mask</span>
+      </div>
+      <div class="bf-cell bf-update">
+        <strong>U</strong><br>
+        <span class="bf-label">Bit 23: Update</span>
+      </div>
+      <div class="bf-cell bf-wait">
+        <strong>W</strong><br>
+        <span class="bf-label">Bit 22: Wait</span>
+      </div>
+      <div class="bf-cell" style="background:rgba(255,255,255,0.02); color:var(--text-muted); flex:1.5;">
+        <strong>—</strong><br>
+        <span class="bf-label">Bit 21~16: Reserved</span>
+      </div>
+      <div class="bf-cell bf-wave" style="flex:4;">
+        <strong>waveformmode</strong><br>
+        <span class="bf-label">Bit 15~0: Waveform</span>
+      </div>
+    </div>
+
+    <h3 style="font-size:0.95rem; margin: 24px 0 12px;">NTX Mask 定義</h3>
+    <table>
+      <thead><tr><th>Mask</th><th>值</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>NTX_SLEEP_MODE_MASK</code></td><td><code>0xA0000000</code></td><td>Sleep 模式</td></tr>
+        <tr><td><code>NTX_DROP_MODE_MASK</code></td><td><code>0xA1000000</code></td><td>丟幀模式</td></tr>
+        <tr><td><code>NTX_GLOBAL_MODE_MASK</code></td><td><code>0xA2000000</code></td><td>Global 刷新模式</td></tr>
+        <tr><td><code>NTX_QUICK_MODE_MASK</code></td><td><code>0xA3000000</code></td><td>Quick 刷新模式</td></tr>
+        <tr><td><code>NTX_SPECIAL_MODE_MASK</code></td><td><code>0xA4000000</code></td><td>Special 模式</td></tr>
+        <tr><td><code>NTX_SPECIAL_COUNT_MASK</code></td><td><code>0xA5000000</code></td><td>Special 計數</td></tr>
+        <tr><td><code>NTX_SPECIAL_TIME_MASK</code></td><td><code>0xA6000000</code></td><td>Special 時間</td></tr>
+        <tr><td><code>NTX_SPECIAL_REGION_MASK</code></td><td><code>0xA7000000</code></td><td>Special 區域</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4. Commit Analysis -->
+  <section class="section" id="commits">
+    <h2 class="section-title"><span class="num">04</span>Commit 逐項分析</h2>
+    <p class="section-desc">分為兩階段開發：Phase 1 建立 Global / Quick 基礎架構，Phase 2 補上 Wait mode。</p>
+
+    <!-- Phase 1 -->
+    <h3 style="font-size:1.1rem; margin: 20px 0 16px; color: var(--accent-blue);">Phase 1 — Global Mode & Quick Mode <span style="font-size:0.8rem; color:var(--text-muted);">(2026-03-23)</span></h3>
+
+    <!-- Commit 1 -->
+    <div class="card">
+      <div class="commit-header">
+        <span class="commit-hash">b30fc7a4</span>
+        <span class="commit-repo">frameworks/base</span>
+        <span class="badge badge-phase1">+94 lines</span>
+      </div>
+      <div class="card-title">Commit 1：Framework Java 層 — Broadcast 接收 + Surface API</div>
+      <table>
+        <thead><tr><th>檔案</th><th>變更內容</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="file-tag">Surface.java</span></td>
+            <td>新增 <code>updateAuxRefreshMode(mode, updatemode, waveformmode)</code> 和 <code>updateAuxRefreshModeArg()</code>。將 <code>updatemode</code> 左移 16 bit 與 <code>waveformmode</code> 合併為 value。宣告 native 方法。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">android_view_Surface.cpp</span></td>
+            <td>JNI bridge 實作，轉呼叫 <code>SurfaceComposerClient::updateAuxRefreshMode()</code>。註冊 JNI method table。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">PowerManagerService.java</span></td>
+            <td>定義 <code>NTX_MODE_*</code> 常數（SLEEP=0, DROP=1, GLOBAL=2, QUICK=3, SPECIAL=4）。建立 <code>UpdateModeReceiver</code> 接收 5 種 broadcast action。建立 <code>Surface</code> 實例供呼叫。Global mode 同時設定 system property <code>sys.display.global_mode</code>。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Commit 2 -->
+    <div class="card">
+      <div class="commit-header">
+        <span class="commit-hash">1f1d3f33</span>
+        <span class="commit-repo">frameworks/native</span>
+        <span class="badge badge-phase1">+171 lines</span>
+      </div>
+      <div class="card-title">Commit 2：Native 層 — Binder IPC + SurfaceFlinger + HWComposer</div>
+      <table>
+        <thead><tr><th>檔案</th><th>變更內容</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="file-tag">ISurfaceComposer.h</span></td>
+            <td>新增 <code>UPDATE_AUX_REFRESH_MODE</code> / <code>UPDATE_AUX_REFRESH_MODE_ARG</code> Binder transaction codes。宣告純虛擬函數。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">ISurfaceComposer.cpp</span></td>
+            <td>實作 Binder proxy（<code>BpSurfaceComposer</code>）序列化，和 stub（<code>BnSurfaceComposer</code>）反序列化。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">SurfaceComposerClient</span></td>
+            <td>新增 static 方法，轉發到 <code>ISurfaceComposer</code>。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">HWComposer.h/cpp</span></td>
+            <td>定義 NTX mask 常數。<strong>核心 hack</strong>：利用 <code>getDisplayAttribute()</code> 將 <code>NTX_MASK | value</code> 編碼進 Attribute 參數傳到 HAL。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">SurfaceFlinger.h/cpp</span></td>
+            <td>實作 <code>updateAuxRefreshMode()</code>，取得 default display 後委派 HWComposer。Quick mode 觸發 <code>sfdo_scheduleComposite()</code> 強制合成。新增 transaction code 權限檢查。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Commit 3 -->
+    <div class="card">
+      <div class="commit-header">
+        <span class="commit-hash">73cd0503</span>
+        <span class="commit-repo">libhwcomposer (vendor)</span>
+        <span class="badge badge-phase1">+95 lines</span>
+      </div>
+      <div class="card-title">Commit 3：HAL 層 — SModeInfo 結構 + DRM 套用</div>
+      <table>
+        <thead><tr><th>檔案</th><th>變更內容</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="file-tag">hwcdisplay_simple.h</span></td>
+            <td>定義 <code>SModeInfo</code> 結構（mGlobalMode, mQuickMode, mSpecialMode 等共 11 欄位）。定義 NTX mask 常數。新增 <code>getSModeInfo()</code> / <code>setSModeInfo()</code>。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">hwcdisplay_simple.cpp</span></td>
+            <td>在 <code>getAttribute()</code> 中解碼高 8-bit mask，按 mask 類型 switch-case 解析並存入 <code>SModeInfo</code>。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">drmmoderesource.cpp</span></td>
+            <td>在 <code>atomicPostBuffer()</code> 讀取 <code>SModeInfo</code>。Quick mode 覆寫 waveform/update_mode 後 <strong>立即清除</strong>。Global mode 覆寫但<strong>持續保持</strong>。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Phase 2 -->
+    <h3 style="font-size:1.1rem; margin: 36px 0 16px; color: var(--accent-green);">Phase 2 — Wait Mode <span style="font-size:0.8rem; color:var(--text-muted);">(2026-03-27)</span></h3>
+
+    <!-- Commit 4 -->
+    <div class="card">
+      <div class="commit-header">
+        <span class="commit-hash">8175f67c</span>
+        <span class="commit-repo">frameworks/base</span>
+        <span class="badge badge-phase2">+13 / -11</span>
+      </div>
+      <div class="card-title">Commit 4：Framework 層 — 新增 waitmode 參數 + Flag 編碼重構</div>
+      <table>
+        <thead><tr><th>檔案</th><th>變更內容</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="file-tag">Surface.java</span></td>
+            <td>簽名改為 <code>updateAuxRefreshMode(mode, updatemode, waitmode, waveformmode)</code>。改用 flag-bit 編碼：<code>FLAG_UPDATE_MODE=0x800000</code>、<code>FLAG_WAIT_MODE=0x400000</code>，取代原本的位移方式。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">PowerManagerService.java</span></td>
+            <td>Global / Quick broadcast 新增解析 <code>waitmode</code> extra。移除 <code>DEFAULT_MODE</code> action。DropFrames 呼叫被<strong>註解掉</strong>。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Commit 5 -->
+    <div class="card">
+      <div class="commit-header">
+        <span class="commit-hash">307cbe78</span>
+        <span class="commit-repo">libhwcomposer (vendor)</span>
+        <span class="badge badge-phase2">+16 / -8</span>
+      </div>
+      <div class="card-title">Commit 5：HAL 層 — WaitMode 解碼 + DRM WAIT_COMPLETE</div>
+      <table>
+        <thead><tr><th>檔案</th><th>變更內容</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="file-tag">hwcdisplay_simple.h</span></td>
+            <td><code>SModeInfo</code> 新增 <code>mGlobalWaitMode</code>、<code>mQuickWaitMode</code>。定義 <code>FLAG_UPDATE_MODE</code> / <code>FLAG_WAIT_MODE</code> 常數。<code>setSModeInfo(0)</code> 同時清除 <code>mQuickWaitMode</code>。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">hwcdisplay_simple.cpp</span></td>
+            <td>Global / Quick 解碼改用 flag-bit 提取 updateMode 和 waitMode。</td>
+          </tr>
+          <tr>
+            <td><span class="file-tag">drmmoderesource.cpp</span></td>
+            <td>新增 <code>mWaitMode</code> 變數，從 <code>SModeInfo</code> 讀取 waitMode。<br><strong>關鍵變更</strong>：DRM plane property <code>DRM_PROP_PLANE_WAIT_COMPLETE</code> 從硬編碼 <code>0</code> 改為 <code>mWaitMode</code>。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. Sequence -->
+  <section class="section" id="sequence">
+    <h2 class="section-title"><span class="num">05</span>跨層級呼叫流程</h2>
+    <p class="section-desc">以 Global Refresh 為例的完整呼叫時序。</p>
+
+    <div class="diagram-wrapper">
+      <div class="diagram-label">呼叫序列圖</div>
+      <div class="mermaid">
+sequenceDiagram
+    participant App as App / ADB
+    participant PMS as PowerManagerService
+    participant Surface as Surface.java
+    participant JNI as JNI Bridge
+    participant SCC as SurfaceComposerClient
+    participant SF as SurfaceFlinger
+    participant HWC as HWComposer
+    participant HAL as HWCDisplay_simple
+    participant DRM as DrmModeResource
+
+    App->>PMS: Broadcast Intent<br/>(ntx.eink_control.GLOBAL_REFRESH)
+    PMS->>PMS: 解析 updatemode / waitmode / waveformmode
+    PMS->>Surface: updateAuxRefreshMode(GLOBAL, update, wait, wave)
+    Surface->>Surface: value = FLAG_UPDATE | FLAG_WAIT | waveform
+    Surface->>JNI: nativeUpdateAuxRefreshMode(mode, value)
+    JNI->>SCC: updateAuxRefreshMode(mode, value)
+    SCC->>SF: Binder transact UPDATE_AUX_REFRESH_MODE
+    SF->>HWC: updateAuxRefreshMode(displayId, mode, value)
+    HWC->>HWC: attr = NTX_GLOBAL_MODE_MASK | value
+    HWC->>HAL: getDisplayAttribute(configId, attr)
+    HAL->>HAL: 解碼 → SModeInfo.mGlobalMode
+    Note over DRM: 下次 atomicPostBuffer() 呼叫時
+    DRM->>DRM: 讀取 SModeInfo
+    DRM->>DRM: 覆寫 waveform_mode / update_mode
+    DRM->>DRM: WAIT_COMPLETE = mGlobalWaitMode
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. File Summary -->
+  <section class="section" id="file-summary">
+    <h2 class="section-title"><span class="num">06</span>檔案修改總覽</h2>
+    <table>
+      <thead>
+        <tr><th>分區</th><th>檔案</th><th>新增</th><th>修改</th><th>角色</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>system</td><td><code>PowerManagerService.java</code></td><td>+55</td><td>~8</td><td>Broadcast 接收、參數解析</td></tr>
+        <tr><td>system</td><td><code>Surface.java</code></td><td>+24</td><td>~3</td><td>Java API 封裝、flag 編碼</td></tr>
+        <tr><td>system</td><td><code>android_view_Surface.cpp</code></td><td>+18</td><td>0</td><td>JNI 橋接</td></tr>
+        <tr><td>system</td><td><code>ISurfaceComposer.h/cpp</code></td><td>+44</td><td>0</td><td>Binder IPC 定義</td></tr>
+        <tr><td>system</td><td><code>SurfaceComposerClient.h/cpp</code></td><td>+16</td><td>0</td><td>Client-side static API</td></tr>
+        <tr><td>system</td><td><code>SurfaceFlinger.h/cpp</code></td><td>+32</td><td>0</td><td>路由到 HWComposer + 觸發合成</td></tr>
+        <tr><td>system</td><td><code>HWComposer.h/cpp</code></td><td>+79</td><td>0</td><td>Attribute 編碼 hack</td></tr>
+        <tr><td>vendor</td><td><code>hwcdisplay_simple.h/cpp</code></td><td>+87</td><td>~6</td><td>SModeInfo 結構、attribute 解碼</td></tr>
+        <tr><td>vendor</td><td><code>drmmoderesource.cpp</code></td><td>+16</td><td>~2</td><td>套用刷新參數到 DRM plane</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 7. Notes -->
+  <section class="section" id="notes">
+    <h2 class="section-title"><span class="num">07</span>設計要點與注意事項</h2>
+
+    <div class="callout callout-important">
+      <span class="callout-icon">⚠️</span>
+      <div>
+        <strong>getDisplayAttribute() 被挪用為寫入通道</strong><br>
+        此 API 本意是唯讀查詢 display 屬性，但此處被用來<strong>傳遞控制指令</strong>到 HAL 層。<code>outvalue</code> 返回值被忽略。這是非正規的 HAL 通訊手法，但在 MTK E-Ink 平台上是常見做法，因為標準 HWC HAL 沒有提供自訂命令介面。
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">💡</span>
+      <div>
+        <strong>Quick Mode vs Global Mode 差異</strong><br>
+        <strong>Quick Mode</strong> 是一次性的：套用後 <code>setSModeInfo(0)</code> 立即清除，且會觸發 <code>sfdo_scheduleComposite()</code> 強制合成一次。<br>
+        <strong>Global Mode</strong> 是持續性的：一旦開啟，每次 <code>atomicPostBuffer()</code> 都套用設定的 waveform，直到收到 <code>waveformmode=0</code> 關閉。
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">⏳</span>
+      <div>
+        <strong>Wait Mode 的作用</strong><br>
+        控制 DRM plane property <code>DRM_PROP_PLANE_WAIT_COMPLETE</code>。設為 1 時，DRM atomic commit 會等待 E-Ink panel 完成刷新才返回（同步刷新），適用於需要確保畫面更新完成後再進行下一步操作的場景。
+      </div>
+    </div>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">📝</span>
+      <div>
+        <strong>Phase 2 中被停用的功能</strong><br>
+        <code>ntx.eink_control.DEFAULT_MODE</code> action 被移除。<code>DropFrames</code> 的 <code>mSurface.updateAuxRefreshMode()</code> 呼叫被註解掉，表示 Drop mode 目前暫未啟用。
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Test -->
+  <section class="section" id="test">
+    <h2 class="section-title"><span class="num">08</span>測試指令</h2>
+
+    <pre><span class="comment"># Quick mode — 全螢幕刷新，等待完成，使用 waveform 2 (GC16)</span>
+<span class="highlight">am broadcast</span> -a ntx.eink_control.QUICK_REFRESH \
+  --ei updatemode 1 --ei waitmode 1 --ei waveformmode 2
+
+<span class="comment"># Global mode — 開啟（partial update，等待完成，使用 waveform 1 = DU）</span>
+<span class="highlight">am broadcast</span> -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1
+
+<span class="comment"># Global mode — 關閉</span>
+<span class="highlight">am broadcast</span> -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei waveformmode 0</pre>
+  </section>
+
+  <!-- 9. Waveform Mode -->
+  <section class="section" id="waveform">
+    <h2 class="section-title"><span class="num">09</span>Waveform Mode 定義</h2>
+    <p class="section-desc">
+      波形模式（waveformmode）的列舉值定義於 kernel driver 的
+      <code>hwtcon_ioctl_cmd.h</code>，對應 <code>WAVEFORM_MODE_ENUM</code>。
+    </p>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">📂</span>
+      <div>
+        <strong>來源檔案</strong><br>
+        <code>kernel/kernel_device_modules-6.6/drivers/misc/mediatek/hwtcon/include/hwtcon_ioctl_cmd.h</code> (line 50~77)<br>
+        名稱對應函數：<code>hwtcon_core.c :: hwtcon_core_get_wf_mode_name()</code>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>值</th><th>Enum 名稱</th><th>顯示名稱</th><th>說明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>0</code></td><td><code>WAVEFORM_MODE_INIT</code></td><td>init</td><td>初始化波形，用於清屏</td></tr>
+        <tr><td><code>1</code></td><td><code>WAVEFORM_MODE_DU</code></td><td>du</td><td>Direct Update — 最快速，僅黑白二值</td></tr>
+        <tr><td><code>2</code></td><td><code>WAVEFORM_MODE_GC16</code></td><td>gc16</td><td>Grayscale Clearing 16 級灰階，高品質全灰階刷新</td></tr>
+        <tr><td><code>3</code></td><td><code>WAVEFORM_MODE_GL16</code></td><td>gl16</td><td>Grayscale Low-Latency 16 級，快速灰階（= GL16_FAST, GL4, GL16_INV）</td></tr>
+        <tr><td><code>4</code></td><td><code>WAVEFORM_MODE_GLR16</code></td><td>glr16 (regal)</td><td>REGAL 演算法波形（= REGAL）</td></tr>
+        <tr><td><code>5</code></td><td><code>WAVEFORM_MODE_GLD16</code></td><td>gld16 (regal)</td><td>REGAL-D 演算法波形</td></tr>
+        <tr><td><code>6</code></td><td><code>WAVEFORM_MODE_A2</code></td><td>a2</td><td>Animation 2 — 極速動畫模式，僅黑白</td></tr>
+        <tr><td><code>7</code></td><td><code>WAVEFORM_MODE_DU4</code></td><td>du4</td><td>Direct Update 4 級灰階</td></tr>
+        <tr><td><code>8</code></td><td><code>WAVEFORM_MODE_GCK16</code></td><td>gck16</td><td>Grayscale Clearing (K) 夜間模式使用</td></tr>
+        <tr><td><code>9</code></td><td><code>WAVEFORM_MODE_GLKW16</code></td><td>glkw16 (regal)</td><td>夜間模式 REGAL 波形</td></tr>
+        <tr><td><code>14</code></td><td><code>WAVEFORM_MODE_GCC16</code></td><td>gcc16</td><td>Grayscale Clearing Color</td></tr>
+        <tr><td><code>15</code></td><td><code>WAVEFORM_MODE_GLRC16</code></td><td>glrc16 (regal)</td><td>Color REGAL 波形</td></tr>
+        <tr style="border-top:2px solid var(--border);"><td><code>100</code></td><td><code>WAVEFORM_MODE_ACEP_INIT</code></td><td>ACEP init</td><td>ACEP 彩色面板初始化</td></tr>
+        <tr><td><code>101</code></td><td><code>WAVEFORM_MODE_ACEP_ACTIONFLOW</code></td><td>ACEP actionflow</td><td>ACEP 動態流程</td></tr>
+        <tr><td><code>102</code></td><td><code>WAVEFORM_MODE_ACEP_PEN</code></td><td>ACEP pen</td><td>ACEP 手寫筆模式</td></tr>
+        <tr><td><code>103</code></td><td><code>WAVEFORM_MODE_ACEP_CORE</code></td><td>ACEP core</td><td>ACEP 核心波形</td></tr>
+        <tr style="border-top:2px solid var(--border);"><td><code>257</code></td><td><code>WAVEFORM_MODE_AUTO</code></td><td>auto</td><td>自動選擇波形（依灰階直方圖）</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">⚠️</span>
+      <div>
+        <strong>測試指令中的 waveformmode 對應</strong><br>
+        <code>waveformmode 1</code> = DU（快速黑白）、<code>waveformmode 2</code> = GC16（全灰階）。<br>
+        設 <code>waveformmode 0</code> 表示 INIT 波形或用於關閉 Global mode。
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Lightbox overlay -->
+<div class="lightbox-overlay" id="lightbox">
+  <div class="lightbox-close" id="lightboxClose">✕</div>
+  <div class="lightbox-content" id="lightboxContent"></div>
+</div>
+
+<footer style="border-top:1px solid var(--border); padding:28px 0; text-align:center; color:var(--text-muted); font-size:0.8rem;">
+  SMode Analysis Report — Generated 2026-03-30
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a2744',
+      primaryTextColor: '#e6edf3',
+      primaryBorderColor: '#30363d',
+      lineColor: '#58a6ff',
+      secondaryColor: '#1a2d1a',
+      tertiaryColor: '#2a1a3d',
+      fontSize: '16px'
+    },
+    flowchart: { curve: 'monotoneX', padding: 20 },
+    sequence: { mirrorActors: false, width: 180, boxMargin: 12, noteMargin: 12, messageMargin: 40, actorFontSize: 15, noteFontSize: 14, messageFontSize: 14 }
+  });
+
+  // Lightbox: click diagram to zoom
+  document.addEventListener('DOMContentLoaded', function() {
+    // Wait for mermaid to render
+    setTimeout(function() {
+      var wrappers = document.querySelectorAll('.diagram-wrapper');
+      var overlay = document.getElementById('lightbox');
+      var content = document.getElementById('lightboxContent');
+      var closeBtn = document.getElementById('lightboxClose');
+
+      wrappers.forEach(function(w) {
+        w.addEventListener('click', function(e) {
+          // Clone the SVG inside
+          var svg = w.querySelector('svg');
+          if (!svg) return;
+          content.innerHTML = '';
+          var clone = svg.cloneNode(true);
+          // Remove fixed dimensions so SVG scales to fill container
+          clone.removeAttribute('width');
+          clone.removeAttribute('height');
+          clone.style.width = '100%';
+          clone.style.height = 'auto';
+          clone.style.maxHeight = '85vh';
+          // Ensure viewBox exists for proper scaling
+          if (!clone.getAttribute('viewBox')) {
+            var bb = svg.getBBox();
+            var svgW = svg.getAttribute('width') || svg.viewBox.baseVal.width || bb.width + bb.x;
+            var svgH = svg.getAttribute('height') || svg.viewBox.baseVal.height || bb.height + bb.y;
+            clone.setAttribute('viewBox', '0 0 ' + parseFloat(svgW) + ' ' + parseFloat(svgH));
+          }
+          content.appendChild(clone);
+          overlay.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+      });
+
+      function closeLightbox() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+      closeBtn.addEventListener('click', closeLightbox);
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeLightbox();
+      });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLightbox();
+      });
+    }, 1500);
+  });
+</script>
+</body>
+</html>
