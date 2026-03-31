@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Ink 刷新機制深度解析 — Wait vs No-Wait</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333; --bg-card: #1a2030;
+  --border: #30363d; --text: #e6edf3; --text2: #8b949e; --muted: #6e7681;
+  --blue: #58a6ff; --cyan: #56d4dd; --green: #3fb950; --orange: #d29922;
+  --purple: #bc8cff; --red: #f85149; --pink: #f778ba;
+  --g1: linear-gradient(135deg,#58a6ff,#bc8cff); --g2: linear-gradient(135deg,#56d4dd,#58a6ff);
+  --g3: linear-gradient(135deg,#3fb950,#56d4dd); --g-red: linear-gradient(135deg,#f85149,#d29922);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+.container{max-width:1100px;margin:0 auto;padding:0 28px}
+
+/* Hero */
+.hero{background:linear-gradient(175deg,#0f1923,#131d2e 40%,#0d1117);border-bottom:1px solid var(--border);padding:60px 0 50px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-80px;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(88,166,255,.08),transparent 70%)}
+.hero h1{font-size:2.2rem;font-weight:800;background:var(--g1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:10px}
+.hero .sub{color:var(--text2);font-size:1.05rem}
+.meta-bar{display:flex;flex-wrap:wrap;gap:16px;margin-top:20px}
+.meta-item{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text2)}
+.meta-item .v{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:2px 10px;font-family:'JetBrains Mono',monospace;font-size:.78rem}
+
+/* Sections */
+.section{padding:48px 0} .section+.section{border-top:1px solid var(--border)}
+.stitle{font-size:1.35rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.stitle .num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:var(--g1);color:#fff;font-size:.85rem;font-weight:700}
+.sdesc{color:var(--text2);margin-bottom:24px;font-size:.92rem}
+
+/* Cards */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin:16px 0;transition:border-color .2s}
+.card:hover{border-color:rgba(88,166,255,.3)}
+.card h3{font-size:1rem;font-weight:600;margin-bottom:12px}
+
+/* Diagram wrapper */
+.dw{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;margin:20px 0;overflow-x:auto}
+.dw .mermaid{display:flex;justify-content:center;min-height:300px}
+.dl{font-size:.78rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;text-align:center}
+
+/* Tags */
+.tag-good{display:inline-block;background:rgba(63,185,80,.12);color:var(--green);border:1px solid rgba(63,185,80,.25);border-radius:5px;padding:1px 8px;font-size:.78rem;font-weight:600}
+.tag-bad{display:inline-block;background:rgba(248,81,73,.1);color:var(--red);border:1px solid rgba(248,81,73,.25);border-radius:5px;padding:1px 8px;font-size:.78rem;font-weight:600}
+.tag-info{display:inline-block;background:rgba(88,166,255,.1);color:var(--blue);border:1px solid rgba(88,166,255,.25);border-radius:5px;padding:1px 8px;font-size:.78rem;font-weight:600}
+
+/* Callout */
+.callout{border-radius:10px;padding:16px 20px;margin:16px 0;font-size:.88rem;display:flex;gap:12px;border:1px solid}
+.callout-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.callout-warn{background:rgba(210,153,34,.08);border-color:rgba(210,153,34,.25);color:var(--orange)}
+.callout-info{background:rgba(88,166,255,.06);border-color:rgba(88,166,255,.2);color:var(--blue)}
+.callout-red{background:rgba(248,81,73,.06);border-color:rgba(248,81,73,.2);color:var(--red)}
+.callout strong{color:inherit}
+
+/* Comparison Grid */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+@media(max-width:768px){.cmp-grid{grid-template-columns:1fr}}
+.cmp-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;position:relative;overflow:hidden}
+.cmp-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.cmp-card.good::before{background:var(--g3)} .cmp-card.bad::before{background:var(--g-red)}
+.cmp-card h4{font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.cmp-card ul{list-style:none;padding:0} .cmp-card li{font-size:.85rem;color:var(--text2);margin:6px 0;padding-left:18px;position:relative}
+.cmp-card li::before{content:'•';position:absolute;left:0;color:var(--muted)}
+
+/* Timeline SVG animation */
+.timeline-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;margin:20px 0;overflow-x:auto}
+.timeline-box svg{display:block;margin:0 auto}
+.timeline-box .label{font-size:.78rem;color:var(--text2);text-align:center;margin-top:10px}
+
+/* Code */
+code{font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:.82rem;color:var(--cyan)}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin:18px 0;font-size:.86rem}
+th{background:var(--bg3);text-align:left;padding:10px 14px;font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border-bottom:2px solid var(--border)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:hover td{background:rgba(88,166,255,.03)}
+
+/* Key Insight box */
+.insight{background:linear-gradient(135deg,rgba(88,166,255,.06),rgba(188,140,255,.06));border:1px solid rgba(88,166,255,.2);border-radius:12px;padding:24px 28px;margin:24px 0}
+.insight h4{font-size:1rem;font-weight:700;margin-bottom:8px;background:var(--g1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.insight p{color:var(--text2);font-size:.9rem}
+
+/* ToC */
+.toc{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin:30px 0}
+.toc h3{font-size:.85rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.toc ul{list-style:none} .toc li{margin:6px 0}
+.toc a{color:var(--blue);text-decoration:none;font-size:.88rem;transition:color .15s} .toc a:hover{color:var(--cyan)}
+.toc .n{color:var(--muted);margin-right:6px;font-family:'JetBrains Mono',monospace;font-size:.78rem}
+
+footer{border-top:1px solid var(--border);padding:28px 0;text-align:center;color:var(--muted);font-size:.78rem}
+
+/* Click-to-zoom hint */
+.zoomable{cursor:zoom-in;position:relative}
+.zoomable::after{
+  content:'🔍 點擊放大';
+  position:absolute;top:10px;right:14px;
+  font-size:.72rem;color:var(--muted);
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:5px;padding:2px 8px;
+  opacity:0;transition:opacity .2s;
+  pointer-events:none;z-index:1;
+}
+.zoomable:hover::after{opacity:1}
+
+/* Lightbox overlay */
+.lightbox-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.85);z-index:9999;
+  cursor:zoom-out;
+  justify-content:center;align-items:center;
+  padding:30px;
+  backdrop-filter:blur(4px);
+}
+.lightbox-overlay.active{display:flex}
+.lightbox-content{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:40px;
+  width:94vw;max-height:94vh;
+  overflow:auto;
+  transform:scale(.9);opacity:0;
+  transition:transform .25s ease,opacity .25s ease;
+}
+.lightbox-overlay.active .lightbox-content{transform:scale(1);opacity:1}
+.lightbox-close{
+  position:fixed;top:18px;right:24px;
+  font-size:1.6rem;color:var(--text2);
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:10000;
+  transition:color .15s,border-color .15s;
+}
+.lightbox-close:hover{color:var(--red);border-color:var(--red)}
+.lightbox-content svg{width:100%!important;height:auto!important;max-height:85vh}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="container" style="position:relative;z-index:1">
+    <h1>E-Ink 刷新機制深度解析</h1>
+    <p class="sub">Wait vs No-Wait — 為什麼拖曳卡頓？殘影從哪來？業界如何兼顧？</p>
+    <div class="meta-bar">
+      <div class="meta-item"><span>Author</span><span class="v">Domao Liu</span></div>
+      <div class="meta-item"><span>Date</span><span class="v">2026-03-31</span></div>
+      <div class="meta-item"><span>Context</span><span class="v">Camera2 SMode Integration</span></div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+<nav class="toc">
+  <h3>目錄</h3>
+  <ul>
+    <li><span class="n">01</span><a href="#basics">E-Ink 物理特性基礎</a></li>
+    <li><span class="n">02</span><a href="#wait">阻塞模式 (Wait = 1) 深度分析</a></li>
+    <li><span class="n">03</span><a href="#nowait">非同步模式 (Wait = 0) 深度分析</a></li>
+    <li><span class="n">04</span><a href="#compare">兩模式直觀對比</a></li>
+    <li><span class="n">05</span><a href="#gap">業界頂尖方案 (The Gap)</a></li>
+    <li><span class="n">06</span><a href="#solutions">可行改善方案</a></li>
+  </ul>
+</nav>
+
+<!-- 1. 基礎 -->
+<section class="section" id="basics">
+  <h2 class="stitle"><span class="num">01</span>E-Ink 物理特性基礎</h2>
+  <p class="sdesc">在討論 Wait 模式之前，必須先理解 E-Ink 墨水粒子的物理翻轉特性 — 這是一切問題的根源。</p>
+
+  <div class="card">
+    <h3>🧪 LCD/OLED vs E-Ink 的物理差異</h3>
+    <table>
+      <thead><tr><th></th><th>LCD / OLED</th><th>E-Ink (EPD)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>像素切換</strong></td><td>電壓改變即瞬間切換 (~1ms)</td><td>墨水膠囊中帶電粒子需物理位移 (~120-250ms)</td></tr>
+        <tr><td><strong>驅動方式</strong></td><td>設定電壓後直接顯示</td><td>需施加特定「波形」(一系列正負電壓脈衝序列)</td></tr>
+        <tr><td><strong>被中斷後果</strong></td><td>無殘影，直接顯示新顏色</td><td>粒子停在中間，留下「殘影」(Ghosting)</td></tr>
+        <tr><td><strong>刷新率</strong></td><td>60~144 Hz</td><td>~7-12 Hz (DU/A2 波形)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="timeline-box">
+    <div class="dl">E-Ink 墨水粒子翻轉過程示意 (DU 波形 ~120ms)</div>
+    <svg width="900" height="280" viewBox="0 0 900 280">
+      <!-- Background lane -->
+      <rect x="40" y="50" width="820" height="100" rx="12" fill="rgba(30,40,55,0.5)" stroke="#30363d" stroke-width="1"/>
+      <!-- Timeline -->
+      <line x1="80" y1="140" x2="820" y2="140" stroke="#30363d" stroke-width="2.5"/>
+      <!-- Tick marks -->
+      <line x1="80" y1="132" x2="80" y2="148" stroke="#58a6ff" stroke-width="2.5"/>
+      <line x1="265" y1="132" x2="265" y2="148" stroke="#d29922" stroke-width="2.5"/>
+      <line x1="450" y1="132" x2="450" y2="148" stroke="#d29922" stroke-width="2.5"/>
+      <line x1="635" y1="132" x2="635" y2="148" stroke="#d29922" stroke-width="2.5"/>
+      <line x1="820" y1="132" x2="820" y2="148" stroke="#3fb950" stroke-width="2.5"/>
+      <!-- Time labels -->
+      <text x="80" y="172" fill="#58a6ff" font-size="15" font-family="JetBrains Mono, monospace" font-weight="600" text-anchor="middle">t = 0 ms</text>
+      <text x="80" y="192" fill="#8b949e" font-size="13" text-anchor="middle">指令送達</text>
+      <text x="265" y="172" fill="#d29922" font-size="15" font-family="JetBrains Mono, monospace" font-weight="600" text-anchor="middle">~ 30 ms</text>
+      <text x="450" y="172" fill="#d29922" font-size="15" font-family="JetBrains Mono, monospace" font-weight="600" text-anchor="middle">~ 60 ms</text>
+      <text x="635" y="172" fill="#d29922" font-size="15" font-family="JetBrains Mono, monospace" font-weight="600" text-anchor="middle">~ 90 ms</text>
+      <text x="820" y="172" fill="#3fb950" font-size="15" font-family="JetBrains Mono, monospace" font-weight="600" text-anchor="middle">~ 120 ms</text>
+      <text x="820" y="192" fill="#3fb950" font-size="13" font-weight="600" text-anchor="middle">翻轉完成 ✓</text>
+      <!-- Particles (larger circles) -->
+      <circle cx="80" cy="90" r="28" fill="#111" stroke="#58a6ff" stroke-width="2.5"/>
+      <text x="80" y="87" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">黑</text>
+      <text x="80" y="104" fill="#8b949e" font-size="11" text-anchor="middle">(起始)</text>
+      <circle cx="265" cy="90" r="28" fill="#444" stroke="#d29922" stroke-width="2.5"/>
+      <text x="265" y="87" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">25%</text>
+      <text x="265" y="104" fill="#d29922" font-size="11" text-anchor="middle">翻轉中</text>
+      <circle cx="450" cy="90" r="28" fill="#777" stroke="#d29922" stroke-width="2.5"/>
+      <text x="450" y="87" fill="#fff" font-size="14" font-weight="600" text-anchor="middle">50%</text>
+      <text x="450" y="104" fill="#d29922" font-size="11" text-anchor="middle">翻轉中</text>
+      <circle cx="635" cy="90" r="28" fill="#aaa" stroke="#d29922" stroke-width="2.5"/>
+      <text x="635" y="87" fill="#333" font-size="14" font-weight="600" text-anchor="middle">75%</text>
+      <text x="635" y="104" fill="#d29922" font-size="11" text-anchor="middle">翻轉中</text>
+      <circle cx="820" cy="90" r="28" fill="#eee" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="820" y="87" fill="#333" font-size="15" font-weight="700" text-anchor="middle">白</text>
+      <text x="820" y="104" fill="#3fb950" font-size="11" text-anchor="middle">(完成)</text>
+      <!-- Arrows between particles -->
+      <defs><marker id="ah" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><path d="M0,0 L10,3.5 L0,7" fill="#d29922"/></marker></defs>
+      <line x1="115" y1="90" x2="230" y2="90" stroke="#d29922" stroke-width="2" marker-end="url(#ah)" stroke-dasharray="6,4"/>
+      <line x1="300" y1="90" x2="415" y2="90" stroke="#d29922" stroke-width="2" marker-end="url(#ah)" stroke-dasharray="6,4"/>
+      <line x1="485" y1="90" x2="600" y2="90" stroke="#d29922" stroke-width="2" marker-end="url(#ah)" stroke-dasharray="6,4"/>
+      <line x1="670" y1="90" x2="785" y2="90" stroke="#d29922" stroke-width="2" marker-end="url(#ah)" stroke-dasharray="6,4"/>
+      <!-- Danger zone -->
+      <rect x="140" y="218" width="560" height="32" rx="8" fill="rgba(248,81,73,0.1)" stroke="rgba(248,81,73,0.35)" stroke-width="1.5"/>
+      <text x="420" y="240" fill="#f85149" font-size="14" font-weight="600" text-anchor="middle">⚠ 此期間若送入新指令 → 波形被中斷 → 粒子卡在中間 → 產生殘影</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 2. Wait Mode -->
+<section class="section" id="wait">
+  <h2 class="stitle"><span class="num">02</span>阻塞模式 (Wait = 1) 深度分析</h2>
+  <p class="sdesc">系統在送出畫面後「卡住」等待 E-Ink 完成物理翻轉，才允許 App 渲染下一張。</p>
+
+  <div class="dw">
+    <div class="dl">Wait = 1 時的完整渲染 Pipeline</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant 👆 as 觸控面板
+    participant 📱 as App UI Thread
+    participant 🎨 as SurfaceFlinger
+    participant 🔧 as DRM 驅動
+    participant 🖥️ as E-Ink 面板
+
+    👆->>📱: 觸控事件 1 (t=0ms)
+    📱->>🎨: 提交 Frame 1
+    🎨->>🔧: atomicPostBuffer()
+    🔧->>🖥️: 送出波形指令
+    
+    rect rgba(248,81,73,0.15)
+    Note over 📱,🔧: 🔒 BLOCK — 驅動呼叫不返回<br/>UI Thread 完全凍結<br/>觸控事件堆積在 Queue 中
+    end
+    
+    👆-->>📱: 觸控事件 2 (t=16ms) — 堆積！
+    👆-->>📱: 觸控事件 3 (t=32ms) — 堆積！
+    👆-->>📱: 觸控事件 4 (t=48ms) — 堆積！
+    👆-->>📱: ...事件 5~8 (t=64~128ms) — 全部堆積！
+    
+    🖥️-->>🔧: ✅ 墨水翻轉完成 (t≈150ms)
+    🔧-->>🎨: Return (解除阻塞)
+    🎨-->>📱: Buffer 釋放
+    📱->>📱: 處理堆積的觸控事件
+    📱->>🎨: 提交 Frame 2
+    🎨->>🔧: atomicPostBuffer()
+    🔧->>🖥️: 送出波形指令
+
+    rect rgba(248,81,73,0.15)
+    Note over 📱,🔧: 🔒 又要再等 ~150ms...
+    end
+    </div>
+  </div>
+
+  <div class="callout callout-red">
+    <span class="callout-icon">🔒</span>
+    <div>
+      <strong>為什麼拖曳變得這麼慢？</strong><br>
+      每秒只能完成約 <strong>6~7 次渲染迴圈</strong>（1000ms ÷ 150ms ≈ 6.6 FPS）。正常 Android 是 60 FPS。<br>
+      這意味著你的手指在螢幕上做了 <strong>60 個動作</strong>，但畫面只回應了 <strong>6 個</strong>，所以感覺極度「拖泥帶水」。
+    </div>
+  </div>
+
+  <div class="timeline-box">
+    <div class="dl">Wait = 1 效能瓶頸視覺化 — 1 秒內的時間分配</div>
+    <svg width="700" height="120" viewBox="0 0 700 120">
+      <!-- 1000ms bar -->
+      <rect x="50" y="20" width="600" height="30" rx="6" fill="none" stroke="#30363d" stroke-width="1.5"/>
+      <!-- 6 cycles -->
+      <rect x="50" y="20" width="85" height="30" rx="6" fill="rgba(248,81,73,0.3)" stroke="#f85149" stroke-width="1"/>
+      <text x="92" y="40" fill="#f85149" font-size="9" text-anchor="middle">Block 150ms</text>
+      <rect x="140" y="20" width="85" height="30" rx="6" fill="rgba(248,81,73,0.3)" stroke="#f85149" stroke-width="1"/>
+      <rect x="230" y="20" width="85" height="30" rx="6" fill="rgba(248,81,73,0.3)" stroke="#f85149" stroke-width="1"/>
+      <rect x="320" y="20" width="85" height="30" rx="6" fill="rgba(248,81,73,0.3)" stroke="#f85149" stroke-width="1"/>
+      <rect x="410" y="20" width="85" height="30" rx="6" fill="rgba(248,81,73,0.3)" stroke="#f85149" stroke-width="1"/>
+      <rect x="500" y="20" width="85" height="30" rx="6" fill="rgba(248,81,73,0.3)" stroke="#f85149" stroke-width="1"/>
+      <rect x="590" y="20" width="60" height="30" rx="6" fill="rgba(248,81,73,0.15)" stroke="#f85149" stroke-width="1" stroke-dasharray="4,3"/>
+      
+      <text x="350" y="72" fill="#f85149" font-size="12" font-weight="600" text-anchor="middle">Wait = 1：1 秒僅完成 ≈ 6 次刷新 (6 FPS)</text>
+      
+      <!-- Compare: Normal -->
+      <rect x="50" y="90" width="600" height="12" rx="4" fill="rgba(63,185,80,0.2)" stroke="#3fb950" stroke-width="1"/>
+      <text x="350" y="100" fill="#3fb950" font-size="9" text-anchor="middle">正常 Android：60 次刷新 (60 FPS)</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 3. No Wait -->
+<section class="section" id="nowait">
+  <h2 class="stitle"><span class="num">03</span>非同步模式 (Wait = 0) 深度分析</h2>
+  <p class="sdesc">系統送出畫面後「立即返回」，UI 響應極快，但 Frame 送太快導致波形碰撞。</p>
+
+  <div class="dw">
+    <div class="dl">Wait = 0 時的波形碰撞問題</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant 👆 as 觸控面板
+    participant 📱 as App UI Thread
+    participant 🔧 as DRM 驅動
+    participant 🖥️ as E-Ink 面板
+
+    👆->>📱: 觸控事件 1 (t=0ms)
+    📱->>🔧: Frame 1
+    🔧-->>📱: ⚡ 立即返回 (不等待)
+    🔧->>🖥️: 波形 A 開始驅動墨水
+    Note right of 🖥️: 墨水粒子開始翻轉中...
+
+    👆->>📱: 觸控事件 2 (t=16ms)
+    📱->>🔧: Frame 2
+    🔧-->>📱: ⚡ 立即返回
+    🔧->>🖥️: 波形 B 覆蓋送入！
+
+    rect rgba(248,81,73,0.2)
+    Note over 🖥️: 💥 波形碰撞 (Waveform Collision)<br/>波形 A 才執行了 16ms (僅完成 13%)<br/>波形 B 就強行覆蓋<br/>粒子卡在中間位置 → 殘影！
+    end
+
+    👆->>📱: 觸控事件 3 (t=32ms)
+    📱->>🔧: Frame 3
+    🔧-->>📱: ⚡ 立即返回
+    🔧->>🖥️: 波形 C 又覆蓋！
+
+    rect rgba(248,81,73,0.2)
+    Note over 🖥️: 💥 連環碰撞！殘影不斷累加
+    end
+    </div>
+  </div>
+
+  <div class="timeline-box">
+    <div class="dl">波形碰撞示意 — 為什麼會產生殘影</div>
+    <svg width="700" height="200" viewBox="0 0 700 200">
+      <!-- Timeline -->
+      <line x1="50" y1="110" x2="650" y2="110" stroke="#30363d" stroke-width="2"/>
+      <!-- Frame 1 waveform (should be 120ms but gets interrupted at 16ms) -->
+      <rect x="80" y="30" width="120" height="25" rx="4" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.4"/>
+      <text x="140" y="46" fill="#3fb950" font-size="9" text-anchor="middle" opacity="0.4">F1 預計波形 (120ms)</text>
+      <rect x="80" y="30" width="16" height="25" rx="4" fill="rgba(63,185,80,0.3)" stroke="#3fb950" stroke-width="1.5"/>
+      <text x="88" y="46" fill="#3fb950" font-size="8" text-anchor="middle">F1</text>
+      <!-- Interrupt marker -->
+      <line x1="96" y1="28" x2="96" y2="58" stroke="#f85149" stroke-width="2" stroke-dasharray="3,2"/>
+      <text x="96" y="22" fill="#f85149" font-size="9" text-anchor="middle">中斷!</text>
+      <!-- Frame 2 waveform -->
+      <rect x="96" y="62" width="16" height="25" rx="4" fill="rgba(88,166,255,0.3)" stroke="#58a6ff" stroke-width="1.5"/>
+      <text x="104" y="78" fill="#58a6ff" font-size="8" text-anchor="middle">F2</text>
+      <rect x="96" y="62" width="120" height="25" rx="4" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.4"/>
+      <line x1="112" y1="60" x2="112" y2="90" stroke="#f85149" stroke-width="2" stroke-dasharray="3,2"/>
+      <text x="112" y="54" fill="#f85149" font-size="9" text-anchor="middle">又中斷!</text>
+      <!-- Result -->
+      <circle cx="350" cy="70" r="30" fill="#666" stroke="#f85149" stroke-width="2"/>
+      <text x="350" y="66" fill="#fff" font-size="10" font-weight="600" text-anchor="middle">殘影</text>
+      <text x="350" y="80" fill="#faa" font-size="8" text-anchor="middle">粒子卡住</text>
+      <!-- vs -->
+      <circle cx="550" cy="70" r="30" fill="#eee" stroke="#3fb950" stroke-width="2"/>
+      <text x="550" y="66" fill="#333" font-size="10" font-weight="600" text-anchor="middle">正常</text>
+      <text x="550" y="80" fill="#3a3" font-size="8" text-anchor="middle">完全翻轉</text>
+      <!-- Time labels (spread out to avoid overlap) -->
+      <text x="80" y="130" fill="#8b949e" font-size="12" font-weight="600" text-anchor="middle">0 ms</text>
+      <text x="160" y="130" fill="#58a6ff" font-size="12" font-weight="600" text-anchor="middle">16 ms</text>
+      <text x="240" y="130" fill="#bc8cff" font-size="12" font-weight="600" text-anchor="middle">32 ms</text>
+      <!-- Tick lines connecting labels to timeline -->
+      <line x1="80" y1="108" x2="80" y2="118" stroke="#8b949e" stroke-width="1.5"/>
+      <line x1="160" y1="108" x2="160" y2="118" stroke="#58a6ff" stroke-width="1.5"/>
+      <line x1="240" y1="108" x2="240" y2="118" stroke="#bc8cff" stroke-width="1.5"/>
+      <!-- Bottom explanation -->
+      <text x="350" y="160" fill="#f85149" font-size="11" font-weight="600" text-anchor="middle">每 16ms (60FPS) 送一張新 Frame，但墨水需要 120ms 才能翻轉完成</text>
+      <text x="350" y="180" fill="#d29922" font-size="10" text-anchor="middle">波形完成率：僅 16/120 ≈ 13% → 嚴重殘影</text>
+    </svg>
+  </div>
+</section>
+
+<!-- 4. Compare -->
+<section class="section" id="compare">
+  <h2 class="stitle"><span class="num">04</span>兩模式直觀對比</h2>
+  <p class="sdesc">核心的矛盾：要畫面乾淨就要卡住 UI，要 UI 貼手就會產生殘影。</p>
+
+  <div class="cmp-grid">
+    <div class="cmp-card bad">
+      <h4>🔒 Wait = 1 (阻塞模式)</h4>
+      <ul>
+        <li>DRM 驅動 <strong>Block 整個渲染管線</strong></li>
+        <li>每張 Frame 需等待 ~120-150ms</li>
+        <li>實際 FPS：<span class="tag-bad">≈ 6-8 FPS</span></li>
+        <li>殘影：<span class="tag-good">完全無殘影</span></li>
+        <li>操作手感：<span class="tag-bad">極度卡頓不貼手</span></li>
+        <li>觸控事件大量堆積在 Queue</li>
+      </ul>
+    </div>
+    <div class="cmp-card bad">
+      <h4>⚡ Wait = 0 (非同步模式)</h4>
+      <ul>
+        <li>DRM 驅動 <strong>立即返回不等待</strong></li>
+        <li>畫面送出速度：60 FPS</li>
+        <li>實際 FPS：<span class="tag-good">60 FPS</span></li>
+        <li>殘影：<span class="tag-bad">嚴重波形碰撞殘影</span></li>
+        <li>操作手感：<span class="tag-good">極度流暢貼手</span></li>
+        <li>E-Ink 面板嚴重過載</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="insight">
+    <h4>💡 核心矛盾</h4>
+    <p>E-Ink 的物理翻轉速度（120ms）與 Android 的渲染速度（16ms/幀）之間有 <strong>7.5 倍的差距</strong>。<br>
+    Wait = 1 用「犧牲 UI 反應速度」來配合硬體；Wait = 0 用「犧牲畫面品質」來保持 UI 貼手。<br>
+    <strong>兩種都是次優解。</strong>業界的頂尖方案是打破這個二元對立。</p>
+  </div>
+</section>
+
+<!-- 5. The Gap -->
+<section class="section" id="gap">
+  <h2 class="stitle"><span class="num">05</span>業界頂尖方案 — 與我們的差距 (The Gap)</h2>
+  <p class="sdesc">別家用一樣的 EPD 面板卻能做到「又貼手又乾淨」，他們到底多做了什麼？這裡的「Gap」指的就是我們與業界頂尖產品之間在<strong>底層驅動與硬體控制晶片</strong>上的技術差距。</p>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">📖</span>
+    <div>
+      <strong>名詞解釋</strong><br>
+      <strong>The Gap（差距）</strong>：指我們目前的實作方式（簡單的 Wait / No-Wait 二擇一）與業界頂尖 E-Ink 產品（如 BOOX、reMarkable）之間，在底層驅動與硬體控制器技術上的落差。他們能同時兼顧「操作流暢」與「無殘影」，而我們目前只能二選一。<br><br>
+      <strong>TCON（Timing Controller，時序控制器）</strong>：E-Ink 面板上的核心控制晶片，全名為 <em>Timing Controller</em>。它負責接收主機板送來的畫面資料，並轉換成驅動電子墨水粒子翻轉所需的精確電壓波形序列。高階 TCON（如 E-Ink T1000 或廠商自研 FPGA）內建大容量記憶體與波形碰撞處理引擎，能在硬體層級智慧處理快速連續畫面更新，避免殘影。低階 TCON 則只是被動接收指令，無法自行處理碰撞問題。
+    </div>
+  </div>
+
+  <div class="dw">
+    <div class="dl">理想架構：非同步佇列 + 智慧合併 + TCON 波形碰撞處理</div>
+    <div class="mermaid">
+flowchart TB
+    subgraph ANDROID["Android 系統 (全速運行 60FPS)"]
+        A1["App UI Thread<br/>觸控回應 &lt;16ms"]
+        A2["SurfaceFlinger<br/>全速合成"]
+    end
+
+    subgraph DRIVER["魔改驅動層 (Async Queue)"]
+        D1["非同步佇列<br/>收到 Frame 立即返回<br/>🟢 絕不 Block"]
+        D2["Dirty Region Merge<br/>60 幀合併為 10 幀<br/>只取差異區域"]
+        D3["智慧丟幀<br/>面板忙碌時丟棄舊幀<br/>只保留最新"]
+    end
+
+    subgraph TCON["高階 TCON 控制晶片"]
+        T1["波形碰撞引擎<br/>偵測同一像素的連續變化"]
+        T2["波形轉場演算法<br/>中斷舊波形 → 無縫接軌新目標"]
+        T3["區域獨立管線<br/>多區域並行刷新"]
+    end
+
+    subgraph EPD["E-Ink 面板"]
+        E1["完美刷新<br/>無殘影 ✓"]
+    end
+
+    A1 --> A2
+    A2 --> D1
+    D1 --> D2
+    D2 --> D3
+    D3 --> T1
+    T1 --> T2
+    T2 --> T3
+    T3 --> E1
+
+    style ANDROID fill:#1a2d1a,stroke:#3fb950,color:#e6edf3
+    style DRIVER fill:#2a1a3d,stroke:#bc8cff,color:#e6edf3
+    style TCON fill:#2d2a1a,stroke:#d29922,color:#e6edf3
+    style EPD fill:#1a2744,stroke:#58a6ff,color:#e6edf3
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🏗️ 關鍵技術分解</h3>
+    <table>
+      <thead><tr><th>技術層</th><th>做法</th><th>效果</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>驅動層 (Kernel)</strong><br><code>Async Queue</code></td>
+          <td>
+            收到 Frame 後<strong>立即返回</strong>（保持 UI 貼手）<br>
+            Frame 存入佇列，由獨立 Kernel Thread 處理<br>
+            自動追蹤 Dirty Region 並合併多張 Frame 差異
+          </td>
+          <td><span class="tag-good">UI 全速</span> + 驅動智慧降幀</td>
+        </tr>
+        <tr>
+          <td><strong>TCON 晶片</strong><br><code>Waveform Collision</code></td>
+          <td>
+            硬體內建大容量 Buffer，可暫存多張前後畫面<br>
+            偵測到同一座標短時間內被改變兩次時，自動<strong>中斷舊波形、計算最短新路徑</strong>接軌到目標顏色
+          </td>
+          <td><span class="tag-good">無殘影</span> (硬體級防護)</td>
+        </tr>
+        <tr>
+          <td><strong>Hardware Overlay</strong><br><code>Direct Inking</code></td>
+          <td>
+            手寫筆 / 拖曳軌跡繞過 Android 渲染管線<br>
+            觸控座標直接送到 FPGA/TCON 在該像素點繪製
+          </td>
+          <td><span class="tag-good">延遲 &lt;10ms</span></td>
+        </tr>
+        <tr>
+          <td><strong>Partial Update</strong><br><code>Region + A2/DU</code></td>
+          <td>
+            精準計算變動區域，例如拖曳時只更新手指附近 50x50 px<br>
+            小區域的 E-Ink 翻轉時間從 150ms 降至 ~20ms
+          </td>
+          <td>即使用 Wait 也<span class="tag-good">幾乎無感延遲</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dw">
+    <div class="dl">業界方案 vs 我們的方案 — 時序對比</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant App as App (60FPS)
+    participant OurDrv as 我們的驅動
+    participant GoodDrv as 業界驅動 (Async Queue)
+    participant TCON as 智慧 TCON
+
+    Note over App,OurDrv: ❌ 我們的做法 (Wait=1)
+    App->>OurDrv: Frame 1
+    rect rgba(248,81,73,0.15)
+    Note over App,OurDrv: 🔒 Block 150ms
+    end
+    OurDrv-->>App: Return
+    App->>OurDrv: Frame 2
+    rect rgba(248,81,73,0.15)
+    Note over App,OurDrv: 🔒 Block 150ms
+    end
+    OurDrv-->>App: Return
+
+    Note over App,TCON: ✅ 業界做法
+    App->>GoodDrv: Frame 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    GoodDrv-->>App: ⚡ 全部立即返回
+    GoodDrv->>GoodDrv: 合併 10 幀 → 2 幀差異
+    GoodDrv->>TCON: 合併後 Frame A
+    TCON->>TCON: 波形碰撞處理
+    GoodDrv->>TCON: 合併後 Frame B
+    Note over TCON: ✅ 無殘影完美呈現
+    </div>
+  </div>
+</section>
+
+<!-- 6. Solutions -->
+<section class="section" id="solutions">
+  <h2 class="stitle"><span class="num">06</span>可行改善方案</h2>
+  <p class="sdesc">在現有硬體條件下，可考慮的改善策略。</p>
+
+  <div class="card">
+    <h3>方案一覽表</h3>
+    <table>
+      <thead><tr><th>方案</th><th>原理</th><th>預期效果</th><th>需要改動</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>A. 改用 A2 波形</strong></td>
+          <td>Wait=0 + Waveform=6(A2)<br>A2 專為動畫設計，TCON 可容忍高速送幀</td>
+          <td><span class="tag-good">流暢</span> <span class="tag-info">輕微殘影</span></td>
+          <td>僅改 Broadcast 參數</td>
+        </tr>
+        <tr>
+          <td><strong>B. 啟用 Drop Mode</strong></td>
+          <td>Wait=0 + NTX_DROP_MODE<br>驅動層主動丟棄面板忙碌時的多餘 Frame</td>
+          <td><span class="tag-good">流暢</span> <span class="tag-good">少殘影</span></td>
+          <td>需解除 Framework 註解 + 驅動支援</td>
+        </tr>
+        <tr>
+          <td><strong>C. App 層降幀</strong></td>
+          <td>Wait=0，App 端限制 ~80ms 送一張圖<br>給墨水保留足夠翻轉時間</td>
+          <td><span class="tag-info">尚可流暢</span> <span class="tag-good">少殘影</span></td>
+          <td>Camera Preview 回調降頻</td>
+        </tr>
+        <tr>
+          <td><strong>D. 動態切換</strong></td>
+          <td>滑動時 Wait=0 + A2 (允許小殘影)<br>手指放開時送 Quick GC16 清殘影</td>
+          <td><span class="tag-good">操作流暢</span> <span class="tag-good">最終乾淨</span></td>
+          <td>需攔截 Touch 事件動態切換</td>
+        </tr>
+        <tr>
+          <td><strong>E. Region Update</strong></td>
+          <td>利用 NTX_SPECIAL_REGION_MASK<br>只更新手指附近的小區域</td>
+          <td><span class="tag-good">極快</span> <span class="tag-good">少殘影</span></td>
+          <td>需 HAL 支援局部刷新</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">💡</span>
+    <div>
+      <strong>建議優先嘗試方案 A</strong>（改動最小）<strong>與方案 D</strong>（體驗最佳）。<br>
+      長期而言，推動驅動層實作<strong>非同步佇列合併 (方案 B)</strong> 才是根本解決之道。
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>E-Ink Refresh Mechanism Analysis — Generated 2026-03-31</footer>
+
+<!-- Lightbox overlay -->
+<div class="lightbox-overlay" id="lightbox">
+  <div class="lightbox-close" id="lightboxClose">✕</div>
+  <div class="lightbox-content" id="lightboxContent"></div>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad:true, theme:'dark',
+  themeVariables:{primaryColor:'#1a2744',primaryTextColor:'#e6edf3',primaryBorderColor:'#30363d',lineColor:'#58a6ff',secondaryColor:'#1a2d1a',tertiaryColor:'#2a1a3d',fontSize:'14px'},
+  flowchart:{curve:'monotoneX',padding:20},
+  sequence:{mirrorActors:false,width:150,boxMargin:10,noteMargin:10,messageMargin:35,actorFontSize:13,noteFontSize:12,messageFontSize:12}
+});
+
+// Lightbox: click diagram to zoom
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(function() {
+    // Add zoomable class to all diagram/timeline wrappers
+    var targets = document.querySelectorAll('.dw, .timeline-box');
+    var overlay = document.getElementById('lightbox');
+    var content = document.getElementById('lightboxContent');
+    var closeBtn = document.getElementById('lightboxClose');
+
+    targets.forEach(function(el) {
+      el.classList.add('zoomable');
+      el.addEventListener('click', function(e) {
+        var svg = el.querySelector('svg');
+        if (!svg) return;
+        content.innerHTML = '';
+        var clone = svg.cloneNode(true);
+        clone.removeAttribute('width');
+        clone.removeAttribute('height');
+        clone.style.width = '100%';
+        clone.style.height = 'auto';
+        clone.style.maxHeight = '85vh';
+        if (!clone.getAttribute('viewBox')) {
+          var bb = svg.getBBox();
+          var svgW = svg.getAttribute('width') || bb.width + bb.x;
+          var svgH = svg.getAttribute('height') || bb.height + bb.y;
+          clone.setAttribute('viewBox', '0 0 ' + parseFloat(svgW) + ' ' + parseFloat(svgH));
+        }
+        content.appendChild(clone);
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    function closeLightbox() {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    closeBtn.addEventListener('click', closeLightbox);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeLightbox();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  }, 1500);
+});
+</script>
+</body>
+</html>
