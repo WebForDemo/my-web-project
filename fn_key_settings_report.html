@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FN Key → Settings 實體按鍵映射技術報告</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3341;
+    --text: #e4e6ed;
+    --text-dim: #8b8fa3;
+    --accent: #6c8cff;
+    --accent2: #9b6cff;
+    --green: #4ade80;
+    --orange: #fb923c;
+    --red: #f87171;
+    --cyan: #22d3ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.3rem;
+  }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+  }
+  h2 {
+    font-size: 1.35rem;
+    color: var(--accent);
+    margin: 2.5rem 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.3em;
+    background: linear-gradient(180deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+  }
+  h3 {
+    font-size: 1.1rem;
+    color: var(--cyan);
+    margin: 1.5rem 0 0.7rem;
+  }
+  p, li { color: var(--text); margin-bottom: 0.6rem; }
+  ul { padding-left: 1.5rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+  }
+  .card.highlight {
+    border-left: 4px solid var(--accent);
+  }
+  .card.green-border {
+    border-left: 4px solid var(--green);
+  }
+  .card.orange-border {
+    border-left: 4px solid var(--orange);
+  }
+
+  /* Key badge */
+  .key {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: var(--cyan);
+    box-shadow: 0 2px 0 var(--border);
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.92rem;
+  }
+  th {
+    background: var(--surface2);
+    color: var(--accent);
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--accent);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:hover td { background: rgba(108,140,255,0.05); }
+
+  /* Code block */
+  pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin: 0.8rem 0;
+  }
+  code {
+    font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+    color: var(--text);
+  }
+  .code-add { color: var(--green); }
+  .code-comment { color: var(--text-dim); }
+  .code-keyword { color: var(--accent); }
+  .code-string { color: var(--orange); }
+  .code-file {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin-bottom: 0.3rem;
+  }
+
+  /* SVG Diagrams */
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+  .diagram-container:hover {
+    border-color: var(--accent);
+  }
+  .diagram-container::after {
+    content: '🔍 點擊放大';
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    background: var(--surface2);
+    padding: 2px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .diagram-container:hover::after { opacity: 1; }
+  .diagram-container svg { width: 100%; height: auto; }
+
+  /* Lightbox */
+  .lightbox-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    cursor: zoom-out;
+    padding: 2rem;
+  }
+  .lightbox-overlay.active {
+    display: flex;
+  }
+  .lightbox-content {
+    max-width: 95vw;
+    max-height: 95vh;
+    overflow: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+  }
+  .lightbox-content svg {
+    width: 100%;
+    min-width: 700px;
+    height: auto;
+  }
+  .lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 30px;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 1001;
+    background: rgba(0,0,0,0.5);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* Arrow marker style */
+  .flow-arrow { fill: var(--accent); }
+
+  /* TOC */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    margin: 1rem 0 2rem;
+  }
+  .toc a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .toc a:hover { text-decoration: underline; }
+  .toc li { margin-bottom: 0.3rem; }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .badge-before { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-after { background: rgba(74,222,128,0.15); color: var(--green); }
+</style>
+</head>
+<body>
+
+<h1>FN Key → Settings 實體按鍵映射</h1>
+<p class="subtitle">技術報告 — 修改 PhoneWindowManager 攔截 KEYCODE_FUNCTION 啟動 Settings App &nbsp;|&nbsp; 2026-04-01</p>
+
+<nav class="toc">
+  <strong>目錄</strong>
+  <ul>
+    <li><a href="#sec-overview">1. 需求概述</a></li>
+    <li><a href="#sec-arch">2. Android 按鍵事件架構</a></li>
+    <li><a href="#sec-why">3. 為什麼改 PhoneWindowManager</a></li>
+    <li><a href="#sec-flow">4. 按鍵事件完整流程圖</a></li>
+    <li><a href="#sec-detail">5. 修改細節與差異比較</a></li>
+    <li><a href="#sec-verify">6. 驗證方式</a></li>
+  </ul>
+</nav>
+
+<!-- ==================== 1. 需求概述 ==================== -->
+<h2 id="sec-overview">1. 需求概述</h2>
+<div class="card highlight">
+  <p>裝置僅有 <strong>三顆實體按鍵</strong>：</p>
+  <table>
+    <tr><th>實體按鍵</th><th>getevent 名稱</th><th>Android KeyCode</th><th>原始功能</th><th>修改後功能</th></tr>
+    <tr><td><span class="key">HOME</span></td><td>KEY_HOME</td><td>KEYCODE_HOME (3)</td><td>回到桌面</td><td>不變</td></tr>
+    <tr><td><span class="key">POWER</span></td><td>KEY_POWER</td><td>KEYCODE_POWER (26)</td><td>開關機 / 喚醒</td><td>不變</td></tr>
+    <tr><td><span class="key">FN</span></td><td>KEY_FN</td><td>KEYCODE_FUNCTION (119)</td><td><span class="badge badge-before">無動作</span></td><td><span class="badge badge-after">啟動 Settings</span></td></tr>
+  </table>
+</div>
+
+<!-- ==================== 2. 架構圖 ==================== -->
+<h2 id="sec-arch">2. Android 按鍵事件架構</h2>
+<p>Android 的按鍵事件從硬體驅動一路傳遞到 App，中間經過多個層級。下圖展示完整的按鍵事件傳遞路徑：</p>
+
+<div class="diagram-container" onclick="openLightbox('diagram-arch')">
+  <div id="diagram-arch">
+    <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" style="font-family:'Segoe UI','Noto Sans TC',sans-serif">
+      <defs>
+        <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#6c8cff"/>
+        </marker>
+        <marker id="arrowGreen" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#4ade80"/>
+        </marker>
+        <linearGradient id="gKernel" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#2a1f3d"/><stop offset="100%" stop-color="#1e2a3d"/>
+        </linearGradient>
+        <linearGradient id="gNative" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1e2a3d"/><stop offset="100%" stop-color="#1a2d2d"/>
+        </linearGradient>
+        <linearGradient id="gFw" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1a2d2d"/><stop offset="100%" stop-color="#2d2a1a"/>
+        </linearGradient>
+        <linearGradient id="gPolicy" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1a2d1e"/><stop offset="100%" stop-color="#1e2d1a"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Layer boxes -->
+      <rect x="40" y="20" width="820" height="80" rx="10" fill="url(#gKernel)" stroke="#9b6cff" stroke-width="1.5"/>
+      <text x="60" y="48" fill="#9b6cff" font-size="13" font-weight="600">Kernel / Driver Layer</text>
+      <rect x="80" y="55" width="200" height="36" rx="6" fill="#2e2345" stroke="#9b6cff" stroke-width="1"/>
+      <text x="115" y="78" fill="#e4e6ed" font-size="12">GPIO → input_event</text>
+      <rect x="320" y="55" width="240" height="36" rx="6" fill="#2e2345" stroke="#9b6cff" stroke-width="1"/>
+      <text x="345" y="78" fill="#e4e6ed" font-size="12">Key Layout (.kl) 映射</text>
+      <rect x="600" y="55" width="230" height="36" rx="6" fill="#2e2345" stroke="#9b6cff" stroke-width="1"/>
+      <text x="620" y="78" fill="#e4e6ed" font-size="12">KEY_FN → KEYCODE 119</text>
+
+      <line x1="280" y1="73" x2="318" y2="73" stroke="#9b6cff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+      <line x1="560" y1="73" x2="598" y2="73" stroke="#9b6cff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+      <!-- Arrow down -->
+      <line x1="450" y1="100" x2="450" y2="130" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+      <!-- Native -->
+      <rect x="40" y="130" width="820" height="80" rx="10" fill="url(#gNative)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="60" y="158" fill="#22d3ee" font-size="13" font-weight="600">Native Layer (C++)</text>
+      <rect x="150" y="165" width="250" height="36" rx="6" fill="#1a2a2a" stroke="#22d3ee" stroke-width="1"/>
+      <text x="178" y="188" fill="#e4e6ed" font-size="12">InputReader → InputDispatcher</text>
+      <rect x="500" y="165" width="300" height="36" rx="6" fill="#1a2a2a" stroke="#22d3ee" stroke-width="1"/>
+      <text x="515" y="188" fill="#e4e6ed" font-size="12">EventHub (讀取 /dev/input/*)</text>
+
+      <line x1="400" y1="183" x2="498" y2="183" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+      <!-- Arrow down -->
+      <line x1="450" y1="210" x2="450" y2="240" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+      <!-- Framework -->
+      <rect x="40" y="240" width="820" height="80" rx="10" fill="url(#gFw)" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="60" y="268" fill="#fb923c" font-size="13" font-weight="600">Framework Layer (Java)</text>
+      <rect x="120" y="275" width="280" height="36" rx="6" fill="#2a2a1a" stroke="#fb923c" stroke-width="1"/>
+      <text x="140" y="298" fill="#e4e6ed" font-size="12">InputManagerService.interceptKeyBefore*</text>
+      <rect x="500" y="275" width="320" height="36" rx="6" fill="#2a2a1a" stroke="#fb923c" stroke-width="1"/>
+      <text x="520" y="298" fill="#e4e6ed" font-size="12">→ WindowManagerPolicy (介面)</text>
+
+      <line x1="400" y1="293" x2="498" y2="293" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+      <!-- Arrow down -->
+      <line x1="450" y1="320" x2="450" y2="350" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+      <!-- Policy — the modified layer -->
+      <rect x="40" y="350" width="820" height="90" rx="10" fill="url(#gPolicy)" stroke="#4ade80" stroke-width="2.5" stroke-dasharray="0"/>
+      <text x="60" y="378" fill="#4ade80" font-size="13" font-weight="700">⭐ Policy Layer — PhoneWindowManager.java（本次修改點）</text>
+      <rect x="80" y="390" width="350" height="40" rx="6" fill="#1a2d1a" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="95" y="415" fill="#4ade80" font-size="12" font-weight="600">interceptSystemKeysAndShortcuts()</text>
+      <rect x="480" y="390" width="350" height="40" rx="6" fill="#1a2d1a" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="495" y="415" fill="#4ade80" font-size="12" font-weight="600">KEYCODE_FUNCTION → showSystemSettings()</text>
+
+      <line x1="430" y1="410" x2="478" y2="410" stroke="#4ade80" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+      <!-- Arrow down to app -->
+      <line x1="250" y1="440" x2="250" y2="470" stroke="#f87171" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="260" y="462" fill="#f87171" font-size="11">return true → 不傳給 App</text>
+
+      <!-- App layer (grayed) -->
+      <rect x="40" y="470" width="400" height="40" rx="10" fill="#1a1a1a" stroke="#555" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="60" y="496" fill="#555" font-size="12">Application Layer（已被攔截，不會收到 FN 事件）</text>
+
+      <!-- Legend -->
+      <rect x="620" y="468" width="12" height="12" rx="2" fill="#4ade80"/>
+      <text x="638" y="479" fill="#8b8fa3" font-size="11">本次修改</text>
+      <rect x="720" y="468" width="12" height="12" rx="2" fill="#6c8cff"/>
+      <text x="738" y="479" fill="#8b8fa3" font-size="11">事件流向</text>
+      <line x1="820" y1="474" x2="845" y2="474" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="850" y="479" fill="#8b8fa3" font-size="11">被攔截</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 3. 為什麼改 PhoneWindowManager ==================== -->
+<h2 id="sec-why">3. 為什麼改 PhoneWindowManager</h2>
+
+<div class="card highlight">
+  <h3>PhoneWindowManager 的角色</h3>
+  <p><code>PhoneWindowManager</code> 是 <code>WindowManagerPolicy</code> 介面的實作，是 Android 系統中<strong>所有實體按鍵的策略決策中心</strong>。它決定了每一個硬體按鍵按下後該執行什麼動作。</p>
+</div>
+
+<div class="card green-border">
+  <h3>✅ 選擇這裡修改的原因</h3>
+  <ul>
+    <li><strong>系統級攔截</strong>：在 Policy 層攔截意味著 FN 鍵無論在任何 App、任何畫面（包括 Launcher、Keyguard）都會生效</li>
+    <li><strong>已有成熟模式</strong>：<code>KEYCODE_SETTINGS</code>、<code>KEYCODE_HOME</code> 等按鍵都在此處理，FN 鍵理所當然也在這裡</li>
+    <li><strong>已有 showSystemSettings()</strong>：此方法已存在（line 2065），呼叫 <code>Settings.ACTION_SETTINGS</code>，無需額外新增程式碼</li>
+    <li><strong>Event 消費</strong>：<code>return true</code> 會消費掉事件，App 不會再收到此 keycode，避免衝突</li>
+  </ul>
+</div>
+
+<div class="card orange-border">
+  <h3>❌ 為什麼不在其他地方改</h3>
+  <table>
+    <tr><th>方案</th><th>缺點</th></tr>
+    <tr><td>改 App 層（在某個 Activity 裡監聽）</td><td>只有該 App 在前台時才有效；其他 App 或 Launcher 上無效</td></tr>
+    <tr><td>改 Key Layout (.kl) 映射</td><td>.kl 只能映射到其他 keycode，無法直接觸發啟動 Activity</td></tr>
+    <tr><td>改 InputManagerService</td><td>太底層，不適合放業務邏輯；PhoneWindowManager 才是設計好的策略層</td></tr>
+    <tr><td>用 AccessibilityService</td><td>需要額外安裝 App、使用者要手動開啟無障礙權限，不可靠</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 4. 流程圖 ==================== -->
+<h2 id="sec-flow">4. 按鍵事件完整流程圖</h2>
+<p>下圖展示按下 FN 鍵後，事件如何從硬體層到達 <code>PhoneWindowManager</code> 並觸發 Settings：</p>
+
+<div class="diagram-container" onclick="openLightbox('diagram-flow')">
+  <div id="diagram-flow">
+    <svg viewBox="0 0 900 680" xmlns="http://www.w3.org/2000/svg" style="font-family:'Segoe UI','Noto Sans TC',sans-serif">
+      <defs>
+        <marker id="arrB2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#6c8cff"/>
+        </marker>
+        <marker id="arrG2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#4ade80"/>
+        </marker>
+      </defs>
+
+      <!-- Step 1 -->
+      <rect x="300" y="20" width="300" height="50" rx="25" fill="#2e2345" stroke="#9b6cff" stroke-width="2"/>
+      <text x="365" y="50" fill="#e4e6ed" font-size="14" font-weight="600">👆 用戶按下 FN 鍵</text>
+
+      <line x1="450" y1="70" x2="450" y2="105" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrB2)"/>
+
+      <!-- Step 2 -->
+      <rect x="250" y="105" width="400" height="46" rx="8" fill="#1e2a3d" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="275" y="133" fill="#22d3ee" font-size="13">① GPIO 觸發中斷 → Linux input subsystem</text>
+
+      <line x1="450" y1="151" x2="450" y2="186" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrB2)"/>
+
+      <!-- Step 3 -->
+      <rect x="250" y="186" width="400" height="46" rx="8" fill="#1e2a3d" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="275" y="214" fill="#22d3ee" font-size="13">② /dev/input/eventX 產生 KEY_FN 事件</text>
+
+      <line x1="450" y1="232" x2="450" y2="267" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrB2)"/>
+
+      <!-- Step 4 -->
+      <rect x="250" y="267" width="400" height="46" rx="8" fill="#1a2a2a" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="265" y="295" fill="#fb923c" font-size="13">③ EventHub 讀取 → .kl 映射為 keycode 119</text>
+
+      <line x1="450" y1="313" x2="450" y2="348" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrB2)"/>
+
+      <!-- Step 5 -->
+      <rect x="250" y="348" width="400" height="46" rx="8" fill="#2a2a1a" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="268" y="376" fill="#fb923c" font-size="13">④ InputDispatcher → interceptKeyBeforeDispatching</text>
+
+      <line x1="450" y1="394" x2="450" y2="429" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrB2)"/>
+
+      <!-- Step 6 — highlight -->
+      <rect x="180" y="429" width="540" height="56" rx="10" fill="#1a2d1a" stroke="#4ade80" stroke-width="2.5"/>
+      <text x="200" y="453" fill="#4ade80" font-size="14" font-weight="700">⭐ ⑤ PhoneWindowManager: switch(KEYCODE_FUNCTION)</text>
+      <text x="260" y="475" fill="#4ade80" font-size="12">→ showSystemSettings() → return true (消費事件)</text>
+
+      <line x1="450" y1="485" x2="450" y2="520" stroke="#4ade80" stroke-width="2" marker-end="url(#arrG2)"/>
+
+      <!-- Step 7 -->
+      <rect x="250" y="520" width="400" height="46" rx="8" fill="#1a2d1a" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="280" y="548" fill="#4ade80" font-size="13">⑥ startActivity(Settings.ACTION_SETTINGS)</text>
+
+      <line x1="450" y1="566" x2="450" y2="601" stroke="#4ade80" stroke-width="2" marker-end="url(#arrG2)"/>
+
+      <!-- Step 8 -->
+      <rect x="300" y="601" width="300" height="50" rx="25" fill="#1a2d1a" stroke="#4ade80" stroke-width="2"/>
+      <text x="360" y="631" fill="#4ade80" font-size="14" font-weight="600">⚙️ Settings App 啟動</text>
+
+      <!-- Annotation: consumed -->
+      <rect x="30" y="440" width="130" height="34" rx="6" fill="#2d1a1a" stroke="#f87171" stroke-width="1"/>
+      <text x="42" y="462" fill="#f87171" font-size="11" font-weight="600">事件已消費 ✗</text>
+      <line x1="160" y1="457" x2="178" y2="457" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+      <!-- Annotation: before/after -->
+      <rect x="740" y="350" width="140" height="70" rx="8" fill="var(--surface2)" stroke="var(--border)" stroke-width="1"/>
+      <text x="755" y="372" fill="#f87171" font-size="11">修改前：無 case</text>
+      <text x="755" y="390" fill="#f87171" font-size="11">→ 事件傳給 App</text>
+      <text x="755" y="410" fill="#4ade80" font-size="11">修改後：消費事件</text>
+      <line x1="720" y1="390" x2="738" y2="390" stroke="var(--border)" stroke-width="1"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 5. 修改細節 ==================== -->
+<h2 id="sec-detail">5. 修改細節與差異比較</h2>
+
+<p><code>PhoneWindowManager</code> 有兩條按鍵攔截路徑：<strong>Old</strong>（傳統）和 <strong>New</strong>（KeyGestureEvent 新架構），我們在兩條路徑都加了 <code>KEYCODE_FUNCTION</code> 處理。</p>
+
+<h3>Path A: interceptSystemKeysAndShortcutsOld（line 4083）</h3>
+<div class="code-file">📄 frameworks/base/services/core/java/com/android/server/policy/PhoneWindowManager.java</div>
+<pre><code><span class="code-comment">  // ... KEYCODE_SETTINGS case 結束 ...</span>
+                <span class="code-keyword">return true</span>;
+<span class="code-add">+           case KeyEvent.KEYCODE_FUNCTION:</span>
+<span class="code-add">+               if (firstDown) {</span>
+<span class="code-add">+                   showSystemSettings();</span>
+<span class="code-add">+               }</span>
+<span class="code-add">+               return true;</span>
+            <span class="code-keyword">case</span> KeyEvent.KEYCODE_STEM_PRIMARY:</code></pre>
+
+<h3>Path B: interceptSystemKeysAndShortcutsNew（line 4152）</h3>
+<div class="code-file">📄 frameworks/base/services/core/java/com/android/server/policy/PhoneWindowManager.java</div>
+<pre><code><span class="code-comment">  // ... KEYCODE_STEM_PRIMARY case 結束 ...</span>
+                    <span class="code-keyword">return true</span>;
+                }
+<span class="code-add">+           case KeyEvent.KEYCODE_FUNCTION:</span>
+<span class="code-add">+               if (event.getAction() == KeyEvent.ACTION_DOWN</span>
+<span class="code-add">+                       && event.getRepeatCount() == 0) {</span>
+<span class="code-add">+                   showSystemSettings();</span>
+<span class="code-add">+               }</span>
+<span class="code-add">+               return true;</span>
+        }</code></pre>
+
+<div class="card highlight">
+  <h3>兩條路徑的差異</h3>
+  <table>
+    <tr><th>項目</th><th>Old Path</th><th>New Path</th></tr>
+    <tr><td>判斷方式</td><td><code>firstDown</code>（方法開頭已計算好的 boolean）</td><td>手動檢查 <code>ACTION_DOWN && repeatCount==0</code></td></tr>
+    <tr><td>原因</td><td>Old 方法有 <code>firstDown</code> 區域變數</td><td>New 方法沒有此變數，需自行判斷</td></tr>
+    <tr><td>效果</td><td colspan="2" style="text-align:center">完全相同 — 僅在首次按下時觸發一次 Settings</td></tr>
+  </table>
+</div>
+
+<h3>已存在的 showSystemSettings() 方法</h3>
+<div class="code-file">📄 PhoneWindowManager.java — line 2065</div>
+<pre><code><span class="code-keyword">private void</span> showSystemSettings() {
+    startActivityAsUser(<span class="code-keyword">new</span> Intent(android.provider.Settings.<span class="code-string">ACTION_SETTINGS</span>),
+            UserHandle.CURRENT_OR_SELF);
+}</code></pre>
+<p>呼叫 <code>Settings.ACTION_SETTINGS</code> 等效於你提供的 <code>onSettingsClick()</code> 中的 <code>ComponentName("com.android.settings", "com.android.settings.Settings")</code>，但更通用（會走系統預設的 Settings App resolve）。</p>
+
+<!-- ==================== 6. 驗證 ==================== -->
+<h2 id="sec-verify">6. 驗證方式</h2>
+
+<div class="card green-border">
+  <h3>步驟</h3>
+  <ol>
+    <li>重新編譯 framework（<code>make services</code> 或整包 <code>make systemimage</code>）</li>
+    <li>將產出的 <code>services.jar</code> 推送至裝置 <code>/system/framework/</code>，或刷入新的 system image</li>
+    <li>重啟裝置</li>
+    <li>測試：
+      <ul>
+        <li>按下 <span class="key">FN</span> → 應開啟 Settings App</li>
+        <li>按下 <span class="key">HOME</span> → 應回到桌面（不受影響）</li>
+        <li>按下 <span class="key">POWER</span> → 應正常關螢幕/喚醒（不受影響）</li>
+      </ul>
+    </li>
+    <li>觀察 Logcat：<code>adb logcat | grep -i "PhoneWindowManager\|showSystemSettings\|KEYCODE_FUNCTION"</code></li>
+  </ol>
+</div>
+
+<!-- ==================== Lightbox ==================== -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-close" onclick="closeLightbox(event)">✕</div>
+  <div class="lightbox-content" id="lightbox-content" onclick="event.stopPropagation()">
+  </div>
+</div>
+
+<script>
+function openLightbox(diagramId) {
+  const diagram = document.getElementById(diagramId);
+  const lightbox = document.getElementById('lightbox');
+  const content = document.getElementById('lightbox-content');
+  content.innerHTML = diagram.innerHTML;
+  lightbox.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(e) {
+  const lightbox = document.getElementById('lightbox');
+  lightbox.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLightbox(e);
+});
+</script>
+
+</body>
+</html>
