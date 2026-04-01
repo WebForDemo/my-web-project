@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B810 E-Ink Refresh Mode 分析報告</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d2e;
+    --surface2: #232740;
+    --border: #2e3347;
+    --text: #e2e4ea;
+    --text2: #9498a8;
+    --accent: #6c8aff;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --cyan: #22d3ee;
+    --purple: #a78bfa;
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', 'Noto Sans TC', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 2rem;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: .5rem;
+  }
+  .subtitle { color: var(--text2); margin-bottom: 2.5rem; font-size: .95rem; }
+  h2 {
+    font-size: 1.35rem;
+    color: var(--cyan);
+    margin: 2.5rem 0 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.1rem; color: var(--accent); margin: 1.5rem 0 .75rem; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: .2rem .7rem;
+    border-radius: 6px;
+    font-size: .8rem;
+    font-weight: 600;
+  }
+  .badge-global { background: rgba(74,222,128,.15); color: var(--green); }
+  .badge-quick  { background: rgba(251,191,36,.15); color: var(--amber); }
+  .badge-special{ background: rgba(108,138,255,.15); color: var(--accent); }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 1rem 0;
+    font-size: .9rem;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: .75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+  }
+  tbody td {
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(108,138,255,.05); }
+  td code, th code {
+    background: var(--surface2);
+    padding: .15rem .4rem;
+    border-radius: 4px;
+    font-size: .85rem;
+    color: var(--cyan);
+  }
+
+  /* Timeline diagram */
+  .timeline-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin: 1.5rem 0;
+  }
+  .timeline-row {
+    position: relative;
+  }
+  .timeline-label {
+    font-weight: 600;
+    font-size: .85rem;
+    margin-bottom: .5rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .timeline-track {
+    height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  .tblock {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  .frame-markers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    pointer-events: none;
+  }
+  .frame-marker {
+    flex: 1;
+    border-right: 1px dashed rgba(255,255,255,.1);
+    position: relative;
+  }
+  .frame-marker span {
+    position: absolute;
+    bottom: -18px;
+    right: -8px;
+    font-size: .65rem;
+    color: var(--text2);
+  }
+
+  /* Param cards */
+  .params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .param-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .param-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .param-card.p-value::before  { background: var(--green); }
+  .param-card.p-count::before  { background: var(--amber); }
+  .param-card.p-time::before   { background: var(--accent); }
+  .param-card.p-region::before { background: var(--purple); }
+  .param-card .param-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+  }
+  .param-card .param-key {
+    font-family: monospace;
+    font-size: .75rem;
+    color: var(--cyan);
+    margin-bottom: .5rem;
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+  .param-card .param-desc {
+    font-size: .88rem;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .param-card .param-status {
+    margin-top: .75rem;
+    padding: .4rem .7rem;
+    border-radius: 6px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .status-active { background: rgba(74,222,128,.12); color: var(--green); }
+  .status-unused { background: rgba(248,113,113,.12); color: var(--red); }
+
+  /* Flow diagram */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin: 1.5rem 0;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .flow-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .6rem 1rem;
+    text-align: center;
+    font-size: .82rem;
+    min-width: 120px;
+  }
+  .flow-box .flow-title {
+    font-weight: 700;
+    color: var(--text);
+    font-size: .85rem;
+  }
+  .flow-box .flow-sub {
+    color: var(--text2);
+    font-size: .75rem;
+    margin-top: .25rem;
+  }
+  .flow-arrow {
+    color: var(--accent);
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  /* Comparison chart */
+  .compare-chart {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr 1fr;
+    gap: 0;
+    margin: 1.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: .85rem;
+  }
+  .cc-header {
+    background: var(--surface2);
+    padding: .75rem 1rem;
+    font-weight: 700;
+    border-bottom: 2px solid var(--border);
+  }
+  .cc-cell {
+    padding: .6rem 1rem;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .cc-cell:nth-child(4n) { border-right: none; }
+  .cc-label {
+    background: var(--surface);
+    font-weight: 600;
+    color: var(--text);
+  }
+  .cc-yes { color: var(--green); font-weight: 600; }
+  .cc-no  { color: var(--red); opacity: .6; }
+  .cc-cond { color: var(--amber); font-weight: 600; }
+
+  .note-box {
+    background: rgba(108,138,255,.08);
+    border: 1px solid rgba(108,138,255,.25);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    font-size: .88rem;
+    color: var(--text2);
+  }
+  .note-box strong { color: var(--accent); }
+
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: .82rem;
+    overflow-x: auto;
+    margin: .75rem 0;
+    line-height: 1.6;
+    color: var(--text2);
+    white-space: pre;
+  }
+  .code-block .cm { color: #6a737d; }
+  .code-block .kw { color: var(--accent); }
+  .code-block .fn { color: var(--cyan); }
+  .code-block .num { color: var(--amber); }
+  .code-block .str { color: var(--green); }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin: .75rem 0;
+    font-size: .8rem;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .toc-title {
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: .6rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .toc-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem .75rem;
+    list-style: none;
+  }
+  .toc-list a {
+    display: inline-block;
+    padding: .3rem .7rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--cyan);
+    text-decoration: none;
+    font-size: .8rem;
+    transition: all .2s;
+  }
+  .toc-list a:hover {
+    background: rgba(34,211,238,.1);
+    border-color: var(--cyan);
+    transform: translateY(-1px);
+  }
+  html { scroll-behavior: smooth; }
+
+  @media (max-width: 700px) {
+    body { padding: 1rem; }
+    .compare-chart { grid-template-columns: 120px repeat(3, 1fr); font-size: .75rem; }
+    .params-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>B810 E-Ink Refresh Mode 分析報告</h1>
+<p class="subtitle">Special Refresh 機制解說 — value / count / time / region 與三種模式比較</p>
+
+<nav class="toc">
+  <div class="toc-title">📑 目錄 — 點擊跳轉</div>
+  <ul class="toc-list">
+    <li><a href="#s1">一、整體架構流程</a></li>
+    <li><a href="#s2">二、Special Refresh 四個參數</a></li>
+    <li><a href="#s3">三、Global / Quick / Special 比較</a></li>
+    <li><a href="#s4">四、生命週期時序圖</a></li>
+    <li><a href="#s5">五、DropTime vs DropMode</a></li>
+    <li><a href="#s6">六、HWComposer 清除邏輯</a></li>
+    <li><a href="#s7">七、實際使用場景</a></li>
+    <li><a href="#s8">八、E-Ink 名詞圖解</a></li>
+    <li><a href="#s9">九、LCD vs E-Ink 差異</a></li>
+  </ul>
+</nav>
+
+<!-- ======== Section 1: Architecture ======== -->
+<h2 id="s1">一、整體架構流程</h2>
+
+<div class="flow-diagram">
+  <div class="flow-box">
+    <div class="flow-title">Activity.java</div>
+    <div class="flow-sub">broadcastEinkMode()</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="flow-title">Broadcast</div>
+    <div class="flow-sub">ntx.eink_control.*</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="flow-title">PowerManagerService</div>
+    <div class="flow-sub">UpdateModeReceiver</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="flow-title">Surface.java</div>
+    <div class="flow-sub">updateAuxRefreshMode[Arg]</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="flow-title">SurfaceFlinger</div>
+    <div class="flow-sub">HWComposer</div>
+  </div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">
+    <div class="flow-title">EPD / TCON</div>
+    <div class="flow-sub">硬體刷新</div>
+  </div>
+</div>
+
+<!-- ======== Section 2: 4 Parameters ======== -->
+<h2 id="s2">二、Special Refresh 四個參數</h2>
+<p style="color:var(--text2);margin-bottom:1rem;">PowerManagerService 從 Broadcast Intent 中提取以下四個 extra，傳入 <code>Surface.updateAuxRefreshModeArg(NTX_MODE_SPECIAL, value, count, time, region)</code></p>
+
+<div class="params-grid">
+  <div class="param-card p-value">
+    <div class="param-name">① Value</div>
+    <div class="param-key">intent.getIntExtra("updatemode", 0)</div>
+    <div class="param-desc">
+      <strong>Waveform 模式</strong> — 指定這次 Special 刷新要使用的 waveform。
+      常見值：
+      <br>• <code>GC16_NO_MERGE</code> — 高品質灰階 16 階（全刷新清殘影）
+      <br>• <code>GLR16</code> — 灰階低閃爍 16 階（閱讀翻頁）
+      <br>• <code>GLR_FULL</code> — GLR16 + 全螢幕 + Wait
+    </div>
+    <div class="param-status status-active">✓ 目前有使用</div>
+  </div>
+
+  <div class="param-card p-count">
+    <div class="param-name">② Count</div>
+    <div class="param-key">intent.getIntExtra("apply_count", 0)</div>
+    <div class="param-desc">
+      <strong>套用次數</strong> — 指定此 Special 模式要持續套用幾次畫面更新事件。
+      <br>• <code>0</code> = 預設行為（用一次就清除）
+      <br>• <code>N</code> = 持續 N 次更新後才清除
+      <br><br>設計目的：解決「彈窗加速時 Special 被一次 update 消耗掉」的問題 (#5032)。
+    </div>
+    <div class="param-status status-unused">✗ Sender 端未使用（預設 0）</div>
+  </div>
+
+  <div class="param-card p-time">
+    <div class="param-name">③ Time</div>
+    <div class="param-key">intent.getIntExtra("drop_time", 0)</div>
+    <div class="param-desc">
+      <strong>Update Drop 時間 (ms)</strong> — 搭配 Drop Mode 使用。在此期間 Special 模式不會被清除。
+      <br>• <code>0</code> = 不啟用 drop
+      <br>• <code>500+</code> = Drop 持續毫秒數（翻頁場景常用 500ms 以上）
+      <br><br>用途：過濾翻頁動畫中間幀，只讓最終結果走 Special waveform
+    </div>
+    <div class="param-status status-active">✓ 透過 broadcastEinkModeDropTime() 使用</div>
+  </div>
+
+  <div class="param-card p-region">
+    <div class="param-name">④ Region</div>
+    <div class="param-key">intent.getIntExtra("region", 0)</div>
+    <div class="param-desc">
+      <strong>刷新區域標識</strong> — 指定此次 Special 刷新是全螢幕還是局部區域。
+      <br>• <code>0</code> = 預設（由系統根據 dirty region 判斷）
+      <br>• 其他值 = 強制指定區域類型
+      <br><br>這個參數讓 GLR16 可以繞過「非 Full Region 不走 GLR16」的底層限制。
+    </div>
+    <div class="param-status status-unused">✗ Sender 端未使用（預設 0）</div>
+  </div>
+</div>
+
+<!-- ======== Section 3: Comparison ======== -->
+<h2 id="s3">三、Global / Quick / Special 模式比較</h2>
+
+<div class="compare-chart">
+  <div class="cc-header"></div>
+  <div class="cc-header" style="text-align:center"><span class="badge badge-global">Global</span><br>NTX_MODE_GLOBAL = 2</div>
+  <div class="cc-header" style="text-align:center"><span class="badge badge-quick">Quick</span><br>NTX_MODE_QUICK = 3</div>
+  <div class="cc-header" style="text-align:center"><span class="badge badge-special">Special</span><br>NTX_MODE_SPECIAL = 4</div>
+
+  <div class="cc-cell cc-label">持久性</div>
+  <div class="cc-cell"><span class="cc-yes">✓ 持久</span><br>寫入 persist.mode.global<br>直到被 Reset</div>
+  <div class="cc-cell"><span class="cc-no">✗ 單次</span><br>每次 present 後<br>無條件清除</div>
+  <div class="cc-cell"><span class="cc-cond">⚡ 條件式</span><br>DropFrame 啟用時保留<br>DropFrame 關閉後清除</div>
+
+  <div class="cc-cell cc-label">清除時機<br>(HWComposer)</div>
+  <div class="cc-cell">手動 Reset 才清除<br><code>mGlobalMode = value</code></div>
+  <div class="cc-cell">每次 present 後立即清<br><code>if (mQuickMode)<br>&nbsp;&nbsp;mQuickMode = 0</code></div>
+  <div class="cc-cell">DropFrame 未啟用時清除<br><code>if (mDropMode != ENABLE)<br>&nbsp;&nbsp;mSpecialMode = 0</code></div>
+
+  <div class="cc-cell cc-label">權限檢查</div>
+  <div class="cc-cell"><span class="cc-yes">需要</span><br>commandFromNtxApp<br>需匹配</div>
+  <div class="cc-cell"><span class="cc-yes">需要</span><br>commandFromNtxApp<br>需匹配</div>
+  <div class="cc-cell"><span class="cc-no">不需要</span><br>繞過權限檢查<br>任何 App 可用</div>
+
+  <div class="cc-cell cc-label">參數</div>
+  <div class="cc-cell">value（waveform）</div>
+  <div class="cc-cell">value（waveform）</div>
+  <div class="cc-cell">value + count<br>+ time + region</div>
+
+  <div class="cc-cell cc-label">API</div>
+  <div class="cc-cell"><code>updateAuxRefreshMode<br>(2, value)</code></div>
+  <div class="cc-cell"><code>updateAuxRefreshMode<br>(3, value)</code></div>
+  <div class="cc-cell"><code>updateAuxRefreshModeArg<br>(4, v, c, t, r)</code></div>
+
+  <div class="cc-cell cc-label">典型 Waveform</div>
+  <div class="cc-cell">A2 / DU / SCROLL<br>（快刷低品質）</div>
+  <div class="cc-cell">GC16_NO_MERGE<br>（Reset 後預設回歸）</div>
+  <div class="cc-cell">GC16 / GLR16<br>（翻頁高品質）</div>
+
+  <div class="cc-cell cc-label">使用場景</div>
+  <div class="cc-cell">手指滑動 / 捲動<br>持續快刷直到手放開</div>
+  <div class="cc-cell">Global Reset 後<br>設定下一幀的 waveform</div>
+  <div class="cc-cell">翻頁 / 閱讀模式<br>搭配 DropFrame 使用</div>
+</div>
+
+<!-- ======== Section 4: Lifecycle Timeline ======== -->
+<h2 id="s4">四、生命週期時序圖</h2>
+<p style="color:var(--text2);margin-bottom:1rem;">下圖模擬 6 次連續畫面 present，展示三種模式的存活差異：</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Global 模式生效</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Quick 模式生效</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Special 模式生效</div>
+  <div class="legend-item"><div class="legend-dot" style="background:rgba(108,138,255,.3)"></div> DropFrame 啟用期間</div>
+</div>
+
+<div class="timeline-container">
+  <!-- Global -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge badge-global">Global</span> 設定一次，持續到 Reset</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span>F1</span></div><div class="frame-marker"><span>F2</span></div><div class="frame-marker"><span>F3</span></div><div class="frame-marker"><span>F4</span></div><div class="frame-marker"><span>F5</span></div><div class="frame-marker"><span>F6</span></div></div>
+      <div class="tblock" style="left:2%; right:2%; background: linear-gradient(90deg, rgba(74,222,128,.7), rgba(74,222,128,.5));">
+        ▉▉▉ 持續生效（A2 / SCROLL）直到手動 Reset ▉▉▉
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge badge-quick">Quick</span> 用一次就清除</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span>F1</span></div><div class="frame-marker"><span>F2</span></div><div class="frame-marker"><span>F3</span></div><div class="frame-marker"><span>F4</span></div><div class="frame-marker"><span>F5</span></div><div class="frame-marker"><span>F6</span></div></div>
+      <div class="tblock" style="left:2%; width:14%; background: rgba(251,191,36,.7);">
+        GC16
+      </div>
+      <!-- rest is empty = default mode -->
+    </div>
+  </div>
+
+  <!-- Special without Drop -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge badge-special">Special</span> 無 DropFrame → 跟 Quick 一樣單次</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span>F1</span></div><div class="frame-marker"><span>F2</span></div><div class="frame-marker"><span>F3</span></div><div class="frame-marker"><span>F4</span></div><div class="frame-marker"><span>F5</span></div><div class="frame-marker"><span>F6</span></div></div>
+      <div class="tblock" style="left:2%; width:14%; background: rgba(108,138,255,.7);">
+        GLR16
+      </div>
+    </div>
+  </div>
+
+  <!-- Special with Drop -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge badge-special">Special</span> + DropFrame → Drop 期間持續生效</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span>F1</span></div><div class="frame-marker"><span>F2</span></div><div class="frame-marker"><span>F3</span></div><div class="frame-marker"><span>F4</span></div><div class="frame-marker"><span>F5</span></div><div class="frame-marker"><span>F6</span></div></div>
+      <!-- Drop period background -->
+      <div class="tblock" style="left:2%; width:64%; background: rgba(108,138,255,.15); border: 1px dashed rgba(108,138,255,.4);">
+      </div>
+      <!-- Special active during drop -->
+      <div class="tblock" style="left:2%; width:64%; background: linear-gradient(90deg, rgba(108,138,255,.7), rgba(108,138,255,.5));">
+        ▉▉ Special GLR16 持續生效（Drop 期間不清除）▉▉
+      </div>
+    </div>
+  </div>
+
+  <!-- Special with Count (future) -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge badge-special">Special</span> + count=3 → 持續 3 次（<span style="color:var(--red)">尚未使用</span>）</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span>F1</span></div><div class="frame-marker"><span>F2</span></div><div class="frame-marker"><span>F3</span></div><div class="frame-marker"><span>F4</span></div><div class="frame-marker"><span>F5</span></div><div class="frame-marker"><span>F6</span></div></div>
+      <div class="tblock" style="left:2%; width:47%; background: linear-gradient(90deg, rgba(108,138,255,.7), rgba(108,138,255,.4)); border: 2px dashed var(--amber);">
+        GC16 × 3 次（count=3）
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== Section 5: DropTime vs DropMode ======== -->
+<h2 id="s5">五、DropTime vs DropMode 深入解析</h2>
+<p style="color:var(--text2);margin-bottom:1rem;">DropTime 和 DropMode 是<strong>同一套丟幀機制的上下游</strong>，不是兩個獨立系統。DropTime 是 Java 層的「控制介面」，DropMode 是 SurfaceFlinger 內部的「執行狀態」。</p>
+
+<!-- 比較表 -->
+<div class="compare-chart" style="grid-template-columns: 160px 1fr 1fr;">
+  <div class="cc-header"></div>
+  <div class="cc-header" style="text-align:center"><span class="badge" style="background:rgba(167,139,250,.15);color:var(--purple)">DropTime</span><br>Java 層控制介面</div>
+  <div class="cc-header" style="text-align:center"><span class="badge" style="background:rgba(34,211,238,.15);color:var(--cyan)">DropMode</span><br>SurfaceFlinger 狀態旗標</div>
+
+  <div class="cc-cell cc-label">本質</div>
+  <div class="cc-cell">一個<strong>時間長度</strong>（毫秒）<br>「丟幀丟多久」</div>
+  <div class="cc-cell">一個<strong>狀態旗標</strong>（0/1/2）<br>「現在是否在丟幀」</div>
+
+  <div class="cc-cell cc-label">在哪設定</div>
+  <div class="cc-cell">Java 層<br><code>sendDropFramesBroadcast(500)</code><br><code>broadcastEinkModeDropTime()</code></div>
+  <div class="cc-cell">SurfaceFlinger 內部<br>由 <code>dropFramePeriod()</code> 自動設</div>
+
+  <div class="cc-cell cc-label">值的含義</div>
+  <div class="cc-cell"><code>0</code> = 關閉丟幀<br><code>500</code> = 丟幀 500ms</div>
+  <div class="cc-cell"><code>DISABLE = 0</code> 關閉<br><code>ENABLE = 1</code> 丟幀中<br><code>COMMIT = 2</code> 時間到，最後一次刷新</div>
+
+  <div class="cc-cell cc-label">對 Special 的影響</div>
+  <div class="cc-cell">間接影響：<br>DropTime > 0 → DropMode=ENABLE<br>→ Special 不被清除</div>
+  <div class="cc-cell">直接影響：<br><code>if (mDropMode != ENABLE)</code><br>→ 決定 Special 是否清除</div>
+
+  <div class="cc-cell cc-label">因果關係</div>
+  <div class="cc-cell" style="text-align:center"><span class="cc-yes" style="font-size:1.1rem">上游（原因）</span></div>
+  <div class="cc-cell" style="text-align:center"><span class="cc-cond" style="font-size:1.1rem">下游（結果）</span></div>
+</div>
+
+<!-- 流程圖 -->
+<h3>DropTime → DropMode 轉換流程</h3>
+<div class="flow-diagram" style="flex-direction:column; align-items:stretch; gap:1.25rem;">
+  <!-- Step 1 -->
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center">
+    <div class="flow-box" style="border-color:var(--purple)"><div class="flow-title">① Java 層</div><div class="flow-sub">sendDropFramesBroadcast(<strong style="color:var(--purple)">500</strong>)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box"><div class="flow-title">Broadcast</div><div class="flow-sub">ntx.eink_control.DropFrames<br>period = 500</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box"><div class="flow-title">PowerManagerService</div><div class="flow-sub">DropFramesReceiver<br>+ UpdateModeReceiver</div></div>
+  </div>
+  <!-- Step 2 -->
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center">
+    <div class="flow-box"><div class="flow-title">② Surface.java</div><div class="flow-sub">einkDropFramePeriod(500)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--cyan)"><div class="flow-title">③ SurfaceFlinger</div><div class="flow-sub">dropFramePeriod(500ms)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--green);background:rgba(74,222,128,.08)">
+      <div class="flow-title">④ 啟動丟幀</div>
+      <div class="flow-sub">g_dropframe_enable = <strong style="color:var(--green)">true</strong><br>g_dropframe_period = 500ms<br>mDropMode = <strong style="color:var(--green)">ENABLE (1)</strong></div>
+    </div>
+  </div>
+  <!-- Step 3 -->
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center">
+    <div class="flow-box" style="background:rgba(251,191,36,.08);border-color:var(--amber)"><div class="flow-title">⑤ 丟幀期間</div><div class="flow-sub">中間更新幀被丟棄<br>Special mode 不被清除<br>（mDropMode == ENABLE）</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--amber)"><div class="flow-title">⑥ 500ms 到</div><div class="flow-sub">DROPFRAMEREFRESH<br>mDropMode = <strong style="color:var(--amber)">COMMIT (2)</strong><br>做最後一次 present</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--red)"><div class="flow-title">⑦ 結束</div><div class="flow-sub">Java 送 period=0<br>mDropMode = <strong style="color:var(--red)">DISABLE (0)</strong><br>Special 被清除</div></div>
+  </div>
+</div>
+
+<!-- 狀態機 -->
+<h3>DropMode 三態狀態機</h3>
+<div style="display:flex;justify-content:center;margin:1.5rem 0">
+  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:center">
+    <div style="text-align:center;padding:1rem 1.5rem;background:var(--surface);border:2px solid var(--border);border-radius:12px;min-width:140px">
+      <div style="font-size:.75rem;color:var(--text2)">初始 / 結束</div>
+      <div style="font-size:1.2rem;font-weight:700;color:var(--text)">DISABLE</div>
+      <div style="font-size:.8rem;color:var(--text2)">mDropMode = 0</div>
+      <div style="font-size:.75rem;margin-top:.5rem;color:var(--red)">Special 會被清除</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem">
+      <div style="font-size:.7rem;color:var(--green)">period > 0</div>
+      <div style="font-size:1.4rem;color:var(--accent)">→</div>
+    </div>
+    <div style="text-align:center;padding:1rem 1.5rem;background:rgba(74,222,128,.08);border:2px solid var(--green);border-radius:12px;min-width:140px">
+      <div style="font-size:.75rem;color:var(--text2)">丟幀中</div>
+      <div style="font-size:1.2rem;font-weight:700;color:var(--green)">ENABLE</div>
+      <div style="font-size:.8rem;color:var(--text2)">mDropMode = 1</div>
+      <div style="font-size:.75rem;margin-top:.5rem;color:var(--green)">Special 被保留 ✓</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem">
+      <div style="font-size:.7rem;color:var(--amber)">時間到</div>
+      <div style="font-size:1.4rem;color:var(--accent)">→</div>
+    </div>
+    <div style="text-align:center;padding:1rem 1.5rem;background:rgba(251,191,36,.08);border:2px solid var(--amber);border-radius:12px;min-width:140px">
+      <div style="font-size:.75rem;color:var(--text2)">最後一次刷新</div>
+      <div style="font-size:1.2rem;font-weight:700;color:var(--amber)">COMMIT</div>
+      <div style="font-size:.8rem;color:var(--text2)">mDropMode = 2</div>
+      <div style="font-size:.75rem;margin-top:.5rem;color:var(--amber)">Special 用於此幀</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem">
+      <div style="font-size:.7rem;color:var(--red)">period = 0</div>
+      <div style="font-size:1.4rem;color:var(--accent)">→</div>
+    </div>
+    <div style="font-size:.85rem;color:var(--text2)">回到<br>DISABLE</div>
+  </div>
+</div>
+
+<!-- 翻頁情境時序 -->
+<h3>實際情境：翻頁時 DropTime + Special 的完整時序</h3>
+<div class="legend" style="margin-bottom:.5rem">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> DropTime (Java)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> DropMode (SurfaceFlinger)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Special Mode</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> 被丟棄的幀</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> 最終呈現的幀</div>
+</div>
+<div class="timeline-container" style="gap:1.25rem">
+  <!-- DropTime -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge" style="background:rgba(167,139,250,.15);color:var(--purple)">DropTime</span> Java 送 period=500ms，之後送 period=0</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span>0ms</span></div><div class="frame-marker"><span>100</span></div><div class="frame-marker"><span>200</span></div><div class="frame-marker"><span>300</span></div><div class="frame-marker"><span>400</span></div><div class="frame-marker"><span>500</span></div></div>
+      <div class="tblock" style="left:2%;width:80%;background:rgba(167,139,250,.5);border:1px solid var(--purple)">period = 500ms</div>
+    </div>
+  </div>
+  <!-- DropMode -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge" style="background:rgba(34,211,238,.15);color:var(--cyan)">DropMode</span> DISABLE → ENABLE → COMMIT → DISABLE</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div></div>
+      <div class="tblock" style="left:2%;width:70%;background:rgba(74,222,128,.5);font-size:.7rem">ENABLE (1) — 丟幀中</div>
+      <div class="tblock" style="left:72%;width:10%;background:rgba(251,191,36,.6);font-size:.7rem">COMMIT</div>
+      <div class="tblock" style="left:82%;width:16%;background:rgba(46,51,71,.8);border:1px dashed var(--border);font-size:.7rem">DISABLE</div>
+    </div>
+  </div>
+  <!-- 畫面幀 -->
+  <div class="timeline-row">
+    <div class="timeline-label" style="font-size:.8rem">畫面幀 — 中間幀被丟棄，只有 COMMIT 時呈現</div>
+    <div class="timeline-track" style="height:56px">
+      <div class="frame-markers"><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div></div>
+      <div class="tblock" style="left:5%;width:10%;background:rgba(248,113,113,.4);font-size:.65rem">丟棄</div>
+      <div class="tblock" style="left:20%;width:10%;background:rgba(248,113,113,.4);font-size:.65rem">丟棄</div>
+      <div class="tblock" style="left:35%;width:10%;background:rgba(248,113,113,.4);font-size:.65rem">丟棄</div>
+      <div class="tblock" style="left:50%;width:10%;background:rgba(248,113,113,.4);font-size:.65rem">丟棄</div>
+      <div class="tblock" style="left:72%;width:10%;background:rgba(74,222,128,.7);font-size:.65rem">✓ 呈現</div>
+    </div>
+  </div>
+  <!-- Special -->
+  <div class="timeline-row">
+    <div class="timeline-label"><span class="badge badge-special">Special</span> DropMode=ENABLE 期間不清除，COMMIT 時套用 GLR16</div>
+    <div class="timeline-track">
+      <div class="frame-markers"><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div><div class="frame-marker"><span></span></div></div>
+      <div class="tblock" style="left:2%;width:80%;background:linear-gradient(90deg,rgba(108,138,255,.6),rgba(108,138,255,.4))">Special GLR16 持續生效 → COMMIT 時用 GLR16 呈現 → 之後清除</div>
+    </div>
+  </div>
+</div>
+
+<div class="note-box">
+  <strong>💡 一句話總結：</strong><br>
+  <strong>DropTime</strong> = 你在 Java 層告訴系統「丟幀丟多久」的<strong>控制參數</strong><br>
+  <strong>DropMode</strong> = SurfaceFlinger 內部追蹤「現在是否正在丟幀」的<strong>執行狀態</strong><br>
+  兩者是同一套機制的<strong>上游（原因）</strong>和<strong>下游（結果）</strong>。DropMode 的值由 DropTime 自動驅動，不需要也不應該手動設定。
+</div>
+
+<!-- ======== Section 6: present 階段的清除邏輯 ======== -->
+<h2 id="s6">六、HWComposer 的清除邏輯</h2>
+<p style="color:var(--text2);margin-bottom:.75rem;">在每次 <code>presentAndGetReleaseFences()</code> 呼叫中（螢幕 present 一幀畫面時）：</p>
+
+<div class="code-block"><span class="cm">// HWComposer.cpp — presentAndGetReleaseFences()</span>
+
+<span class="cm">// 1. 先讀取當前 Quick 值</span>
+<span class="kw">uint32_t</span> mQuickMode = displayData.auxRefreshMode-><span class="fn">mQuickMode</span>;
+
+<span class="cm">// 2. 送到硬體</span>
+<span class="kw">auto</span> err = hwcDisplay-><span class="fn">setAuxRefreshMode</span>(displayData.auxRefreshMode);
+
+<span class="cm">// 3. Quick → 無條件清除</span>
+<span class="kw">if</span> (mQuickMode)
+    displayData.auxRefreshMode-><span class="fn">mQuickMode</span> = <span class="num">0</span>;
+
+<span class="cm">// 4. Special → 只在 DropFrame 未啟用時才清除</span>
+<span class="kw">if</span> (displayData.auxRefreshMode-><span class="fn">mDropMode</span> != <span class="num">DROP_FRAME_ENABLE</span>) {
+    displayData.auxRefreshMode-><span class="fn">mSpecialMode</span>  = <span class="num">0</span>;
+    displayData.auxRefreshMode-><span class="fn">mCount</span>        = <span class="num">0</span>;
+    displayData.auxRefreshMode-><span class="fn">mTime</span>         = <span class="num">0</span>;
+    displayData.auxRefreshMode-><span class="fn">mRegion</span>       = <span class="num">0</span>;
+}</div>
+
+<div class="note-box">
+  <strong>💡 關鍵差異就在這裡：</strong><br>
+  • <strong>Quick</strong> — <code>if (mQuickMode) mQuickMode = 0</code> → 無條件清除，一幀後就消失<br>
+  • <strong>Special</strong> — <code>if (mDropMode != DROP_FRAME_ENABLE)</code> → DropFrame 啟用期間不清除，讓 Special waveform 跨多幀持續生效<br>
+  • <strong>Global</strong> — 完全不在此處清除，只有收到 RESET broadcast 時在 Java 層手動清
+</div>
+
+<!-- ======== Section 6: Use Cases ======== -->
+<h2 id="s7">七、實際使用場景對應</h2>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge badge-global">Global</span>
+    <strong>場景：手指滑動捲動</strong>
+  </div>
+  <table>
+    <tr><td style="width:100px"><strong>觸發</strong></td><td>ACTION_MOVE 偵測到滑動距離超過門檻</td></tr>
+    <tr><td><strong>模式</strong></td><td>A2 + Dithering + SCROLL（快刷低品質）</td></tr>
+    <tr><td><strong>何時清</strong></td><td>ACTION_UP 之後 500ms delay，送 RESET</td></tr>
+    <tr><td><strong>效果</strong></td><td>滑動期間持續快速刷新，放開後回歸正常</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge badge-quick">Quick</span>
+    <strong>場景：Reset 後設定預設刷新</strong>
+  </div>
+  <table>
+    <tr><td style="width:100px"><strong>觸發</strong></td><td>Global Reset 之後立即呼叫</td></tr>
+    <tr><td><strong>模式</strong></td><td>GC16_NO_MERGE</td></tr>
+    <tr><td><strong>何時清</strong></td><td>下一次 present 後自動清除</td></tr>
+    <tr><td><strong>效果</strong></td><td>確保 Reset 後的第一幀畫面用高品質 GC16 呈現</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge badge-special">Special ①</span>
+    <strong>場景：全刷新率翻頁（清殘影）</strong>
+  </div>
+  <table>
+    <tr><td style="width:100px"><strong>觸發</strong></td><td>tapCounter ≥ fullRefreshRate（累計翻頁次數達標）</td></tr>
+    <tr><td><strong>模式</strong></td><td>GC16_NO_MERGE（高品質灰階）</td></tr>
+    <tr><td><strong>搭配</strong></td><td>先啟用 DropFrame → dropTime 後關閉 Drop → 送 Special GC16</td></tr>
+    <tr><td><strong>效果</strong></td><td>翻頁動畫被 Drop 過濾，最終畫面用 GC16 做一次完整刷新消除殘影</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge badge-special">Special ②</span>
+    <strong>場景：普通翻頁（GLR16 低閃爍）</strong>
+  </div>
+  <table>
+    <tr><td style="width:100px"><strong>觸發</strong></td><td>翻頁點擊（未達全刷新計數）</td></tr>
+    <tr><td><strong>模式</strong></td><td>GLR_FULL（GLR16 + 全螢幕 + Wait）</td></tr>
+    <tr><td><strong>搭配</strong></td><td>帶 drop_time 參數 → DropFrame 期間 Special 持續生效</td></tr>
+    <tr><td><strong>效果</strong></td><td>翻頁時低閃爍高品質刷新，DropFrame 期間保持 GLR16 不被清除</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="badge badge-special">Special ③</span>
+    <strong>場景：閱讀模式設定 GLR16</strong>
+  </div>
+  <table>
+    <tr><td style="width:100px"><strong>觸發</strong></td><td>使用者在 EinkOpt 設定 Reading Mode 為 GLR16</td></tr>
+    <tr><td><strong>模式</strong></td><td>GLR16</td></tr>
+    <tr><td><strong>搭配</strong></td><td>無 drop_time，純 Special</td></tr>
+    <tr><td><strong>效果</strong></td><td>繞過底層「非 Full Region 不走 GLR16」的限制</td></tr>
+  </table>
+</div>
+
+<!-- ======== Section 8: E-Ink 名詞圖解 ======== -->
+<h2 id="s8">八、E-Ink 關鍵名詞圖解</h2>
+<p style="color:var(--text2);margin-bottom:1.5rem;">以下三個概念經常出現在 E-Ink 刷新邏輯中，用視覺化方式快速理解它們的含義與作用。</p>
+
+<!-- ===== 8.1 Dithering ===== -->
+<h3>8.1 Dithering（抖動）— 用黑白模擬灰階</h3>
+
+<div class="card" style="overflow:visible">
+  <p style="color:var(--text2);margin-bottom:1rem;">A2 快刷模式只有<strong>黑白 2 階</strong>，灰色 UI 元素會變成色塊。<strong>Dithering 用特定像素排列圖案，讓人眼感知中間灰階。</strong></p>
+
+  <!-- 像素格示意 -->
+  <div style="display:flex;gap:2rem;flex-wrap:wrap;justify-content:center;margin:1.5rem 0">
+    <!-- 原始灰階 -->
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--text2);margin-bottom:.5rem">原始 16 階灰度</div>
+      <div style="display:grid;grid-template-columns:repeat(8,20px);grid-template-rows:repeat(4,20px);gap:1px;border-radius:6px;overflow:hidden">
+        <div style="background:#fff"></div><div style="background:#eee"></div><div style="background:#ddd"></div><div style="background:#ccc"></div><div style="background:#bbb"></div><div style="background:#aaa"></div><div style="background:#999"></div><div style="background:#888"></div>
+        <div style="background:#fff"></div><div style="background:#eee"></div><div style="background:#ddd"></div><div style="background:#ccc"></div><div style="background:#bbb"></div><div style="background:#aaa"></div><div style="background:#999"></div><div style="background:#888"></div>
+        <div style="background:#777"></div><div style="background:#666"></div><div style="background:#555"></div><div style="background:#444"></div><div style="background:#333"></div><div style="background:#222"></div><div style="background:#111"></div><div style="background:#000"></div>
+        <div style="background:#777"></div><div style="background:#666"></div><div style="background:#555"></div><div style="background:#444"></div><div style="background:#333"></div><div style="background:#222"></div><div style="background:#111"></div><div style="background:#000"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--text2);margin-top:.25rem">GC16 / GLR16 可顯示</div>
+    </div>
+
+    <div style="font-size:2rem;color:var(--accent);align-self:center">→</div>
+
+    <!-- A2 無 Dithering -->
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--red);margin-bottom:.5rem">A2 無 Dithering ✗</div>
+      <div style="display:grid;grid-template-columns:repeat(8,20px);grid-template-rows:repeat(4,20px);gap:1px;border-radius:6px;overflow:hidden">
+        <div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#000"></div>
+        <div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#000"></div>
+        <div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div>
+        <div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--red);margin-top:.25rem">灰色全被吃掉 → 只剩黑 / 白</div>
+    </div>
+
+    <div style="font-size:2rem;color:var(--accent);align-self:center">→</div>
+
+    <!-- A2 + Dithering -->
+    <div style="text-align:center">
+      <div style="font-size:.8rem;color:var(--green);margin-bottom:.5rem">A2 + Dithering Y1 ✓</div>
+      <div style="display:grid;grid-template-columns:repeat(8,20px);grid-template-rows:repeat(4,20px);gap:1px;border-radius:6px;overflow:hidden">
+        <div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#fff"></div>
+        <div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#fff"></div><div style="background:#000"></div>
+        <div style="background:#000"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#fff"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div>
+        <div style="background:#fff"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div><div style="background:#000"></div>
+      </div>
+      <div style="font-size:.7rem;color:var(--green);margin-top:.25rem">黑白交錯排列 → 遠看有灰階層次</div>
+    </div>
+  </div>
+
+  <!-- Dithering 模式表 -->
+  <div style="font-size:.85rem;color:var(--text2);margin-top:1rem">
+    <strong style="color:var(--text)">B810 支援的 Dithering 旗標：</strong>
+  </div>
+  <table style="margin-top:.5rem">
+    <thead><tr><th>旗標</th><th>Hex</th><th>說明</th></tr></thead>
+    <tbody>
+      <tr><td><code>EINK_DITHERING_Y1</code></td><td><code>0x00010000</code></td><td>Y1 抖動 — 黑白 2 階 ordered dither，搭配 A2 使用</td></tr>
+      <tr><td><code>EINK_DITHERING_Y4</code></td><td><code>0x00020000</code></td><td>Y4 抖動 — 4 階灰度 dither，品質較好但速度稍慢</td></tr>
+      <tr><td><code>EINK_ORDERDITHER</code></td><td><code>0x00200000</code></td><td>有序抖動 — 用固定矩陣排列（Bayer matrix），適合滑動捲動</td></tr>
+      <tr><td><code>EINK_MONOCHROME</code></td><td><code>0x00100000</code></td><td>純黑白 — 不做任何灰階模擬，閾值直接切黑 / 白</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== 8.2 Dirty Region ===== -->
+<h3>8.2 Dirty Region — SurfaceFlinger 的「哪裡要重畫」</h3>
+
+<div class="card">
+  <p style="color:var(--text2);margin-bottom:1rem;">SurfaceFlinger 在每次合成前，計算螢幕上<strong>哪些區域的像素有變化</strong>，只重畫那些區域以提升效能。這個「有變化的區域」就是 Dirty Region。</p>
+
+  <!-- 螢幕示意 -->
+  <div style="display:flex;gap:2.5rem;flex-wrap:wrap;justify-content:center;margin:1.5rem 0">
+    <!-- Partial -->
+    <div style="text-align:center">
+      <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:.5rem">局部更新（Partial）</div>
+      <div style="position:relative;width:180px;height:240px;background:var(--surface2);border:2px solid var(--border);border-radius:8px;overflow:hidden">
+        <div style="position:absolute;top:60px;left:30px;width:120px;height:80px;border:2px dashed var(--amber);background:rgba(251,191,36,.12);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--amber);font-weight:600">
+          Dirty Region<br>只重畫這塊
+        </div>
+        <div style="position:absolute;top:8px;left:8px;font-size:.6rem;color:var(--text2)">TopBar（未變）</div>
+        <div style="position:absolute;bottom:8px;left:8px;font-size:.6rem;color:var(--text2)">NavBar（未變）</div>
+      </div>
+      <div style="font-size:.7rem;color:var(--text2);margin-top:.5rem">效能好 ✓<br>但 GLR16 可能無法生效 ✗</div>
+    </div>
+
+    <!-- Full -->
+    <div style="text-align:center">
+      <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:.5rem">全螢幕更新（Full）</div>
+      <div style="position:relative;width:180px;height:240px;background:rgba(74,222,128,.08);border:2px solid var(--green);border-radius:8px;overflow:hidden">
+        <div style="position:absolute;inset:4px;border:2px dashed var(--green);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--green);font-weight:600">
+          Dirty = 整個螢幕<br>全部重畫
+        </div>
+      </div>
+      <div style="font-size:.7rem;color:var(--green);margin-top:.5rem">Regal/GLR16 需要這個 ✓<br>用 EINK_FULLSCREEN_UPDATE 強制</div>
+    </div>
+  </div>
+
+  <!-- 流程 -->
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:1rem">
+    <div class="flow-box" style="font-size:.75rem"><div class="flow-title">Layer 更新 buffer</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="font-size:.75rem"><div class="flow-title">計算 dirty 範圍</div><div class="flow-sub">coverage.dirtyRegion.orSelf(dirty)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="font-size:.75rem"><div class="flow-title">只合成 dirty 區域</div><div class="flow-sub">composeSurfaces(dirtyRegion)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="font-size:.75rem"><div class="flow-title">送到 TCON 刷新</div><div class="flow-sub">→ 清空 dirtyRegion</div></div>
+  </div>
+
+  <div class="note-box" style="margin-top:1rem">
+    <strong>💡 跟 E-Ink 的關係：</strong><br>
+    E-Ink TCON 會根據 dirty region 決定做<strong>局部刷新</strong>還是<strong>全屏刷新</strong>。GLR16 (Regal) 需要全螢幕刷新才能正確計算殘影補償，所以 <code>EINK_GLR_FULL</code> 組合了 <code>EINK_FULLSCREEN_UPDATE (0x10000000)</code> 來強制 dirty = 全螢幕。
+  </div>
+</div>
+
+<!-- ===== 8.3 Regal / GLR16 ===== -->
+<h3>8.3 Regal / GLR16 — 低閃爍 + 消殘影</h3>
+
+<div class="card">
+  <p style="color:var(--text2);margin-bottom:1rem;"><strong>Regal</strong> (Reduce Ghosting Algorithm) 是 E Ink 的專利演算法。<strong>GLR16 = GL16 + Regal</strong>，在低閃爍灰階刷新的基礎上加入殘影消除。</p>
+
+  <!-- Waveform 比較 -->
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin:1.5rem 0">
+    <!-- GC16 -->
+    <div style="flex:1;min-width:200px;max-width:280px;text-align:center;padding:1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:1.5rem;margin-bottom:.25rem">⬛→⬜→⬛</div>
+      <div style="font-weight:700;color:var(--text);font-size:.95rem">GC16</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-top:.25rem">全刷新（先黑再白再畫面）</div>
+      <div style="display:flex;justify-content:center;gap:1.5rem;margin-top:.75rem">
+        <div><div style="font-size:.7rem;color:var(--text2)">閃爍</div><div style="color:var(--red);font-weight:700">嚴重 ✗</div></div>
+        <div><div style="font-size:.7rem;color:var(--text2)">殘影</div><div style="color:var(--green);font-weight:700">無 ✓</div></div>
+        <div><div style="font-size:.7rem;color:var(--text2)">速度</div><div style="color:var(--amber);font-weight:700">慢</div></div>
+      </div>
+    </div>
+    <!-- GL16 -->
+    <div style="flex:1;min-width:200px;max-width:280px;text-align:center;padding:1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-size:1.5rem;margin-bottom:.25rem">⬛→⬛<span style="opacity:.4">→</span></div>
+      <div style="font-weight:700;color:var(--text);font-size:.95rem">GL16</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-top:.25rem">直接過渡（不經過黑白閃爍）</div>
+      <div style="display:flex;justify-content:center;gap:1.5rem;margin-top:.75rem">
+        <div><div style="font-size:.7rem;color:var(--text2)">閃爍</div><div style="color:var(--green);font-weight:700">低 ✓</div></div>
+        <div><div style="font-size:.7rem;color:var(--text2)">殘影</div><div style="color:var(--red);font-weight:700">有 ✗</div></div>
+        <div><div style="font-size:.7rem;color:var(--text2)">速度</div><div style="color:var(--amber);font-weight:700">中</div></div>
+      </div>
+    </div>
+    <!-- GLR16 -->
+    <div style="flex:1;min-width:200px;max-width:280px;text-align:center;padding:1rem;background:rgba(108,138,255,.06);border-radius:8px;border:2px solid var(--accent)">
+      <div style="font-size:1.5rem;margin-bottom:.25rem">⬛→⬛<span style="color:var(--green)">✨</span></div>
+      <div style="font-weight:700;color:var(--accent);font-size:.95rem">GLR16 (Regal)</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-top:.25rem">GL16 + TCON 殘影補償演算法</div>
+      <div style="display:flex;justify-content:center;gap:1.5rem;margin-top:.75rem">
+        <div><div style="font-size:.7rem;color:var(--text2)">閃爍</div><div style="color:var(--green);font-weight:700">低 ✓</div></div>
+        <div><div style="font-size:.7rem;color:var(--text2)">殘影</div><div style="color:var(--green);font-weight:700">少 ✓</div></div>
+        <div><div style="font-size:.7rem;color:var(--text2)">速度</div><div style="color:var(--amber);font-weight:700">中</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GLR_FULL 組成 -->
+  <div style="font-size:.85rem;color:var(--text2);margin-bottom:.5rem"><strong style="color:var(--text)">B810 中 EINK_GLR_FULL 的組成：</strong></div>
+  <div class="code-block"><span class="cm">// Activity.java</span>
+<span class="kw">static final int</span> <span class="fn">EINK_GLR_FULL</span> = <span class="fn">EINK_GLR16_MODE</span>        <span class="cm">// 0x40  — GLR16 waveform</span>
+    | <span class="fn">EINK_FULLSCREEN_UPDATE</span>  <span class="cm">// 0x10000000 — 強制全螢幕（Regal 需要）</span>
+    | <span class="fn">EINK_WAIT_UPDATE</span>;       <span class="cm">// 0x02000000 — 等刷完才返回（防撕裂）</span></div>
+
+  <div class="note-box">
+    <strong>💡 為什麼 Regal 需要全螢幕？</strong><br>
+    Regal 演算法需要<strong>比對前後兩幀的完整畫面差異</strong>來計算殘影補償向量。如果只做局部更新，TCON 無法取得完整差異資訊，Regal 就會退化成普通 GL16（有殘影）。<br>
+    所以 <code>EINK_GLR_FULL</code> 一定要帶 <code>EINK_FULLSCREEN_UPDATE</code>，強制 dirty region = 整個螢幕。
+  </div>
+</div>
+
+<!-- 三者關係總覽 -->
+<h3>8.4 三者在刷新流程中的位置</h3>
+<div class="flow-diagram" style="flex-direction:column;align-items:stretch;gap:1rem">
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center">
+    <div class="flow-box" style="border-color:var(--amber)">
+      <div class="flow-title" style="color:var(--amber)">① Dirty Region</div>
+      <div class="flow-sub">SurfaceFlinger 計算<br>「螢幕哪裡要重畫」</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">
+      <div class="flow-title">② 決定刷新範圍</div>
+      <div class="flow-sub">Partial（局部）<br>或 Full（全螢幕）</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--accent)">
+      <div class="flow-title" style="color:var(--accent)">③ 套用 Waveform</div>
+      <div class="flow-sub">A2 / GC16 / GL16 /<br><strong>GLR16 (Regal)</strong></div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box" style="border-color:var(--green)">
+      <div class="flow-title" style="color:var(--green)">④ Dithering</div>
+      <div class="flow-sub">A2 快刷模式時<br>Y1/Y4 灰階模擬</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">
+      <div class="flow-title">⑤ TCON / EPD</div>
+      <div class="flow-sub">驅動電子墨水<br>實際刷新螢幕</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== Section 9: LCD vs E-Ink ======== -->
+<h2 id="s9">九、LCD vs E-Ink 差異比較</h2>
+<p style="color:var(--text2);margin-bottom:1.5rem;">為什麼 Dirty Region、TCON、波形碰撞這些概念在 E-Ink 上特別重要，在 LCD 上卻幾乎不需要關心？</p>
+
+<!-- 9.1 刷新速度比較 -->
+<h3>9.1 刷新速度 — 根本差異</h3>
+<div class="card">
+  <p style="color:var(--text2);margin-bottom:1rem;">所有 E-Ink 特有問題的根源都在於：<strong>E-Ink 單次刷新比 LCD 慢 30～40 倍。</strong></p>
+  <!-- 時間軸對比 -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem;margin:1.5rem 0">
+    <!-- LCD -->
+    <div>
+      <div style="font-size:.85rem;font-weight:600;color:var(--green);margin-bottom:.4rem">🖥️ LCD（60Hz）— 每幀 16ms</div>
+      <div style="position:relative;height:40px;background:var(--surface2);border-radius:6px;overflow:hidden">
+        <div style="position:absolute;left:0%;width:5%;top:4px;bottom:4px;background:var(--green);border-radius:4px"></div>
+        <div style="position:absolute;left:6%;width:5%;top:4px;bottom:4px;background:var(--green);border-radius:4px;opacity:.8"></div>
+        <div style="position:absolute;left:12%;width:5%;top:4px;bottom:4px;background:var(--green);border-radius:4px;opacity:.6"></div>
+        <div style="position:absolute;left:18%;width:5%;top:4px;bottom:4px;background:var(--green);border-radius:4px;opacity:.4"></div>
+        <div style="position:absolute;left:24%;top:50%;transform:translateY(-50%);font-size:.7rem;color:var(--text2)">... 每幀獨立，不會重疊</div>
+      </div>
+      <div style="display:flex;gap:2rem;margin-top:.3rem;font-size:.7rem;color:var(--text2)">
+        <span>0ms</span><span>16ms</span><span>32ms</span><span>48ms</span>
+      </div>
+    </div>
+    <!-- E-Ink -->
+    <div>
+      <div style="font-size:.85rem;font-weight:600;color:var(--accent);margin-bottom:.4rem">📖 E-Ink（GC16）— 單次刷新 ~450ms</div>
+      <div style="position:relative;height:40px;background:var(--surface2);border-radius:6px;overflow:hidden">
+        <div style="position:absolute;left:0%;width:90%;top:4px;bottom:4px;background:linear-gradient(90deg,rgba(108,138,255,.7),rgba(108,138,255,.3));border-radius:4px;display:flex;align-items:center;padding-left:1rem;font-size:.7rem;color:#fff;font-weight:600">⚡ 電子墨水粒子移動中 ... 450ms 才完成</div>
+      </div>
+      <div style="display:flex;gap:2rem;margin-top:.3rem;font-size:.7rem;color:var(--text2)">
+        <span>0ms</span><span>100ms</span><span>200ms</span><span>300ms</span><span>450ms</span>
+      </div>
+    </div>
+  </div>
+  <div class="note-box">
+    <strong>💡 比喻：</strong><br>
+    LCD 像<strong>快乾白板筆</strong> — 寫了馬上乾，可以立刻擦掉重寫<br>
+    E-Ink 像<strong>油漆</strong> — 第一層還沒乾你就刷第二層，兩層油漆會混在一起（Collision）
+  </div>
+</div>
+
+<!-- 9.2 Dirty Region -->
+<h3>9.2 Dirty Region — 兩者都有，但意義不同</h3>
+<div class="card">
+  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;margin:1rem 0">
+    <!-- LCD -->
+    <div style="flex:1;min-width:260px;max-width:400px">
+      <div style="text-align:center;font-weight:700;color:var(--green);margin-bottom:.5rem">🖥️ LCD</div>
+      <div style="position:relative;width:100%;height:180px;background:var(--surface2);border:2px solid var(--green);border-radius:8px;overflow:hidden">
+        <div style="position:absolute;top:30px;left:30px;width:100px;height:60px;border:2px dashed var(--amber);background:rgba(251,191,36,.1);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--amber);font-weight:600">Dirty Region<br>GPU 只重畫這塊</div>
+        <div style="position:absolute;inset:4px;border:1px solid rgba(74,222,128,.3);border-radius:4px"></div>
+        <div style="position:absolute;bottom:8px;right:8px;font-size:.6rem;color:var(--green);font-weight:600">但最後整個 framebuffer<br>都送給面板掃描</div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text2);margin-top:.4rem;text-align:center">省 GPU 運算 ✓ <br>面板還是<strong>全部掃描</strong>（逐行刷新）</div>
+    </div>
+    <!-- E-Ink -->
+    <div style="flex:1;min-width:260px;max-width:400px">
+      <div style="text-align:center;font-weight:700;color:var(--accent);margin-bottom:.5rem">📖 E-Ink</div>
+      <div style="position:relative;width:100%;height:180px;background:var(--surface2);border:2px solid var(--accent);border-radius:8px;overflow:hidden">
+        <div style="position:absolute;top:30px;left:30px;width:100px;height:60px;border:2px solid var(--amber);background:rgba(251,191,36,.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--amber);font-weight:600">Dirty Region<br>只有這塊施加電場</div>
+        <div style="position:absolute;top:100px;left:140px;width:120px;height:50px;background:rgba(46,51,71,.6);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:var(--text2)">其餘區域<br>完全不動（省電）</div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text2);margin-top:.4rem;text-align:center">省 GPU ✓ + <strong>面板也省電</strong> ✓<br>但 Regal 需要全螢幕才能計算殘影</div>
+    </div>
+  </div>
+</div>
+
+<!-- 9.3 TCON -->
+<h3>9.3 TCON — 兩者都有，但角色不同</h3>
+<div class="card">
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;margin:1rem 0">
+    <!-- LCD TCON -->
+    <div style="flex:1;min-width:240px;max-width:360px;padding:1rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border);text-align:center">
+      <div style="font-size:1.3rem;margin-bottom:.25rem">🖥️</div>
+      <div style="font-weight:700;color:var(--green);font-size:.95rem">LCD TCON</div>
+      <div style="font-size:.78rem;color:var(--text2);margin:.5rem 0">「笨笨的搬運工」</div>
+      <div style="text-align:left;font-size:.78rem;color:var(--text2);line-height:1.7">
+        • 接收 framebuffer → 轉成行列驅動信號<br>
+        • <strong>不需要保存前一幀</strong><br>
+        • <strong>不需要計算差異</strong><br>
+        • 每幀都是完整覆蓋<br>
+        • 工作量：<span style="color:var(--green)">固定低</span>
+      </div>
+    </div>
+    <!-- E-Ink TCON -->
+    <div style="flex:1;min-width:240px;max-width:360px;padding:1rem;background:rgba(108,138,255,.05);border-radius:8px;border:2px solid var(--accent);text-align:center">
+      <div style="font-size:1.3rem;margin-bottom:.25rem">📖</div>
+      <div style="font-weight:700;color:var(--accent);font-size:.95rem">E-Ink TCON</div>
+      <div style="font-size:.78rem;color:var(--text2);margin:.5rem 0">「聰明的畫家」</div>
+      <div style="text-align:left;font-size:.78rem;color:var(--text2);line-height:1.7">
+        • 保存前一幀 buffer（比對差異用）<br>
+        • <strong>計算每個像素的電壓波形</strong><br>
+        • <strong>執行 Regal 殘影補償</strong><br>
+        • 決定局部 or 全螢幕刷新<br>
+        • 工作量：<span style="color:var(--red)">動態高</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9.4 波形碰撞 -->
+<h3>9.4 波形碰撞（Waveform Collision）— E-Ink 特有</h3>
+<div class="card">
+  <p style="color:var(--text2);margin-bottom:1rem;">當前一次刷新還沒完成，下一次刷新就開始，兩組電場波形在同一區域疊加 → <strong>殘影、閃爍、灰階錯誤</strong>。</p>
+
+  <!-- 碰撞示意 -->
+  <div style="display:flex;flex-direction:column;gap:1.5rem;margin:1.5rem 0">
+    <!-- LCD: No collision -->
+    <div>
+      <div style="font-size:.85rem;font-weight:600;color:var(--green);margin-bottom:.4rem">🖥️ LCD — 不會碰撞 ✓</div>
+      <div style="position:relative;height:70px;background:var(--surface2);border-radius:8px;overflow:hidden">
+        <!-- Frame 1 -->
+        <div style="position:absolute;left:2%;width:12%;top:6px;height:25px;background:var(--green);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#000;font-weight:600">F1 16ms</div>
+        <!-- Frame 2 -->
+        <div style="position:absolute;left:16%;width:12%;top:6px;height:25px;background:rgba(74,222,128,.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#000;font-weight:600">F2 16ms</div>
+        <!-- Frame 3 -->
+        <div style="position:absolute;left:30%;width:12%;top:6px;height:25px;background:rgba(74,222,128,.6);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6rem;color:#000;font-weight:600">F3 16ms</div>
+        <div style="position:absolute;left:45%;top:12px;font-size:.7rem;color:var(--green);font-weight:600">✓ 每幀結束 → 下一幀才開始，永遠不重疊</div>
+        <div style="position:absolute;left:2%;bottom:6px;font-size:.6rem;color:var(--text2)">液晶響應 1-5ms ≪ 幀間隔 16ms → 不可能碰撞</div>
+      </div>
+    </div>
+    <!-- E-Ink: No protection = collision -->
+    <div>
+      <div style="font-size:.85rem;font-weight:600;color:var(--red);margin-bottom:.4rem">📖 E-Ink 無保護 — 碰撞 ✗</div>
+      <div style="position:relative;height:80px;background:var(--surface2);border-radius:8px;overflow:hidden">
+        <!-- Waveform 1 -->
+        <div style="position:absolute;left:2%;width:60%;top:6px;height:25px;background:linear-gradient(90deg,rgba(108,138,255,.8),rgba(108,138,255,.3));border-radius:4px;display:flex;align-items:center;padding-left:.5rem;font-size:.6rem;color:#fff;font-weight:600">GC16 波形 #1 (450ms) ——→</div>
+        <!-- Waveform 2 overlapping -->
+        <div style="position:absolute;left:25%;width:60%;top:20px;height:25px;background:linear-gradient(90deg,rgba(248,113,113,.8),rgba(248,113,113,.3));border-radius:4px;display:flex;align-items:center;padding-left:.5rem;font-size:.6rem;color:#fff;font-weight:600">GC16 波形 #2 (450ms) ——→</div>
+        <!-- Collision zone -->
+        <div style="position:absolute;left:25%;width:37%;top:6px;height:39px;border:2px solid var(--amber);border-radius:4px;background:rgba(251,191,36,.08)"></div>
+        <div style="position:absolute;left:30%;top:48px;font-size:.7rem;color:var(--amber);font-weight:700">⚠️ 碰撞區 — 兩組電場疊加 → 殘影 + 灰階異常</div>
+        <div style="position:absolute;left:2%;bottom:4px;font-size:.6rem;color:var(--text2)">墨水粒子 #1 還在移動中，#2 又施加新電場 → 衝突</div>
+      </div>
+    </div>
+    <!-- E-Ink: With WAIT -->
+    <div>
+      <div style="font-size:.85rem;font-weight:600;color:var(--green);margin-bottom:.4rem">📖 E-Ink + WAIT_UPDATE — 避免碰撞 ✓</div>
+      <div style="position:relative;height:55px;background:var(--surface2);border-radius:8px;overflow:hidden">
+        <div style="position:absolute;left:2%;width:45%;top:6px;height:25px;background:linear-gradient(90deg,rgba(108,138,255,.8),rgba(108,138,255,.4));border-radius:4px;display:flex;align-items:center;padding-left:.5rem;font-size:.6rem;color:#fff;font-weight:600">GC16 波形 #1 (450ms)</div>
+        <div style="position:absolute;left:48%;width:3%;top:6px;height:25px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--green)">⏸</div>
+        <div style="position:absolute;left:52%;width:45%;top:6px;height:25px;background:linear-gradient(90deg,rgba(74,222,128,.7),rgba(74,222,128,.3));border-radius:4px;display:flex;align-items:center;padding-left:.5rem;font-size:.6rem;color:#fff;font-weight:600">GC16 波形 #2 — 等 #1 完成才開始</div>
+        <div style="position:absolute;left:2%;bottom:4px;font-size:.6rem;color:var(--green)">EINK_WAIT_UPDATE 強制等待 → 不碰撞 ✓（但總延遲增加）</div>
+      </div>
+    </div>
+    <!-- E-Ink: With DropFrame -->
+    <div>
+      <div style="font-size:.85rem;font-weight:600;color:var(--cyan);margin-bottom:.4rem">📖 E-Ink + DropFrame — 丟棄中間幀 ✓</div>
+      <div style="position:relative;height:55px;background:var(--surface2);border-radius:8px;overflow:hidden">
+        <div style="position:absolute;left:2%;width:8%;top:6px;height:25px;background:rgba(248,113,113,.4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:var(--red)">丟</div>
+        <div style="position:absolute;left:12%;width:8%;top:6px;height:25px;background:rgba(248,113,113,.4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:var(--red)">丟</div>
+        <div style="position:absolute;left:22%;width:8%;top:6px;height:25px;background:rgba(248,113,113,.4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:var(--red)">丟</div>
+        <div style="position:absolute;left:35%;width:45%;top:6px;height:25px;background:linear-gradient(90deg,rgba(34,211,238,.7),rgba(34,211,238,.3));border-radius:4px;display:flex;align-items:center;padding-left:.5rem;font-size:.6rem;color:#fff;font-weight:600">✓ 只刷最後一幀（GLR16 / GC16）</div>
+        <div style="position:absolute;left:2%;bottom:4px;font-size:.6rem;color:var(--cyan)">中間幀全丟 → 從根本消除碰撞可能 ✓（動畫被犧牲但品質好）</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9.5 總覽表 -->
+<h3>9.5 LCD vs E-Ink 總覽比較</h3>
+<div class="compare-chart" style="grid-template-columns: 180px 1fr 1fr;">
+  <div class="cc-header"></div>
+  <div class="cc-header" style="text-align:center"><span style="font-size:1.2rem">🖥️</span><br>LCD</div>
+  <div class="cc-header" style="text-align:center"><span style="font-size:1.2rem">📖</span><br>E-Ink</div>
+
+  <div class="cc-cell cc-label">單幀刷新時間</div>
+  <div class="cc-cell"><span class="cc-yes">~16ms</span>（60Hz）</div>
+  <div class="cc-cell"><span class="cc-no">120～600ms</span>（視 waveform）</div>
+
+  <div class="cc-cell cc-label">Dirty Region 作用</div>
+  <div class="cc-cell">省 GPU 合成<br>面板仍全部掃描</div>
+  <div class="cc-cell">省 GPU + <strong>省面板電場</strong><br>可真正局部刷新</div>
+
+  <div class="cc-cell cc-label">TCON 角色</div>
+  <div class="cc-cell">純時序控制<br>不需記憶前幀</div>
+  <div class="cc-cell">計算波形 + 殘影補償<br>需保存前幀 buffer</div>
+
+  <div class="cc-cell cc-label">波形碰撞</div>
+  <div class="cc-cell"><span class="cc-yes">不可能</span><br>液晶響應 ≪ 幀間隔</div>
+  <div class="cc-cell"><span class="cc-no">常見風險</span><br>需 WAIT / DropFrame 防護</div>
+
+  <div class="cc-cell cc-label">殘影問題</div>
+  <div class="cc-cell"><span class="cc-yes">無</span><br>每幀完整覆蓋</div>
+  <div class="cc-cell"><span class="cc-no">有</span><br>需 Regal / GC16 消除</div>
+
+  <div class="cc-cell cc-label">斷電保持</div>
+  <div class="cc-cell"><span class="cc-no">不保持</span><br>斷電即黑屏</div>
+  <div class="cc-cell"><span class="cc-yes">保持</span><br>雙穩態（但也是碰撞根因）</div>
+</div>
+
+<div style="text-align:center; color:var(--text2); font-size:.8rem; margin-top:3rem; padding-top:1rem; border-top:1px solid var(--border);">
+  Generated: 2026-04-01 &nbsp;|&nbsp; Source: B810_MobiScribe frameworks/base
+</div>
+
+</body>
+</html>
