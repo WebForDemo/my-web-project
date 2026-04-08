@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="平板觸控筆技術分析報告 - 電磁筆 vs 電容筆 vs 主動式電容筆 vs 電阻式觸控技術深度比較">
+  <title>平板觸控筆技術分析報告 — 電磁筆 vs 電容筆 vs 主動式電容筆 vs 電阻式</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ===== CSS Custom Properties ===== */
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: #1a2035;
+      --bg-card-hover: #1e2640;
+      --bg-glass: rgba(26, 32, 53, 0.7);
+      --surface-elevated: #222b45;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-accent: rgba(99, 102, 241, 0.3);
+
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --text-accent: #a5b4fc;
+
+      --accent-indigo: #818cf8;
+      --accent-violet: #a78bfa;
+      --accent-cyan: #22d3ee;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #fb7185;
+      --accent-orange: #fb923c;
+
+      --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-emr: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      --gradient-active: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      --gradient-passive: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --gradient-resistive: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+      --shadow-md: 0 4px 20px rgba(0,0,0,.4);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,.5);
+      --shadow-glow-indigo: 0 0 30px rgba(99,102,241,.15);
+      --shadow-glow-cyan: 0 0 30px rgba(34,211,238,.15);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+
+      --font-sans: 'Noto Sans TC', 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      --transition-fast: 150ms cubic-bezier(.4,0,.2,1);
+      --transition-base: 250ms cubic-bezier(.4,0,.2,1);
+      --transition-slow: 400ms cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ===== Reset & Base ===== */
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ===== Background Mesh ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 20%, rgba(99,102,241,.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(168,85,247,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 50% 50%, rgba(34,211,238,.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== Sticky TOC / Nav ===== */
+    .sticky-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(10, 14, 26, 0.85);
+      backdrop-filter: blur(20px) saturate(1.4);
+      -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: transform var(--transition-base), box-shadow var(--transition-base);
+    }
+    .sticky-nav.scrolled { box-shadow: var(--shadow-md); }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-inner::-webkit-scrollbar { display: none; }
+    .nav-logo {
+      font-weight: 800;
+      font-size: .85rem;
+      background: var(--gradient-hero);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      white-space: nowrap;
+      letter-spacing: -.02em;
+    }
+    .nav-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-subtle);
+      flex-shrink: 0;
+    }
+    .nav-links { display: flex; gap: 4px; flex-shrink: 0; }
+    .nav-link {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all var(--transition-fast);
+      border: 1px solid transparent;
+    }
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,.05);
+    }
+    .nav-link.active {
+      color: var(--accent-indigo);
+      background: rgba(99,102,241,.1);
+      border-color: rgba(99,102,241,.2);
+    }
+
+    /* ===== Layout Container ===== */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== Hero Section ===== */
+    .hero {
+      padding: 140px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: rgba(99,102,241,.1);
+      border: 1px solid rgba(99,102,241,.2);
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--accent-indigo);
+      margin-bottom: 28px;
+      animation: fadeInUp .6s ease;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-indigo);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(1.3); }
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -.03em;
+      margin-bottom: 20px;
+      animation: fadeInUp .6s ease .1s both;
+    }
+    .hero h1 .gradient-text {
+      background: var(--gradient-hero);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin: 0 auto 36px;
+      animation: fadeInUp .6s ease .2s both;
+    }
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: .82rem;
+      color: var(--text-muted);
+      animation: fadeInUp .6s ease .3s both;
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    /* ===== Section Styles ===== */
+    .section {
+      padding: 70px 0;
+      animation: fadeInUp .5s ease both;
+    }
+    .section-header {
+      margin-bottom: 48px;
+    }
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--accent-indigo);
+      margin-bottom: 12px;
+    }
+    .section-label::before {
+      content: '';
+      width: 24px; height: 2px;
+      background: var(--gradient-hero);
+      border-radius: 2px;
+    }
+    .section-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      font-size: .95rem;
+      color: var(--text-secondary);
+      max-width: 640px;
+    }
+
+    /* ===== Tech Cards Grid ===== */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .tech-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      transition: all var(--transition-base);
+      position: relative;
+      overflow: hidden;
+    }
+    .tech-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .tech-card:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .tech-card.emr::before { background: var(--gradient-emr); }
+    .tech-card.active-cap::before { background: var(--gradient-active); }
+    .tech-card.passive-cap::before { background: var(--gradient-passive); }
+    .tech-card.resistive::before { background: var(--gradient-resistive); }
+
+    .tech-card.emr:hover { box-shadow: var(--shadow-glow-cyan); }
+    .tech-card.active-cap:hover { box-shadow: 0 0 30px rgba(139,92,246,.15); }
+    .tech-card.passive-cap:hover { box-shadow: 0 0 30px rgba(16,185,129,.15); }
+    .tech-card.resistive:hover { box-shadow: 0 0 30px rgba(245,158,11,.15); }
+
+    .tech-icon {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+    .emr .tech-icon { background: rgba(6,182,212,.12); }
+    .active-cap .tech-icon { background: rgba(139,92,246,.12); }
+    .passive-cap .tech-icon { background: rgba(16,185,129,.12); }
+    .resistive .tech-icon { background: rgba(245,158,11,.12); }
+
+    .tech-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .tech-card .tech-subtitle {
+      font-size: .78rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      margin-bottom: 16px;
+    }
+    .tech-card p {
+      font-size: .88rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .tech-card .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 18px;
+    }
+    .tag {
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: .7rem;
+      font-weight: 600;
+      background: rgba(255,255,255,.05);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    .tag.pro { background: rgba(34,211,238,.08); color: var(--accent-cyan); border-color: rgba(34,211,238,.2); }
+    .tag.con { background: rgba(251,113,133,.08); color: var(--accent-rose); border-color: rgba(251,113,133,.2); }
+    .tag.neutral { background: rgba(251,191,36,.08); color: var(--accent-amber); border-color: rgba(251,191,36,.2); }
+
+    /* ===== Principle / Explainer Blocks ===== */
+    .explainer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .explainer-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      position: relative;
+    }
+    .explainer-block h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .explainer-block p {
+      font-size: .88rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    /* ===== Analogy Banner ===== */
+    .analogy-banner {
+      background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(168,85,247,.08));
+      border: 1px solid rgba(99,102,241,.15);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      margin: 40px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .analogy-banner::after {
+      content: '';
+      position: absolute;
+      top: -50%; right: -20%;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(99,102,241,.06), transparent 70%);
+      pointer-events: none;
+    }
+    .analogy-banner h4 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--accent-indigo);
+    }
+    .analogy-banner p,
+    .analogy-banner li {
+      font-size: .9rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .analogy-banner ul {
+      list-style: none;
+      margin-top: 12px;
+    }
+    .analogy-banner li {
+      padding: 6px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+    .analogy-banner li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--accent-indigo);
+      font-weight: 700;
+    }
+
+    /* ===== Comparison Table ===== */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      margin: 32px 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface-elevated) transparent;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .85rem;
+      min-width: 700px;
+    }
+    .comparison-table thead th {
+      padding: 16px 20px;
+      text-align: left;
+      font-weight: 700;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      background: var(--surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .comparison-table thead th:first-child {
+      border-radius: var(--radius-lg) 0 0 0;
+    }
+    .comparison-table thead th:last-child {
+      border-radius: 0 var(--radius-lg) 0 0;
+    }
+    .comparison-table tbody td {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+    .comparison-table tbody tr:last-child td { border-bottom: none; }
+    .comparison-table tbody tr:hover td {
+      background: rgba(255,255,255,.02);
+    }
+    .comparison-table tbody td:first-child {
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+    .cell-yes {
+      color: var(--accent-emerald);
+      font-weight: 600;
+    }
+    .cell-no {
+      color: var(--accent-rose);
+      font-weight: 600;
+    }
+    .cell-partial {
+      color: var(--accent-amber);
+      font-weight: 600;
+    }
+    .cell-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 600;
+      background: rgba(99,102,241,.08);
+      color: var(--accent-indigo);
+      white-space: nowrap;
+    }
+
+    /* ===== Brand Section ===== */
+    .brand-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .brand-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: all var(--transition-base);
+    }
+    .brand-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-accent);
+      box-shadow: var(--shadow-md);
+    }
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .brand-avatar {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .brand-header h4 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .brand-header .brand-tech {
+      font-size: .75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .brand-card ul {
+      list-style: none;
+      margin: 0;
+    }
+    .brand-card li {
+      padding: 5px 0;
+      font-size: .85rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .brand-card li .bullet {
+      flex-shrink: 0;
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      margin-top: 8px;
+    }
+
+    /* ===== Active/Passive Explainer ===== */
+    .ap-diagram {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 24px;
+      align-items: center;
+      margin: 40px 0;
+    }
+    .ap-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      text-align: center;
+    }
+    .ap-box h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .ap-box p {
+      font-size: .85rem;
+      color: var(--text-secondary);
+    }
+    .ap-vs {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ===== Flow Diagram (CSS-only) ===== */
+    .flow-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 32px 0;
+    }
+    .flow-node {
+      padding: 12px 22px;
+      border-radius: var(--radius-md);
+      font-size: .82rem;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .flow-node.screen {
+      background: rgba(6,182,212,.1);
+      border: 1px solid rgba(6,182,212,.25);
+      color: var(--accent-cyan);
+    }
+    .flow-node.emr-pen {
+      background: rgba(59,130,246,.1);
+      border: 1px solid rgba(59,130,246,.25);
+      color: #60a5fa;
+    }
+    .flow-node.active-pen {
+      background: rgba(168,85,247,.1);
+      border: 1px solid rgba(168,85,247,.25);
+      color: var(--accent-violet);
+    }
+    .flow-arrow {
+      color: var(--text-muted);
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .flow-arrow.bi::before { content: '⟵'; }
+    .flow-arrow.bi::after { content: '⟶'; margin-left: 4px; }
+    .flow-label {
+      font-size: .7rem;
+      color: var(--text-muted);
+      text-align: center;
+      display: block;
+      margin-top: 4px;
+    }
+
+    /* ===== Decision Tree ===== */
+    .decision-tree {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      margin: 32px 0;
+    }
+    .decision-tree h4 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .dt-row {
+      display: flex;
+      align-items: stretch;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .dt-question {
+      flex: 1;
+      background: var(--surface-elevated);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      border-left: 3px solid var(--accent-indigo);
+    }
+    .dt-question .q {
+      font-weight: 700;
+      font-size: .9rem;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+    .dt-question .a {
+      font-size: .82rem;
+      color: var(--text-secondary);
+    }
+    .dt-arrow {
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .dt-result {
+      flex: 1;
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dt-result.emr {
+      background: rgba(6,182,212,.08);
+      border: 1px solid rgba(6,182,212,.2);
+    }
+    .dt-result.active {
+      background: rgba(139,92,246,.08);
+      border: 1px solid rgba(139,92,246,.2);
+    }
+    .dt-result.passive {
+      background: rgba(16,185,129,.08);
+      border: 1px solid rgba(16,185,129,.2);
+    }
+    .dt-result .icon { font-size: 1.3rem; }
+    .dt-result .label {
+      font-weight: 700;
+      font-size: .85rem;
+    }
+    .dt-result .desc {
+      font-size: .78rem;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Quick-Test Guide ===== */
+    .test-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .test-step {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-align: center;
+      transition: all var(--transition-base);
+    }
+    .test-step:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-accent);
+    }
+    .test-step .step-num {
+      width: 36px; height: 36px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: var(--gradient-hero);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: .85rem;
+      color: #fff;
+    }
+    .test-step h5 {
+      font-size: .9rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .test-step p {
+      font-size: .8rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ===== Digitizer Section ===== */
+    .layer-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 500px;
+      margin: 32px auto;
+    }
+    .layer {
+      padding: 18px 24px;
+      border-radius: var(--radius-md);
+      font-size: .85rem;
+      font-weight: 600;
+      text-align: center;
+      position: relative;
+      transition: transform var(--transition-base);
+    }
+    .layer:hover { transform: scale(1.02); }
+    .layer.glass {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      color: var(--text-primary);
+    }
+    .layer.display {
+      background: rgba(99,102,241,.1);
+      border: 1px solid rgba(99,102,241,.2);
+      color: var(--accent-indigo);
+    }
+    .layer.cap-layer {
+      background: rgba(16,185,129,.1);
+      border: 1px solid rgba(16,185,129,.2);
+      color: var(--accent-emerald);
+    }
+    .layer.digitizer {
+      background: rgba(6,182,212,.12);
+      border: 1px solid rgba(6,182,212,.25);
+      color: var(--accent-cyan);
+    }
+    .layer .layer-label {
+      font-size: .7rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      display: block;
+      margin-top: 2px;
+    }
+
+    /* ===== Summary / Conclusion ===== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      text-align: center;
+      transition: all var(--transition-base);
+    }
+    .summary-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .summary-card .emoji {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+    .summary-card h5 {
+      font-size: .95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .summary-card p {
+      font-size: .82rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ===== Key Insight Box ===== */
+    .insight-box {
+      background: linear-gradient(135deg, rgba(251,191,36,.06), rgba(245,158,11,.06));
+      border: 1px solid rgba(251,191,36,.15);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      margin: 24px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .insight-box .icon {
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .insight-box .content h5 {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--accent-amber);
+      margin-bottom: 4px;
+    }
+    .insight-box .content p {
+      font-size: .85rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      padding: 48px 0;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      margin-top: 40px;
+    }
+    .footer p {
+      font-size: .78rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== Animations ===== */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all .5s ease;
+    }
+    .animate-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .hero { padding: 120px 0 60px; }
+      .container { padding: 0 16px; }
+      .tech-grid { grid-template-columns: 1fr; }
+      .ap-diagram { grid-template-columns: 1fr; }
+      .ap-vs { transform: rotate(90deg); }
+      .dt-row { flex-direction: column; }
+      .dt-arrow { justify-content: center; transform: rotate(90deg); }
+      .analogy-banner { padding: 28px; }
+      .decision-tree { padding: 24px; }
+      .brand-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ===== Print ===== */
+    @media print {
+      body { background: #fff; color: #111; }
+      .sticky-nav { display: none; }
+      .tech-card, .brand-card, .explainer-block, .decision-tree, .analogy-banner {
+        break-inside: avoid;
+        border: 1px solid #ddd;
+        background: #fafafa;
+      }
+      .comparison-table thead th { background: #eee; }
+    }
+
+    /* ===== Bluetooth Explainer ===== */
+    .bt-comparison {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .bt-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+    .bt-card h5 {
+      font-size: .9rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bt-card p {
+      font-size: .82rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .bt-card ul {
+      list-style: none;
+      margin-top: 8px;
+    }
+    .bt-card li {
+      font-size: .82rem;
+      color: var(--text-secondary);
+      padding: 3px 0;
+      padding-left: 16px;
+      position: relative;
+    }
+    .bt-card li::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--text-muted);
+    }
+
+    /* ===== Sub-section title ===== */
+    .sub-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 36px 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sub-title .icon { font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Sticky Navigation ===== -->
+  <nav class="sticky-nav" id="navbar">
+    <div class="nav-inner">
+      <span class="nav-logo">STYLUS TECH REPORT</span>
+      <div class="nav-divider"></div>
+      <div class="nav-links">
+        <a href="#overview" class="nav-link active">總覽</a>
+        <a href="#technologies" class="nav-link">四大技術</a>
+        <a href="#active-passive" class="nav-link">主動 vs 被動</a>
+        <a href="#brands" class="nav-link">品牌分析</a>
+        <a href="#bluetooth" class="nav-link">藍牙角色</a>
+        <a href="#digitizer" class="nav-link">Digitizer</a>
+        <a href="#comparison" class="nav-link">對照表</a>
+        <a href="#identify" class="nav-link">辨識方法</a>
+        <a href="#decision" class="nav-link">選購建議</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== Hero Section ===== -->
+  <header class="hero" id="overview">
+    <div class="container">
+      <div class="hero-badge">技術分析報告</div>
+      <h1>
+        平板觸控筆<br>
+        <span class="gradient-text">四大技術深度解析</span>
+      </h1>
+      <p class="hero-subtitle">
+        電磁筆 (EMR) · 主動式電容筆 (AES) · 被動式電容筆 · 電阻式觸控<br>
+        — 一份幫助團隊快速理解市場觸控筆技術差異的完整報告
+      </p>
+      <div class="hero-meta">
+        <span>📅 2026-04-08</span>
+        <span>📊 涵蓋 6+ 品牌</span>
+        <span>🔍 4 種核心技術</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Section 1: 四大核心技術 ===== -->
+  <section class="section" id="technologies">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Core Technologies</div>
+        <h2 class="section-title">四大觸控筆技術一覽</h2>
+        <p class="section-desc">
+          市面上的觸控筆主要有四種技術原理。每一種在「精準度」、「是否需要充電」以及「設備相容性」上都有根本性的差異。
+        </p>
+      </div>
+
+      <div class="tech-grid">
+        <!-- EMR Card -->
+        <div class="tech-card emr animate-on-scroll">
+          <div class="tech-icon">🧲</div>
+          <h3>電磁筆 EMR</h3>
+          <div class="tech-subtitle">Electromagnetic Resonance</div>
+          <p>
+            由 <strong>Wacom</strong> 主導的技術。螢幕底層貼有電磁感應層 (Digitizer)，持續向外發射電磁波。
+            筆內部的線圈被動接收能量後，將壓力等資訊反射回螢幕。<br>
+            <strong>筆完全不需要電池</strong>，是最接近「紙筆」的書寫體驗。
+          </p>
+          <div class="tag-row">
+            <span class="tag pro">✓ 不需充電</span>
+            <span class="tag pro">✓ 壓感精細</span>
+            <span class="tag pro">✓ 懸浮偵測</span>
+            <span class="tag pro">✓ 防誤觸</span>
+            <span class="tag con">✗ 需專用設備</span>
+          </div>
+        </div>
+
+        <!-- Active Capacitive Card -->
+        <div class="tech-card active-cap animate-on-scroll">
+          <div class="tech-icon">⚡</div>
+          <h3>主動式電容筆</h3>
+          <div class="tech-subtitle">Active Electrostatic (AES / MPP)</div>
+          <p>
+            筆身內建電池與微型晶片，由筆<strong>主動發出電訊號</strong>至電容螢幕。
+            可做到極細筆尖（~1.5mm）、壓力感應、傾斜偵測等進階功能。
+            通常搭配藍牙進行壓感/手勢資料傳輸。<br>
+            <strong>沒電就完全無法使用。</strong>
+          </p>
+          <div class="tag-row">
+            <span class="tag pro">✓ 壓感 + 傾斜</span>
+            <span class="tag pro">✓ 筆尖極細</span>
+            <span class="tag pro">✓ 藍牙快捷鍵</span>
+            <span class="tag con">✗ 必須充電</span>
+            <span class="tag con">✗ 限指定設備</span>
+          </div>
+        </div>
+
+        <!-- Passive Capacitive Card -->
+        <div class="tech-card passive-cap animate-on-scroll">
+          <div class="tech-icon">👆</div>
+          <h3>被動式電容筆</h3>
+          <div class="tech-subtitle">Passive Capacitive Stylus</div>
+          <p>
+            模擬手指靜電，靠筆頭的導電材質將人體電荷傳導至螢幕。不需要電池，
+            但筆尖必須做得<strong>粗圓</strong>（橡膠頭或圓盤頭）才能產生足夠的接觸面積。<br>
+            <strong>所有觸控螢幕都能用</strong>，但沒有壓感、沒有防誤觸。
+          </p>
+          <div class="tag-row">
+            <span class="tag pro">✓ 不需充電</span>
+            <span class="tag pro">✓ 通用性極高</span>
+            <span class="tag neutral">○ 成本最低</span>
+            <span class="tag con">✗ 無壓感</span>
+            <span class="tag con">✗ 無防誤觸</span>
+            <span class="tag con">✗ 精準度差</span>
+          </div>
+        </div>
+
+        <!-- Resistive Card -->
+        <div class="tech-card resistive animate-on-scroll">
+          <div class="tech-icon">🔴</div>
+          <h3>電阻式觸控</h3>
+          <div class="tech-subtitle">Resistive Touch</div>
+          <p>
+            螢幕有兩層導電層，靠<strong>物理壓力</strong>使上下層接觸通電來判斷位置。
+            任何硬物都能操作（手指、指甲、原子筆頭、手套）。常見於停車場繳費機、
+            提款機等公共設備。<br>
+            <strong>耐操、抗水滴干擾、不挑操作工具。</strong>
+          </p>
+          <div class="tag-row">
+            <span class="tag pro">✓ 任何物體可操作</span>
+            <span class="tag pro">✓ 防水滴干擾</span>
+            <span class="tag pro">✓ 成本低廉</span>
+            <span class="tag con">✗ 需施力按壓</span>
+            <span class="tag con">✗ 不支援多點觸控</span>
+            <span class="tag con">✗ 透光度較差</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analogy -->
+      <div class="analogy-banner animate-on-scroll">
+        <h4>💡 用水池來比喻四種技術</h4>
+        <p>把螢幕想像成一片水池，每種筆就是不同的「擾動方式」——</p>
+        <ul>
+          <li><strong>電阻式：</strong>用力戳水面讓兩層水接觸 → 需要物理壓力，什麼東西都能戳</li>
+          <li><strong>被動電容：</strong>用帶電的手指「碰觸」水面引起波紋 → 只有導電體有效</li>
+          <li><strong>主動電容：</strong>自帶一台馬達往水裡打水花 → 訊號強、準、但需要供電</li>
+          <li><strong>電磁 (EMR)：</strong>水池底部有磁鐵在轉，筆裡的金屬片被吸引會震動 → 完全靠水池供能</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 2: 主動 vs 被動 ===== -->
+  <section class="section" id="active-passive">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Active vs Passive</div>
+        <h2 class="section-title">主動式 vs 被動式：關鍵在「電力來源」</h2>
+        <p class="section-desc">
+          判斷一支筆是「主動」還是「被動」，最根本的標準只有一個：<strong>筆本身是否需要自行供電來產生訊號。</strong>
+        </p>
+      </div>
+
+      <div class="ap-diagram animate-on-scroll">
+        <div class="ap-box">
+          <h4 style="color: var(--accent-emerald);">🔋 被動式 Passive</h4>
+          <p style="font-size:.82rem; color:var(--text-secondary); margin-bottom:12px;">
+            筆身<strong>不需要電池</strong>，不具備發射訊號的能力。它只是在「干擾」或「反應」螢幕原有的場域。
+          </p>
+          <div style="font-size:.78rem; color:var(--text-muted);">
+            代表：被動電容筆（圓頭）、<strong>EMR 電磁筆</strong>
+          </div>
+        </div>
+        <div class="ap-vs">VS</div>
+        <div class="ap-box">
+          <h4 style="color: var(--accent-violet);">⚡ 主動式 Active</h4>
+          <p style="font-size:.82rem; color:var(--text-secondary); margin-bottom:12px;">
+            筆身<strong>內建電路與電池</strong>，會「主動」產生能量來發出訊號，告訴螢幕位置與壓力。
+          </p>
+          <div style="font-size:.78rem; color:var(--text-muted);">
+            代表：Apple Pencil、Surface Pen、<strong>平價副廠筆</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="insight-box animate-on-scroll">
+        <div class="icon">⚠️</div>
+        <div class="content">
+          <h5>常見混淆：EMR 電磁筆明明也很精準，為什麼是「被動式」？</h5>
+          <p>
+            因為 EMR 筆本身<strong>不發射訊號</strong>。它裡面的線圈只是「接收」螢幕 Digitizer 發出的電磁場能量，
+            再利用這個能量「反射」資料回去。就像一面鏡子——它不發光，但能反射陽光。<br>
+            而主動式電容筆則像一支手電筒——自己裝電池發光，不論環境如何都能射出精準的光。
+          </p>
+        </div>
+      </div>
+
+      <!-- 三種「要電」的筆 -->
+      <h3 class="sub-title"><span class="icon">🔌</span> 三種「需要電」的筆，差別在哪？</h3>
+      <div class="bt-comparison">
+        <div class="bt-card">
+          <h5 style="color: var(--accent-cyan);">🧲 EMR 電磁筆 (有藍牙版)</h5>
+          <p>如 Samsung S Pen（新款），<strong>寫字仍不需要電</strong>，電池只供給藍牙遙控功能（手勢操作、遙控拍照）。即使筆沒電，書寫功能完全不受影響。</p>
+        </div>
+        <div class="bt-card">
+          <h5 style="color: var(--accent-amber);">✏️ 簡易主動筆（副廠）</h5>
+          <p>要充電但<strong>不連藍牙</strong>。開機即寫，只是用電力讓細筆尖產生足夠電訊號。沒有壓感、沒有快捷鍵。適合預算有限的筆記需求。</p>
+        </div>
+        <div class="bt-card">
+          <h5 style="color: var(--accent-violet);">🖊️ 全功能主動筆</h5>
+          <p>要充電 + 連藍牙。全方位功能：壓感、傾斜偵測、快捷鍵、電量顯示。如 Apple Pencil、Surface Pen。<strong>沒電便無法使用。</strong></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 3: 品牌分析 ===== -->
+  <section class="section" id="brands">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Brand Analysis</div>
+        <h2 class="section-title">各大廠牌技術派系對照</h2>
+        <p class="section-desc">
+          品牌可大致分為「電子紙 / 筆記派 (EMR)」與「平板電腦派 (主動式電容)」兩大陣營。
+        </p>
+      </div>
+
+      <h3 class="sub-title"><span class="icon">📝</span> 電子紙 / 筆記派 — EMR 電磁筆陣營</h3>
+      <div class="brand-grid animate-on-scroll">
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(6,182,212,.12); color:var(--accent-cyan);">M</div>
+            <div>
+              <h4>MobiScribe</h4>
+              <div class="brand-tech">Wacom EMR</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-cyan);"></span>E-Ink 電子紙平板，主打手寫筆記</li>
+            <li><span class="bullet" style="background:var(--accent-cyan);"></span>筆完全不需要充電</li>
+            <li><span class="bullet" style="background:var(--accent-cyan);"></span>可與多數 Wacom EMR 相容筆互通</li>
+          </ul>
+        </div>
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(59,130,246,.12); color:#60a5fa;">O</div>
+            <div>
+              <h4>Onyx Boox</h4>
+              <div class="brand-tech">Wacom EMR</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:#60a5fa;"></span>Android 系統 E-Ink 平板</li>
+            <li><span class="bullet" style="background:#60a5fa;"></span>筆不需充電，壓感 4096 階</li>
+            <li><span class="bullet" style="background:#60a5fa;"></span>支援 Wacom 通用筆（如 Lamy、Staedtler）</li>
+          </ul>
+        </div>
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(99,102,241,.12); color:var(--accent-indigo);">r</div>
+            <div>
+              <h4>reMarkable</h4>
+              <div class="brand-tech">Wacom EMR</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-indigo);"></span>極簡設計 E-Ink 筆記裝置</li>
+            <li><span class="bullet" style="background:var(--accent-indigo);"></span>筆不需充電，書寫延遲極低</li>
+            <li><span class="bullet" style="background:var(--accent-indigo);"></span>Marker Plus 搭載橡皮擦按鈕</li>
+          </ul>
+        </div>
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(34,211,238,.12); color:var(--accent-cyan);">S</div>
+            <div>
+              <h4>Samsung Galaxy</h4>
+              <div class="brand-tech">Wacom EMR + Bluetooth</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-cyan);"></span>S Pen 寫字功能為 EMR（無電也能寫）</li>
+            <li><span class="bullet" style="background:var(--accent-cyan);"></span>藍牙僅負責手勢遙控、快捷鍵功能</li>
+            <li><span class="bullet" style="background:var(--accent-cyan);"></span>Galaxy Tab S / Note 系列皆內建 Digitizer</li>
+          </ul>
+        </div>
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(251,191,36,.12); color:var(--accent-amber);">K</div>
+            <div>
+              <h4>Kindle Scribe</h4>
+              <div class="brand-tech">Wacom EMR</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-amber);"></span>Amazon 推出的 E-Ink 閱讀 + 筆記裝置</li>
+            <li><span class="bullet" style="background:var(--accent-amber);"></span>附贈筆不需要充電</li>
+            <li><span class="bullet" style="background:var(--accent-amber);"></span>Premium Pen 含快捷按鈕及橡皮擦</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="sub-title"><span class="icon">💻</span> 平板電腦派 — 主動式電容筆陣營</h3>
+      <div class="brand-grid animate-on-scroll">
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(168,85,247,.12); color:var(--accent-violet);">A</div>
+            <div>
+              <h4>Apple iPad</h4>
+              <div class="brand-tech">Apple Pencil (Proprietary)</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-violet);"></span>iPad 螢幕<strong>無</strong>電磁感應層</li>
+            <li><span class="bullet" style="background:var(--accent-violet);"></span>Apple Pencil 必須充電 + 藍牙配對</li>
+            <li><span class="bullet" style="background:var(--accent-violet);"></span>壓感、傾斜偵測皆透過筆端晶片處理</li>
+            <li><span class="bullet" style="background:var(--accent-violet);"></span>Apple Pencil Pro 支援側轉、輕捏手勢</li>
+          </ul>
+        </div>
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(251,113,133,.12); color:var(--accent-rose);">M</div>
+            <div>
+              <h4>Microsoft Surface</h4>
+              <div class="brand-tech">MPP (Microsoft Pen Protocol)</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-rose);"></span>Surface Pen 使用 AAAA 電池或充電</li>
+            <li><span class="bullet" style="background:var(--accent-rose);"></span>支援壓感 4096 階 + 傾斜偵測</li>
+            <li><span class="bullet" style="background:var(--accent-rose);"></span>MPP 2.0 協議為開放標準，多廠相容</li>
+          </ul>
+        </div>
+        <div class="brand-card">
+          <div class="brand-header">
+            <div class="brand-avatar" style="background:rgba(16,185,129,.12); color:var(--accent-emerald);">W</div>
+            <div>
+              <h4>Wacom AES 筆電</h4>
+              <div class="brand-tech">Wacom AES (Active Electrostatic)</div>
+            </div>
+          </div>
+          <ul>
+            <li><span class="bullet" style="background:var(--accent-emerald);"></span>Wacom 的「主動式」對抗技術</li>
+            <li><span class="bullet" style="background:var(--accent-emerald);"></span>筆需電池，但螢幕可做得更薄</li>
+            <li><span class="bullet" style="background:var(--accent-emerald);"></span>常見於 Lenovo Yoga、HP、Dell 筆電</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 4: 藍牙角色 ===== -->
+  <section class="section" id="bluetooth">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Bluetooth Role</div>
+        <h2 class="section-title">藍牙在觸控筆中的角色</h2>
+        <p class="section-desc">
+          很多人以為藍牙 = 必要連線，其實藍牙只是「附加通訊管道」，與「能不能寫字」不一定有關。
+        </p>
+      </div>
+
+      <div class="table-wrapper animate-on-scroll">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>功能</th>
+              <th>要充電＋沒藍牙<br><small style="font-weight:400; text-transform:none;">（平價副廠筆）</small></th>
+              <th>要充電＋有藍牙<br><small style="font-weight:400; text-transform:none;">（Apple Pencil / 高階筆）</small></th>
+              <th>不充電＋有藍牙<br><small style="font-weight:400; text-transform:none;">（新款 S Pen）</small></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>寫字 / 繪圖</td>
+              <td class="cell-yes">✓ 可以</td>
+              <td class="cell-yes">✓ 可以</td>
+              <td class="cell-yes">✓ 可以（EMR 供電）</td>
+            </tr>
+            <tr>
+              <td>防誤觸</td>
+              <td class="cell-partial">△ 靠物理遮斷</td>
+              <td class="cell-yes">✓ 完整支援</td>
+              <td class="cell-yes">✓ 完整支援</td>
+            </tr>
+            <tr>
+              <td>壓力感應</td>
+              <td class="cell-no">✗ 無</td>
+              <td class="cell-yes">✓ 有</td>
+              <td class="cell-yes">✓ 有（EMR 內建）</td>
+            </tr>
+            <tr>
+              <td>快捷鍵（翻頁、切橡皮擦）</td>
+              <td class="cell-no">✗ 無</td>
+              <td class="cell-yes">✓ 有</td>
+              <td class="cell-yes">✓ 有（需藍牙有電）</td>
+            </tr>
+            <tr>
+              <td>電量顯示</td>
+              <td class="cell-partial">△ 僅燈號</td>
+              <td class="cell-yes">✓ 精確 %</td>
+              <td class="cell-partial">△ 取決於型號</td>
+            </tr>
+            <tr>
+              <td>筆沒電時…</td>
+              <td class="cell-no">完全不能用</td>
+              <td class="cell-no">完全不能用</td>
+              <td class="cell-yes">寫字照常（藍牙功能失效）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight-box animate-on-scroll">
+        <div class="icon">💡</div>
+        <div class="content">
+          <h5>一句話理解藍牙：</h5>
+          <p>
+            藍牙負責「附帶功能」——按鈕翻頁、切換工具、電量顯示、手勢遙控。<br>
+            跟「能不能在螢幕上畫出線」不一定有直接關係。<br>
+            <strong>唯一例外是 Apple Pencil</strong>——它的壓感和配對非常依賴專有通訊協議，藍牙斷線會影響核心體驗。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 5: Digitizer ===== -->
+  <section class="section" id="digitizer">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Hardware Layer</div>
+        <h2 class="section-title">EMR 的核心硬體：Digitizer 數位感應層</h2>
+        <p class="section-desc">
+          EMR 設備的關鍵在於螢幕底下藏有一層專用的電磁感應電路板 (Digitizer)。
+          這層感應層在製造時就必須精準校準，<strong>無法事後外掛或貼上</strong>。
+        </p>
+      </div>
+
+      <h3 class="sub-title"><span class="icon">🔧</span> EMR 設備的「三明治結構」</h3>
+
+      <div class="layer-stack animate-on-scroll">
+        <div class="layer glass">
+          🛡️ 保護玻璃 / 塑膠膜
+          <span class="layer-label">手寫接觸面（可加貼類紙膜增加摩擦感）</span>
+        </div>
+        <div class="layer display">
+          📺 顯示面板 (LCD / OLED / E-Ink)
+          <span class="layer-label">負責畫面呈現</span>
+        </div>
+        <div class="layer cap-layer">
+          👆 電容感應層
+          <span class="layer-label">負責手指觸控感應（滑動、縮放）</span>
+        </div>
+        <div class="layer digitizer">
+          🧲 EMR 電磁感應層 (Digitizer)
+          <span class="layer-label">密密麻麻的感應線圈 — 負責偵測電磁筆位置與壓力</span>
+        </div>
+      </div>
+
+      <div class="explainer-grid animate-on-scroll">
+        <div class="explainer-block">
+          <h4>🔍 為什麼放在最底層？</h4>
+          <p>
+            EMR 透過<strong>磁場</strong>運作，磁場可穿透上方的玻璃、顯示面板等物理層。
+            放在底層不會擋住光線，螢幕看起來更通透，書寫體驗更自然。
+          </p>
+        </div>
+        <div class="explainer-block">
+          <h4>❌ 可以自己「貼」一層嗎？</h4>
+          <p>
+            <strong>不行。</strong>Digitizer 在製造時必須與主機板晶片精準校準、佈線連接。
+            它不是像保護貼可以事後加裝。這也是 EMR 設備定價較高的原因之一。
+          </p>
+        </div>
+      </div>
+
+      <div class="insight-box animate-on-scroll">
+        <div class="icon">🎯</div>
+        <div class="content">
+          <h5>關鍵結論：選筆之前，先選「設備」</h5>
+          <p>
+            與其在意筆的品牌，不如先確認你的平板<strong>螢幕裡有沒有 Digitizer</strong>：<br>
+            — 有 Digitizer → EMR 陣營（筆不用電，如 MobiScribe、Boox、Samsung）<br>
+            — 沒有 Digitizer → 只能用主動式電容筆（筆要充電，如 Apple Pencil）
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 6: 完整對照表 ===== -->
+  <section class="section" id="comparison">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Full Comparison</div>
+        <h2 class="section-title">四大技術完整對照表</h2>
+        <p class="section-desc">一表看懂所有關鍵差異，方便快速查閱。</p>
+      </div>
+
+      <div class="table-wrapper animate-on-scroll">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>比較項目</th>
+              <th style="min-width:150px;">🧲 電磁筆 (EMR)</th>
+              <th style="min-width:150px;">⚡ 主動式電容筆</th>
+              <th style="min-width:150px;">👆 被動式電容筆</th>
+              <th style="min-width:150px;">🔴 電阻式觸控</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>偵測原理</td>
+              <td>磁場共振<br>(螢幕→筆→螢幕)</td>
+              <td>筆主動發射電訊號<br>至電容螢幕</td>
+              <td>導電體傳導靜電<br>至電容螢幕</td>
+              <td>物理壓力使雙層<br>導電膜接觸</td>
+            </tr>
+            <tr>
+              <td>筆要充電嗎？</td>
+              <td class="cell-yes">不需要 ✓</td>
+              <td class="cell-no">必須充電 ✗</td>
+              <td class="cell-yes">不需要 ✓</td>
+              <td class="cell-yes">不需要 ✓</td>
+            </tr>
+            <tr>
+              <td>設備需 Digitizer？</td>
+              <td class="cell-partial">是（EMR 感應層）</td>
+              <td class="cell-yes">否（電容層即可）</td>
+              <td class="cell-yes">否（電容層即可）</td>
+              <td class="cell-partial">是（電阻觸控面板）</td>
+            </tr>
+            <tr>
+              <td>壓感偵測</td>
+              <td class="cell-yes">✓ 精細（4096 階）</td>
+              <td class="cell-yes">✓ 精細（透過晶片）</td>
+              <td class="cell-no">✗ 無</td>
+              <td class="cell-partial">△ 部分設備支援</td>
+            </tr>
+            <tr>
+              <td>防誤觸 (Palm)</td>
+              <td class="cell-yes">✓ 極佳</td>
+              <td class="cell-yes">✓ 極佳</td>
+              <td class="cell-no">✗ 無</td>
+              <td class="cell-partial">△ 需軟體輔助</td>
+            </tr>
+            <tr>
+              <td>懸浮偵測</td>
+              <td class="cell-yes">✓ 有（筆浮空即偵測）</td>
+              <td class="cell-no">✗ 無</td>
+              <td class="cell-no">✗ 無</td>
+              <td class="cell-no">✗ 無</td>
+            </tr>
+            <tr>
+              <td>筆尖精細度</td>
+              <td>極細（~0.5mm）</td>
+              <td>極細（~1.5mm）</td>
+              <td>粗（圓頭 / 圓盤）</td>
+              <td>任意（不挑工具）</td>
+            </tr>
+            <tr>
+              <td>跨裝置通用性</td>
+              <td class="cell-no">僅限有 Digitizer 設備</td>
+              <td class="cell-no">僅限對應品牌平板</td>
+              <td class="cell-yes">✓ 任何觸控螢幕</td>
+              <td class="cell-partial">僅限電阻式螢幕</td>
+            </tr>
+            <tr>
+              <td>操作工具</td>
+              <td>專用 EMR 筆</td>
+              <td>專用主動筆</td>
+              <td>手指 / 導電體</td>
+              <td>任何硬物</td>
+            </tr>
+            <tr>
+              <td>代表品牌</td>
+              <td>
+                <span class="cell-brand">MobiScribe</span>
+                <span class="cell-brand">Boox</span>
+                <span class="cell-brand">Samsung</span>
+              </td>
+              <td>
+                <span class="cell-brand">Apple</span>
+                <span class="cell-brand">Surface</span>
+              </td>
+              <td>
+                <span class="cell-brand">雜牌通用</span>
+              </td>
+              <td>
+                <span class="cell-brand">繳費機</span>
+                <span class="cell-brand">提款機</span>
+              </td>
+            </tr>
+            <tr>
+              <td>適用場景</td>
+              <td>長時間筆記、繪圖</td>
+              <td>iPad 生態、商務</td>
+              <td>簡單點擊、取代手指</td>
+              <td>公共設備、戶外機台</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 7: 如何辨識 ===== -->
+  <section class="section" id="identify">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Quick Identification</div>
+        <h2 class="section-title">實戰辨識：四步驟判斷你的筆是哪一種</h2>
+        <p class="section-desc">不需要拆開筆或看規格書，只要做幾個簡單測試就能分辨。</p>
+      </div>
+
+      <div class="test-steps animate-on-scroll">
+        <div class="test-step">
+          <div class="step-num">1</div>
+          <h5>懸浮測試</h5>
+          <p>
+            筆靠近螢幕 0.5~1cm 但<strong>不碰觸</strong>，若螢幕出現游標 → <strong>電磁筆 EMR</strong>。
+            這是最準確的判斷法。
+          </p>
+        </div>
+        <div class="test-step">
+          <div class="step-num">2</div>
+          <h5>跨裝置測試</h5>
+          <p>
+            拿筆去畫手機螢幕。<strong>有反應</strong> → 電容筆（被動或主動）。
+            <strong>完全沒反應</strong> → 電磁筆（手機沒 Digitizer）。
+          </p>
+        </div>
+        <div class="test-step">
+          <div class="step-num">3</div>
+          <h5>斷電測試</h5>
+          <p>
+            把筆放著一年不充電。拿起來還能寫 → <strong>EMR 或被動電容</strong>。
+            完全沒反應 → <strong>主動式電容筆</strong>。
+          </p>
+        </div>
+        <div class="test-step">
+          <div class="step-num">4</div>
+          <h5>筆尖外觀</h5>
+          <p>
+            <strong>圓頭 / 圓盤</strong> → 被動電容筆。
+            <strong>細尖 + 重量輕</strong> → EMR 電磁筆。
+            <strong>細尖 + 明顯較重</strong> → 主動式（有電池）。
+          </p>
+        </div>
+      </div>
+
+      <div class="analogy-banner animate-on-scroll">
+        <h4>🧪 終極辨識口訣</h4>
+        <ul>
+          <li><strong>能用指甲按的螢幕</strong> → 電阻式（像繳費機、早期 GPS）</li>
+          <li><strong>筆浮空就有游標</strong> → 電磁筆 EMR</li>
+          <li><strong>不充電 + 粗圓頭 + 什麼螢幕都能畫</strong> → 被動電容筆</li>
+          <li><strong>要充電 + 細筆尖 + 只能畫特定平板</strong> → 主動式電容筆</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Section 8: 選購建議 ===== -->
+  <section class="section" id="decision">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">Buying Guide</div>
+        <h2 class="section-title">選購決策指南</h2>
+        <p class="section-desc">根據使用情境，快速判斷最適合你的技術路線。</p>
+      </div>
+
+      <div class="decision-tree animate-on-scroll">
+        <h4>🌳 購買決策樹</h4>
+        <div class="dt-row">
+          <div class="dt-question">
+            <div class="q">Q1：你最在意「筆永遠不用充電」嗎？</div>
+            <div class="a">想拿起來就寫、不擔心電量消耗？</div>
+          </div>
+          <div class="dt-arrow">→</div>
+          <div class="dt-result emr">
+            <div class="icon">🧲</div>
+            <div>
+              <div class="label">選 EMR 陣營</div>
+              <div class="desc">MobiScribe / Onyx Boox / Samsung / Kindle Scribe</div>
+            </div>
+          </div>
+        </div>
+        <div class="dt-row">
+          <div class="dt-question">
+            <div class="q">Q2：你已經是 iPad 用戶？</div>
+            <div class="a">已經在 Apple 生態圈，需要搭配使用</div>
+          </div>
+          <div class="dt-arrow">→</div>
+          <div class="dt-result active">
+            <div class="icon">⚡</div>
+            <div>
+              <div class="label">只能選主動式電容筆</div>
+              <div class="desc">Apple Pencil 或相容副廠主動筆（一定要充電）</div>
+            </div>
+          </div>
+        </div>
+        <div class="dt-row">
+          <div class="dt-question">
+            <div class="q">Q3：只是偶爾點點畫畫、預算有限？</div>
+            <div class="a">不需要壓感、只是偶爾標記使用</div>
+          </div>
+          <div class="dt-arrow">→</div>
+          <div class="dt-result passive">
+            <div class="icon">👆</div>
+            <div>
+              <div class="label">被動電容筆或平價主動筆</div>
+              <div class="desc">幾十~幾百塊即可入手，通用性高</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sub-title"><span class="icon">🎯</span> 依使用場景推薦</h3>
+      <div class="summary-grid animate-on-scroll">
+        <div class="summary-card">
+          <div class="emoji">📚</div>
+          <h5>長時間閱讀 + 筆記</h5>
+          <p>
+            推薦 E-Ink 平板（MobiScribe / Boox）搭配 EMR 電磁筆。
+            護眼、筆不用充電，續航力長達數週。
+          </p>
+        </div>
+        <div class="summary-card">
+          <div class="emoji">🎨</div>
+          <h5>專業繪圖創作</h5>
+          <p>
+            推薦 iPad Pro + Apple Pencil 或<br>Samsung Tab S + S Pen。
+            壓感精細、色彩還原度高。
+          </p>
+        </div>
+        <div class="summary-card">
+          <div class="emoji">💼</div>
+          <h5>商務辦公 / 會議</h5>
+          <p>
+            推薦 Surface + Surface Pen 或 Samsung Galaxy Tab。
+            Windows 生態整合度高，PDF 批註方便。
+          </p>
+        </div>
+        <div class="summary-card">
+          <div class="emoji">🎓</div>
+          <h5>學生課堂筆記</h5>
+          <p>
+            預算先行：iPad + 副廠筆 (要充電但便宜) 或 Boox Tab (EMR 筆免充電)。
+          </p>
+        </div>
+      </div>
+
+      <div class="insight-box animate-on-scroll" style="margin-top:32px;">
+        <div class="icon">📌</div>
+        <div class="content">
+          <h5>總結：選「設備」比選「筆」更重要</h5>
+          <p>
+            設備決定了你能用哪種技術的筆。先確認設備的螢幕規格（有沒有 EMR Digitizer），
+            再挑選最適合的筆。<br><br>
+            如果是 EMR 陣營，你甚至可以跨品牌選購 Wacom 相容筆（如 Lamy、Staedtler 施德樓出品的電磁筆），
+            在 MobiScribe、Boox、Samsung 之間通用，完全不用充電！
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="container">
+      <p>平板觸控筆技術分析報告 · Internal Use · Updated 2026-04-08</p>
+    </div>
+  </footer>
+
+  <!-- ===== JavaScript ===== -->
+  <script>
+    // --- Intersection Observer for scroll animations ---
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+    document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+
+    // --- Sticky nav scroll effect ---
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 30);
+    }, { passive: true });
+
+    // --- Active nav link on scroll ---
+    const sections = document.querySelectorAll('.section, .hero');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    const activateNavLink = () => {
+      let current = '';
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 120;
+        if (window.scrollY >= top) {
+          current = sec.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+      });
+    };
+    window.addEventListener('scroll', activateNavLink, { passive: true });
+    activateNavLink();
+  </script>
+</body>
+</html>
