@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FN Key Long Press 技術報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #161822;
+    --bg3: #1e2030;
+    --card: #1a1d2e;
+    --border: #2a2d3e;
+    --accent: #7c6aef;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --red: #f87171;
+    --orange: #fb923c;
+    --yellow: #fbbf24;
+    --blue: #60a5fa;
+    --cyan: #22d3ee;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Sticky TOC */
+  .toc-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    overflow-y: auto;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+  .toc-sidebar h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc-sidebar a {
+    display: block;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    transition: all 0.2s;
+  }
+  .toc-sidebar a:hover, .toc-sidebar a.active {
+    background: rgba(124,106,239,0.1);
+    color: var(--accent2);
+  }
+  .toc-sidebar a.sub { padding-left: 24px; font-size: 12px; color: var(--text3); }
+
+  .main-content {
+    margin-left: 260px;
+    max-width: 900px;
+    padding: 40px 50px 80px;
+  }
+
+  /* Header */
+  .report-header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-header .label {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent), #9333ea);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .report-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #e2e8f0, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .report-header .meta {
+    display: flex; gap: 20px; font-size: 13px; color: var(--text3);
+  }
+  .report-header .meta span { display: flex; align-items: center; gap: 6px; }
+
+  /* Sections */
+  section { margin-bottom: 48px; }
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent2);
+    margin: 24px 0 12px;
+  }
+  p { color: var(--text2); margin-bottom: 14px; font-size: 15px; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s;
+  }
+  .card:hover { border-color: rgba(124,106,239,0.3); }
+
+  /* Comparison Table */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin: 16px 0;
+  }
+  .compare-table th {
+    background: var(--bg3);
+    color: var(--accent2);
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .compare-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .compare-table tr:hover td { background: rgba(124,106,239,0.05); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge.short { background: rgba(52,211,153,0.15); color: var(--green); }
+  .badge.long  { background: rgba(124,106,239,0.15); color: var(--accent2); }
+  .badge.old   { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge.new   { background: rgba(52,211,153,0.15); color: var(--green); }
+
+  /* Code blocks */
+  .code-block {
+    background: #0d1017;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .code-block .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text3);
+  }
+  .code-block pre {
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .code-block .line-add { color: var(--green); }
+  .code-block .line-del { color: var(--red); text-decoration: line-through; opacity: 0.6; }
+  .code-block .line-comment { color: var(--text3); }
+  .code-block .line-keyword { color: var(--accent2); }
+  .code-block .line-string  { color: var(--yellow); }
+  .code-block .line-highlight { background: rgba(124,106,239,0.08); display: block; margin: 0 -20px; padding: 0 20px; }
+
+  /* Diagram container */
+  .diagram-container {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 20px 0;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .diagram-container:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(124,106,239,0.1);
+  }
+  .diagram-container .zoom-hint {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: rgba(124,106,239,0.2);
+    color: var(--accent2);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .diagram-container:hover .zoom-hint { opacity: 1; }
+  .diagram-container svg { max-width: 100%; height: auto; }
+
+  /* Lightbox */
+  .lightbox-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    cursor: zoom-out;
+    padding: 40px;
+  }
+  .lightbox-overlay.active { display: flex; }
+  .lightbox-content {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow: auto;
+    cursor: default;
+  }
+  .lightbox-content svg { max-width: 100%; height: auto; }
+  .lightbox-close {
+    position: fixed;
+    top: 20px;
+    right: 28px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    font-size: 24px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    transition: background 0.3s;
+  }
+  .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+
+  /* Flow steps */
+  .flow-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+  .flow-step .step-num {
+    min-width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .flow-step .step-content { flex: 1; }
+  .flow-step .step-content strong { color: var(--text); }
+
+  /* Key insight box */
+  .insight-box {
+    background: linear-gradient(135deg, rgba(124,106,239,0.08), rgba(147,51,234,0.08));
+    border: 1px solid rgba(124,106,239,0.25);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+  .insight-box .insight-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent2);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .insight-box p { margin-bottom: 8px; font-size: 14px; }
+  .insight-box p:last-child { margin-bottom: 0; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .toc-sidebar { transform: translateX(-100%); }
+    .main-content { margin-left: 0; padding: 24px 20px 60px; }
+  }
+
+  .file-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text3);
+    background: var(--bg3);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 40px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOC Sidebar -->
+<nav class="toc-sidebar">
+  <h3>📑 目錄</h3>
+  <a href="#overview">總覽</a>
+  <a href="#architecture" class="sub">整體架構</a>
+  <a href="#changes">改動說明</a>
+  <a href="#change1" class="sub">① 移除短按 Settings</a>
+  <a href="#change2" class="sub">② 長按觸發 Settings</a>
+  <a href="#change3" class="sub">③ Handler.postDelayed 機制</a>
+  <a href="#why-no-down-up">核心問題解答</a>
+  <a href="#before-after" class="sub">Before vs After</a>
+  <a href="#timeline" class="sub">事件時間軸</a>
+  <a href="#handler-mechanism">Handler 機制詳解</a>
+  <a href="#flow-short">短按流程</a>
+  <a href="#flow-long">長按流程</a>
+  <a href="#summary">行為總結</a>
+  <a href="#verify">驗證方式</a>
+</nav>
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <div class="lightbox-content" id="lightbox-content"></div>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="label">Technical Report</div>
+    <h1>FN Key 長按開啟 Settings<br>實作技術報告</h1>
+    <div class="meta">
+      <span>📅 2026-04-07</span>
+      <span>📄 PhoneWindowManager.java</span>
+      <span>🔖 de5eb649791e [EMI Test]</span>
+    </div>
+  </div>
+
+  <!-- Section 1: Overview -->
+  <section id="overview">
+    <h2><span class="icon" style="background:rgba(124,106,239,0.15);">🎯</span> 總覽</h2>
+    <div class="card">
+      <p>將 FN 實體按鍵的 <strong>開啟 Settings 功能</strong> 從「短按」改為「長按」觸發。並且修正了原本的長按偵測機制 ── 從「放開後才判斷按住時長」改為「<strong>按住滿 1 秒立刻觸發</strong>」。</p>
+      <table class="compare-table">
+        <thead><tr><th>操作</th><th>舊行為</th><th>新行為</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="badge short">短按</span> &lt; 1s</td>
+            <td>開啟 Settings ✨ + 前光 Toggle</td>
+            <td>前光 Toggle（開/關）💡</td>
+          </tr>
+          <tr>
+            <td><span class="badge long">長按</span> ≥ 1s</td>
+            <td>（僅 Log，無動作）</td>
+            <td>開啟 Settings ⚙️（按住即觸發）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 2: Architecture -->
+  <section id="architecture">
+    <h2><span class="icon" style="background:rgba(96,165,250,0.15);">🏗️</span> 整體架構</h2>
+    <p>FN 按鍵從硬體 GPIO 到最終動作的完整事件流：</p>
+
+    <div class="diagram-container" onclick="openLightbox(this)">
+      <span class="zoom-hint">🔍 點擊放大</span>
+      <div class="mermaid">
+%%{init:{'theme':'dark','themeVariables':{'primaryColor':'#7c6aef','primaryTextColor':'#e2e8f0','primaryBorderColor':'#7c6aef','lineColor':'#94a3b8','secondaryColor':'#1e2030','tertiaryColor':'#1a1d2e','fontSize':'14px'}}}%%
+graph TD
+    A["🔘 FN 實體按鍵<br><small>GPIO Hardware</small>"] -->|"KeyEvent"| B["📥 InputDispatcher<br><small>frameworks/native</small>"]
+    B -->|"KEYCODE_FUNCTION"| C["🛡️ interceptKeyBeforeDispatching<br><small>PhoneWindowManager.java</small>"]
+    C -->|"ACTION_DOWN<br>repeat=0"| D{"⏱️ 記錄按下時間<br>排程 1s 長按"}
+    D -->|"Handler.postDelayed<br>1000ms"| E["⌛ 等待計時器"]
+    E -->|"持續按住 ≥ 1s<br>Runnable 自動觸發"| F["⚙️ onFunctionKeyLongPress<br><b>showSystemSettings()</b>"]
+    E -->|"提前放開 < 1s<br>ACTION_UP 取消計時器"| G["💡 onFunctionKeyShortPress<br><b>前光 Toggle</b>"]
+
+    style A fill:#2d1b69,stroke:#7c6aef,stroke-width:2px
+    style C fill:#1e2030,stroke:#60a5fa,stroke-width:2px
+    style F fill:#1a2e1a,stroke:#34d399,stroke-width:2px
+    style G fill:#1a2e1a,stroke:#34d399,stroke-width:2px
+    style D fill:#2e2a1a,stroke:#fbbf24,stroke-width:2px
+      </div>
+    </div>
+
+    <p>修改的檔案位置：</p>
+    <p><span class="file-path">frameworks/base/services/core/java/com/android/server/policy/PhoneWindowManager.java</span></p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Section 3: Changes -->
+  <section id="changes">
+    <h2><span class="icon" style="background:rgba(251,146,60,0.15);">🔧</span> 改動說明</h2>
+
+    <div id="change1">
+      <h3>① 移除短按開啟 Settings（2 處）</h3>
+      <p>原本在 <code>interceptSystemKeysAndShortcutsOld</code> 和 <code>interceptSystemKeysAndShortcutsNew</code> 中都有 <code>KEYCODE_FUNCTION</code> 的 case，短按便會呼叫 <code>showSystemSettings()</code>。這兩處都已移除：</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>interceptSystemKeysAndShortcutsOld / New — 移除的程式碼</span></div>
+<pre>
+<span class="line-del">  //20260401 Anson For Emi Test</span>
+<span class="line-del">  case KeyEvent.KEYCODE_FUNCTION:</span>
+<span class="line-del">      if (firstDown) {</span>
+<span class="line-del">          showSystemSettings();</span>
+<span class="line-del">      }</span>
+<span class="line-del">      return true;</span>
+</pre>
+      </div>
+    </div>
+
+    <div id="change2">
+      <h3>② 長按觸發 Settings</h3>
+      <p>在 <code>onFunctionKeyLongPress()</code> 中加入 <code>showSystemSettings()</code>：</p>
+      <div class="code-block">
+        <div class="code-header"><span>onFunctionKeyLongPress()</span></div>
+<pre>
+  <span class="line-keyword">private void</span> onFunctionKeyLongPress() {
+      Log.d(TAG, <span class="line-string">"FUNCTION key LongPressed"</span>);
+<span class="line-add">      showSystemSettings();  // ← 新增：長按開啟 Settings</span>
+  }
+</pre>
+      </div>
+    </div>
+
+    <div id="change3">
+      <h3>③ 核心改動：Handler.postDelayed 長按機制</h3>
+      <p>這是最重要的改動 — 將長按偵測從「放開後判斷時長」改為「按住滿時間立刻觸發」。</p>
+
+      <div class="code-block">
+        <div class="code-header"><span>新增的成員變數</span></div>
+<pre>
+<span class="line-add">  private boolean mFunctionKeyLongPressTriggered = false;</span>
+<span class="line-add">  private final Runnable mFunctionKeyLongPressRunnable = () -> {</span>
+<span class="line-add">      mFunctionKeyLongPressTriggered = true;</span>
+<span class="line-add">      onFunctionKeyLongPress();</span>
+<span class="line-add">  };</span>
+</pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header"><span>新的 KEYCODE_FUNCTION 處理邏輯（interceptKeyBeforeDispatching 內）</span></div>
+<pre>
+<span class="line-keyword">if</span> (keyCode == KeyEvent.KEYCODE_FUNCTION) {
+    <span class="line-keyword">final long</span> now = SystemClock.uptimeMillis();
+
+    <span class="line-keyword">if</span> (action == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+        <span class="line-comment">// debounce on DOWN</span>
+        <span class="line-keyword">if</span> (now - mLastFunctionKeyTriggerTime < DEBOUNCE_DELAY_MS) {
+            <span class="line-keyword">return</span> keyConsumed;
+        }
+        mFunctionKeyPressStartTime = now;
+<span class="line-add"><span class="line-highlight">        mFunctionKeyLongPressTriggered = false;</span></span>
+<span class="line-add"><span class="line-highlight">        mHandler.removeCallbacks(mFunctionKeyLongPressRunnable);</span></span>
+<span class="line-add"><span class="line-highlight">        mHandler.postDelayed(mFunctionKeyLongPressRunnable, LONG_PRESS_TIMEOUT_MS);</span></span>
+        <span class="line-keyword">return</span> keyConsumed;
+
+    } <span class="line-keyword">else if</span> (action == KeyEvent.ACTION_UP) {
+<span class="line-add"><span class="line-highlight">        mHandler.removeCallbacks(mFunctionKeyLongPressRunnable); // 取消計時</span></span>
+
+        <span class="line-keyword">if</span> (mFunctionKeyPressStartTime == 0) {
+            <span class="line-keyword">return</span> keyConsumed;
+        }
+        mLastFunctionKeyTriggerTime = now;
+
+<span class="line-add"><span class="line-highlight">        // 長按已觸發? 跳過短按</span></span>
+<span class="line-add"><span class="line-highlight">        if (!mFunctionKeyLongPressTriggered && !event.isCanceled()) {</span></span>
+<span class="line-add"><span class="line-highlight">            onFunctionKeyShortPress();</span></span>
+<span class="line-add"><span class="line-highlight">        }</span></span>
+
+        mFunctionKeyPressStartTime = 0;
+        <span class="line-keyword">return</span> keyConsumed;
+    }
+    <span class="line-keyword">return</span> keyConsumed; <span class="line-comment">// 吃掉 repeat > 0 的 DOWN</span>
+}
+</pre>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Section 4: Why no DOWN/UP -->
+  <section id="why-no-down-up">
+    <h2><span class="icon" style="background:rgba(34,211,238,0.15);">💡</span> 核心問題：為何長按不再需要等 UP？</h2>
+
+    <div class="insight-box">
+      <div class="insight-title">🔑 關鍵答案</div>
+      <p>長按仍然有 DOWN 和 UP 事件 — <strong>硬體一定會產生 DOWN/UP</strong>。差別在於：舊邏輯在 UP 才判斷，新邏輯在 DOWN 就啟動計時器，<strong>計時器到期自動觸發，不需要等 UP</strong>。</p>
+    </div>
+
+    <div id="before-after">
+      <h3>Before vs After 對比</h3>
+      <div class="diagram-container" onclick="openLightbox(this)">
+        <span class="zoom-hint">🔍 點擊放大</span>
+        <div class="mermaid">
+%%{init:{'theme':'dark','themeVariables':{'primaryColor':'#7c6aef','primaryTextColor':'#e2e8f0','primaryBorderColor':'#7c6aef','lineColor':'#94a3b8','secondaryColor':'#1e2030','tertiaryColor':'#1a1d2e','fontSize':'14px'}}}%%
+graph LR
+    subgraph OLD["❌ 舊做法 — 等放開才判斷"]
+        direction TB
+        A1["🔽 DOWN<br>記錄時間"] --> A2["⏳ 持續按住...<br><small>（什麼都不做）</small>"]
+        A2 --> A3["🔼 UP<br>計算 duration"]
+        A3 --> A4{"duration ≥ 1s ?"}
+        A4 -->|"是"| A5["觸發長按"]
+        A4 -->|"否"| A6["觸發短按"]
+    end
+
+    subgraph NEW["✅ 新做法 — 計時器自動觸發"]
+        direction TB
+        B1["🔽 DOWN<br>排程 1s 計時器"] --> B2["⏱️ 持續按住...<br><small>計時器倒數中</small>"]
+        B2 -->|"⏰ 1s 到！<br>Runnable 自動執行"| B3["🎉 立刻觸發長按<br><small>（手還按著）</small>"]
+        B2 -->|"✋ 提前放開"| B4["🔼 UP<br>取消計時器 → 短按"]
+    end
+
+    style OLD fill:#1a1014,stroke:#f87171,stroke-width:2px
+    style NEW fill:#0f1a14,stroke:#34d399,stroke-width:2px
+    style A5 fill:#2e1a1a,stroke:#f87171
+    style B3 fill:#1a2e1a,stroke:#34d399
+        </div>
+      </div>
+    </div>
+
+    <div id="timeline">
+      <h3>事件時間軸場景對比</h3>
+      <div class="diagram-container" onclick="openLightbox(this)">
+        <span class="zoom-hint">🔍 點擊放大</span>
+        <div class="mermaid">
+%%{init:{'theme':'dark','themeVariables':{'primaryColor':'#7c6aef','primaryTextColor':'#e2e8f0','primaryBorderColor':'#7c6aef','lineColor':'#94a3b8','secondaryColor':'#1e2030','tertiaryColor':'#1a1d2e','fontSize':'14px'}}}%%
+sequenceDiagram
+    participant HW as 🔘 Hardware<br>GPIO
+    participant PWM as 🛡️ PhoneWindow<br>Manager
+    participant H as ⏱️ Handler<br>MessageQueue
+    participant ACT as ⚙️ Action
+
+    Note over HW,ACT: 場景 A：短按（< 1 秒放開）
+    HW->>PWM: ACTION_DOWN
+    PWM->>H: postDelayed(Runnable, 1000ms)
+    Note right of H: ⏳ 計時中...
+    HW->>PWM: ACTION_UP（500ms 後放開）
+    PWM->>H: removeCallbacks(Runnable) ❌取消
+    PWM->>ACT: onFunctionKeyShortPress() 💡
+
+    Note over HW,ACT: 場景 B：長按（≥ 1 秒不放）
+    HW->>PWM: ACTION_DOWN
+    PWM->>H: postDelayed(Runnable, 1000ms)
+    Note right of H: ⏳ 計時中...
+    H->>PWM: Runnable 自動執行！⏰
+    PWM->>ACT: onFunctionKeyLongPress() ⚙️
+    Note right of ACT: 手還按著就觸發了！
+    HW->>PWM: ACTION_UP（之後才放開）
+    Note right of PWM: 已觸發，跳過短按 ✓
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Section 5: Handler Mechanism -->
+  <section id="handler-mechanism">
+    <h2><span class="icon" style="background:rgba(251,191,36,0.15);">⚙️</span> Handler.postDelayed 機制詳解</h2>
+
+    <div class="card">
+      <p>Android 的 <code>Handler</code> 是一個訊息佇列機制，可以將任務排程到主執行緒上延遲執行。這個做法在 AOSP 中被廣泛使用（例如 Power 鍵長按、Home 鍵長按都是同樣的模式）。</p>
+    </div>
+
+    <div class="diagram-container" onclick="openLightbox(this)">
+      <span class="zoom-hint">🔍 點擊放大</span>
+      <div class="mermaid">
+%%{init:{'theme':'dark','themeVariables':{'primaryColor':'#7c6aef','primaryTextColor':'#e2e8f0','primaryBorderColor':'#7c6aef','lineColor':'#94a3b8','secondaryColor':'#1e2030','tertiaryColor':'#1a1d2e','fontSize':'14px'}}}%%
+graph TD
+    subgraph HANDLER["Handler / MessageQueue 運作原理"]
+        direction TB
+        P1["📩 postDelayed(Runnable, 1000ms)<br><small>將 Runnable 包成 Message<br>設定 when = now + 1000</small>"]
+        P1 --> P2["📬 放入 MessageQueue<br><small>依 when 排序</small>"]
+        P2 --> P3{"⏰ Looper 檢查<br>SystemClock.uptimeMillis()<br>≥ when ?"}
+        P3 -->|"時間到"| P4["✅ 取出 Message<br>執行 Runnable.run()"]
+        P3 -->|"還沒到"| P3
+        
+        R1["❌ removeCallbacks(Runnable)<br><small>從 MessageQueue 移除<br>該 Runnable 的 Message</small>"]
+    end
+
+    style P1 fill:#1e2030,stroke:#7c6aef,stroke-width:2px
+    style P4 fill:#1a2e1a,stroke:#34d399,stroke-width:2px
+    style R1 fill:#2e1a1a,stroke:#f87171,stroke-width:2px
+      </div>
+    </div>
+
+    <div class="insight-box">
+      <div class="insight-title">💡 為什麼不需要等 UP？</div>
+      <p><strong>因為計時器是獨立運行的。</strong> 按下 DOWN 的那一刻，一個延遲 1 秒的 Runnable 就被丟進了 Handler 的 MessageQueue。這個 Runnable 會自己在 1 秒後被 Looper 取出並執行 — 完全不需要任何其他按鍵事件來觸發它。</p>
+      <p>如果使用者在 1 秒內放開（產生 UP），我們就呼叫 <code>removeCallbacks</code> 把那個 Runnable 從佇列中刪掉，然後走短按邏輯。</p>
+      <p>如果使用者持續按住超過 1 秒，Runnable 就會自動執行 — UP 來了也只是「清理」，不會重複觸發。</p>
+    </div>
+
+    <h3>三個關鍵 API</h3>
+    <table class="compare-table">
+      <thead><tr><th>API</th><th>時機</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>postDelayed(runnable, 1000)</code></td>
+          <td>ACTION_DOWN</td>
+          <td>排程：1 秒後自動執行 <code>onFunctionKeyLongPress()</code></td>
+        </tr>
+        <tr>
+          <td><code>removeCallbacks(runnable)</code></td>
+          <td>ACTION_UP</td>
+          <td>取消：如果提前放開，把排程中的 Runnable 移除</td>
+        </tr>
+        <tr>
+          <td><code>mFunctionKeyLongPressTriggered</code></td>
+          <td>FLAG</td>
+          <td>互斥：確保長按觸發後，UP 不會再觸發短按</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Section 6: Detailed Flows -->
+  <section id="flow-short">
+    <h2><span class="icon" style="background:rgba(52,211,153,0.15);">💡</span> 短按流程</h2>
+    <div class="card">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content"><p><strong>使用者按下 FN</strong> → 系統發送 <code>ACTION_DOWN, repeat=0</code></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content"><p>記錄 <code>mFunctionKeyPressStartTime = now</code>，設定 <code>mFunctionKeyLongPressTriggered = false</code></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content"><p>呼叫 <code>mHandler.postDelayed(runnable, 1000)</code> → 排程長按</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content"><p><strong>使用者在 1 秒內放開</strong> → <code>ACTION_UP</code></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content"><p><code>removeCallbacks</code> 取消排程中的長按 Runnable</p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content"><p><code>mFunctionKeyLongPressTriggered == false</code> → 呼叫 <code>onFunctionKeyShortPress()</code> → <strong>前光 Toggle 💡</strong></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="flow-long">
+    <h2><span class="icon" style="background:rgba(124,106,239,0.15);">⚙️</span> 長按流程</h2>
+    <div class="card">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content"><p><strong>使用者按下 FN</strong> → <code>ACTION_DOWN, repeat=0</code></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content"><p>記錄時間 + <code>postDelayed(runnable, 1000)</code></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content"><p><strong>使用者持續按住... ⏱️ 1 秒到達！</strong></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content"><p>Handler 自動執行 Runnable → <code>mFunctionKeyLongPressTriggered = true</code> → <code>onFunctionKeyLongPress()</code> → <strong>開啟 Settings ⚙️</strong></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content"><p><strong>使用者放開 FN</strong> → <code>ACTION_UP</code></p></div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content"><p><code>removeCallbacks</code>（Runnable 已執行，無影響）+ <code>mFunctionKeyLongPressTriggered == true</code> → <strong>跳過短按 ✓</strong></p></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Section 7: Summary -->
+  <section id="summary">
+    <h2><span class="icon" style="background:rgba(251,191,36,0.15);">📋</span> 行為總結</h2>
+    <table class="compare-table">
+      <thead><tr><th>操作</th><th>觸發時機</th><th>動作</th><th>Log</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge short">短按</span></td>
+          <td>放開瞬間（UP）</td>
+          <td>前光開/關 Toggle</td>
+          <td><code>FUNCTION key pressed</code></td>
+        </tr>
+        <tr>
+          <td><span class="badge long">長按</span></td>
+          <td>按住滿 1s（自動觸發）</td>
+          <td>開啟 Settings</td>
+          <td><code>FUNCTION key LongPressed</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>相關常數</h3>
+    <table class="compare-table">
+      <thead><tr><th>常數</th><th>值</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>LONG_PRESS_TIMEOUT_MS</code></td><td>1000ms</td><td>長按門檻</td></tr>
+        <tr><td><code>DEBOUNCE_DELAY_MS</code></td><td>300ms</td><td>GPIO 防彈跳</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Section 8: Verify -->
+  <section id="verify">
+    <h2><span class="icon" style="background:rgba(34,211,238,0.15);">🧪</span> 驗證方式</h2>
+    <div class="code-block">
+      <div class="code-header"><span>adb logcat 過濾指令</span></div>
+<pre>
+adb logcat -s WindowManager:D | grep "FN\|FUNCTION"
+</pre>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">短按預期 Log</h3>
+<pre style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--green);">
+FN DOWN: scheduled long press in 1000ms
+FN UP: short press (duration=350ms)
+FUNCTION key pressed
+</pre>
+      <h3>長按預期 Log</h3>
+<pre style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent2);">
+FN DOWN: scheduled long press in 1000ms
+FUNCTION key LongPressed        ← 按住 1s 自動出現
+FN UP: long press already triggered, skip
+</pre>
+    </div>
+  </section>
+
+</div>
+
+<!-- Mermaid.js -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: true, mirrorActors: false, messageAlign: 'center' }
+  });
+</script>
+
+<!-- Lightbox -->
+<script>
+  function openLightbox(el) {
+    const svg = el.querySelector('svg');
+    if (!svg) return;
+    const clone = svg.cloneNode(true);
+    clone.style.maxWidth = '100%';
+    clone.style.height = 'auto';
+    const lightbox = document.getElementById('lightbox');
+    const content = document.getElementById('lightbox-content');
+    content.innerHTML = '';
+    content.appendChild(clone);
+    lightbox.classList.add('active');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+  }
+
+  document.getElementById('lightbox').addEventListener('click', function(e) {
+    if (e.target === this) closeLightbox();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // TOC Active Highlight
+  const tocLinks = document.querySelectorAll('.toc-sidebar a');
+  const sections = document.querySelectorAll('section, div[id]');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(sec => {
+      if (sec.id && sec.offsetTop <= window.scrollY + 100) {
+        current = sec.id;
+      }
+    });
+    tocLinks.forEach(link => {
+      link.classList.toggle('active', link.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+
+</body>
+</html>
