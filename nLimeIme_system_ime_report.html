@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>nLimeIme 系統 IME 配置報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3344;
+    --text: #e4e6ed;
+    --text2: #9199b0;
+    --accent: #6c8cff;
+    --accent2: #4ecdc4;
+    --green: #4ade80;
+    --red: #f87171;
+    --orange: #fbbf24;
+    --purple: #a78bfa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 2rem;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    color: var(--text2);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .subtitle code {
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--accent);
+  }
+
+  /* Requirement Card */
+  .req-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.8rem;
+    margin-bottom: 2rem;
+    transition: border-color 0.3s;
+  }
+  .req-card:hover { border-color: var(--accent); }
+
+  .req-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .req-num {
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    color: #fff;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .req-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+
+  .req-desc {
+    color: var(--text2);
+    font-size: 0.9rem;
+    margin-bottom: 1.2rem;
+    padding-left: 0.5rem;
+    border-left: 3px solid var(--border);
+  }
+
+  /* Diagram */
+  .diagram-wrap {
+    display: flex;
+    gap: 1.2rem;
+    margin: 1.2rem 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .diagram-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    flex: 1;
+    min-width: 280px;
+    max-width: 400px;
+  }
+
+  .diagram-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.6rem;
+    text-align: center;
+  }
+  .label-before { color: var(--red); }
+  .label-after { color: var(--green); }
+
+  /* Mock UI */
+  .mock-phone {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    color: #1a1a2e;
+    font-size: 0.8rem;
+  }
+
+  .mock-bar {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 0.75rem;
+  }
+  .mock-bar-title { font-weight: 600; }
+  .mock-bar .arrow { color: #666; margin-right: 8px; }
+  .mock-bar-left { display: flex; align-items: center; }
+
+  .mock-icon-btn {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    color: #555;
+    font-size: 1rem;
+  }
+  .mock-icon-btn.hidden { visibility: hidden; }
+  .mock-icon-btn.highlight {
+    background: rgba(255,80,80,0.15);
+    border-radius: 50%;
+    color: var(--red);
+    position: relative;
+  }
+  .mock-icon-btn.removed {
+    background: rgba(80,200,120,0.15);
+    border-radius: 50%;
+    color: var(--green);
+    text-decoration: line-through;
+  }
+
+  .mock-content { padding: 10px 14px; }
+
+  .mock-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.78rem;
+  }
+  .mock-row:last-child { border-bottom: none; }
+
+  .mock-row-icon {
+    width: 28px; height: 28px;
+    background: #e8eaf6;
+    border-radius: 6px;
+    margin-right: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  .mock-row-text { flex: 1; }
+  .mock-row-text .secondary { color: #888; font-size: 0.7rem; }
+
+  .mock-toggle {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .toggle-off { background: #ccc; }
+  .toggle-on { background: var(--accent); }
+  .mock-toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    top: 2px;
+    transition: 0.2s;
+  }
+  .toggle-off::after { left: 2px; }
+  .toggle-on::after { left: 18px; }
+
+  .mock-chevron { color: #bbb; font-size: 0.9rem; }
+  .mock-chevron.disabled { visibility: hidden; }
+
+  .mock-btn-row {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .mock-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    background: #f0f2ff;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    color: #555;
+  }
+
+  /* Solution section */
+  .solution {
+    margin-top: 1rem;
+    background: rgba(108,140,255,0.06);
+    border: 1px solid rgba(108,140,255,0.2);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+  }
+
+  .solution-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .file-tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+    color: var(--accent2);
+    margin: 2px 0;
+  }
+
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+    color: var(--text2);
+    white-space: pre-wrap;
+  }
+  .code-block .add { color: var(--green); }
+  .code-block .key { color: var(--accent); }
+  .code-block .str { color: var(--orange); }
+  .code-block .cmt { color: #555; }
+
+  .note-box {
+    background: rgba(251,191,36,0.08);
+    border: 1px solid rgba(251,191,36,0.25);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-top: 1.2rem;
+    font-size: 0.82rem;
+    color: var(--orange);
+  }
+
+  .spa-note {
+    background: rgba(167,139,250,0.08);
+    border: 1px solid rgba(167,139,250,0.25);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    margin-top: 0.8rem;
+    font-size: 0.82rem;
+    color: var(--purple);
+  }
+
+  .path-note {
+    font-size: 0.7rem;
+    color: var(--text2);
+    margin-top: 0.3rem;
+    word-break: break-all;
+  }
+
+  /* Summary table */
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.82rem;
+  }
+  .summary-table th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+  .summary-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .badge-spa { background: rgba(167,139,250,0.2); color: var(--purple); }
+  .badge-legacy { background: rgba(108,140,255,0.2); color: var(--accent); }
+  .badge-framework { background: rgba(78,205,196,0.2); color: var(--accent2); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>nLimeIme 系統 IME 配置報告</h1>
+<p class="subtitle">Package: <code>net.toload.main.hd</code>（注音輸入法）— 系統預裝 IME 行為調整</p>
+
+<!-- ==================== 需求 1 ==================== -->
+<div class="req-card">
+  <div class="req-header">
+    <div class="req-num">1</div>
+    <div class="req-title">預設啟用 IME，無需到 Settings 手動 Enable</div>
+  </div>
+  <div class="req-desc">
+    安裝為系統 App 後，注音輸入法在首次開機時應自動出現在可用鍵盤列表中（已啟用狀態），使用者不需要手動進入 Settings 去開啟。
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-box">
+      <div class="diagram-label label-before">修改前 — 需手動啟用</div>
+      <div class="mock-phone">
+        <div class="mock-bar">
+          <div class="mock-bar-left"><span class="arrow">←</span><span class="mock-bar-title">On-screen keyboard</span></div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-row">
+            <div class="mock-row-icon">⌨</div>
+            <div class="mock-row-text">Gboard<div class="secondary">Google</div></div>
+            <div class="mock-toggle toggle-on"></div>
+          </div>
+          <div class="mock-row" style="opacity:0.5;">
+            <div class="mock-row-icon" style="background:#ffebee;">注</div>
+            <div class="mock-row-text">注音輸入法<div class="secondary">需手動啟用</div></div>
+            <div class="mock-toggle toggle-off"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label label-after">修改後 — 預設已啟用</div>
+      <div class="mock-phone">
+        <div class="mock-bar">
+          <div class="mock-bar-left"><span class="arrow">←</span><span class="mock-bar-title">On-screen keyboard</span></div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-row">
+            <div class="mock-row-icon">⌨</div>
+            <div class="mock-row-text">Gboard<div class="secondary">Google</div></div>
+            <div class="mock-toggle toggle-on"></div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-row-icon" style="background:#e8f5e9;">注</div>
+            <div class="mock-row-text">注音輸入法<div class="secondary" style="color:var(--green);">✓ 預設已啟用</div></div>
+            <div class="mock-toggle toggle-on"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="solution">
+    <div class="solution-title">📝 Solution</div>
+    <span class="file-tag">InputMethodInfoUtils.java</span>
+    <p class="path-note">frameworks/base/services/core/java/com/android/server/inputmethod/</p>
+    <div class="code-block">
+<span class="cmt">// 在 getDefaultEnabledImes() 結尾加入：</span>
+<span class="add">+ <span class="key">for</span> (<span class="key">int</span> i = 0; i &lt; imis.size(); ++i) {</span>
+<span class="add">+     <span class="key">final</span> InputMethodInfo imi = imis.get(i);</span>
+<span class="add">+     <span class="key">if</span> (<span class="str">"net.toload.main.hd"</span>.equals(imi.getPackageName()) &amp;&amp; imi.isSystem()) {</span>
+<span class="add">+         <span class="key">if</span> (!result.contains(imi)) result.add(imi);</span>
+<span class="add">+         <span class="key">break</span>;</span>
+<span class="add">+     }</span>
+<span class="add">+ }</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 需求 2 ==================== -->
+<div class="req-card">
+  <div class="req-header">
+    <div class="req-num">2</div>
+    <div class="req-title">On-screen keyboard 點擊注音輸入法時，不跳轉到設定頁面</div>
+  </div>
+  <div class="req-desc">
+    在 Settings &gt; System &gt; Keyboard &gt; On-screen keyboard 列表中，點擊「注音輸入法」不會進入 App 內部的設定頁（因 UI 未調整樣式），但仍然可見於列表且 toggle 可操作。
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-box">
+      <div class="diagram-label label-before">修改前 — 點擊會跳轉</div>
+      <div class="mock-phone">
+        <div class="mock-bar">
+          <div class="mock-bar-left"><span class="arrow">←</span><span class="mock-bar-title">On-screen keyboard</span></div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-row" style="cursor:pointer;">
+            <div class="mock-row-icon">⌨</div>
+            <div class="mock-row-text">Gboard<div class="secondary">Google</div></div>
+            <div class="mock-chevron">›</div>
+          </div>
+          <div class="mock-row" style="background:#fff3e0; cursor:pointer;">
+            <div class="mock-row-icon" style="background:#ffebee;">注</div>
+            <div class="mock-row-text">注音輸入法<div class="secondary" style="color:var(--red);">⚠ 點擊會跳到未調樣式的頁面</div></div>
+            <div class="mock-chevron" style="color:var(--red);">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label label-after">修改後 — 點擊無反應</div>
+      <div class="mock-phone">
+        <div class="mock-bar">
+          <div class="mock-bar-left"><span class="arrow">←</span><span class="mock-bar-title">On-screen keyboard</span></div>
+        </div>
+        <div class="mock-content">
+          <div class="mock-row" style="cursor:pointer;">
+            <div class="mock-row-icon">⌨</div>
+            <div class="mock-row-text">Gboard<div class="secondary">Google</div></div>
+            <div class="mock-chevron">›</div>
+          </div>
+          <div class="mock-row">
+            <div class="mock-row-icon" style="background:#e8f5e9;">注</div>
+            <div class="mock-row-text">注音輸入法<div class="secondary" style="color:var(--green);">✓ 點擊不跳轉，僅顯示</div></div>
+            <div class="mock-chevron disabled">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="solution">
+    <div class="solution-title">📝 Solution</div>
+    <span class="file-tag">InputMethodPreference.java</span>
+    <p class="path-note">frameworks/base/packages/SettingsLib/src/com/android/settingslib/inputmethod/</p>
+    <div class="code-block">
+<span class="cmt">// 建構函數中，對特定 package 清除 settings intent：</span>
+  <span class="key">final</span> String settingsActivity = imi.getSettingsActivity();
+<span class="add">+ <span class="key">if</span> (TextUtils.isEmpty(settingsActivity)</span>
+<span class="add">+         || <span class="str">"net.toload.main.hd"</span>.equals(imi.getPackageName())) {</span>
+      setIntent(<span class="key">null</span>);
+  } <span class="key">else</span> { ... }
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 需求 3 ==================== -->
+<div class="req-card">
+  <div class="req-header">
+    <div class="req-num">3</div>
+    <div class="req-title">Settings &gt; Apps 隱藏右上角「Open」按鈕</div>
+  </div>
+  <div class="req-desc">
+    在 Settings &gt; Apps &gt; 注音輸入法 (App Info) 頁面中，右上角的 Launch 圖示按鈕需要隱藏，防止使用者手動開啟 App。
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-box">
+      <div class="diagram-label label-before">修改前 — 右上角有 Launch 按鈕</div>
+      <div class="mock-phone">
+        <div class="mock-bar">
+          <div class="mock-bar-left"><span class="arrow">←</span><span class="mock-bar-title">App info</span></div>
+          <div class="mock-icon-btn highlight" title="要隱藏這個按鈕">⊡</div>
+        </div>
+        <div class="mock-content">
+          <div style="text-align:center; padding:10px 0;">
+            <div style="width:40px;height:40px;background:#e8eaf6;border-radius:10px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;">注</div>
+            <div style="font-weight:600;font-size:0.85rem;">注音輸入法</div>
+          </div>
+          <div class="mock-btn-row">
+            <div class="mock-btn">Archive</div>
+            <div class="mock-btn">Disable</div>
+            <div class="mock-btn">Force stop</div>
+          </div>
+          <div class="mock-row"><div class="mock-row-text">Notifications</div></div>
+          <div class="mock-row"><div class="mock-row-text">Permissions</div></div>
+          <div class="mock-row"><div class="mock-row-text">Storage & cache</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label label-after">修改後 — 右上角無按鈕</div>
+      <div class="mock-phone">
+        <div class="mock-bar">
+          <div class="mock-bar-left"><span class="arrow">←</span><span class="mock-bar-title">App info</span></div>
+          <div class="mock-icon-btn hidden">⊡</div>
+        </div>
+        <div class="mock-content">
+          <div style="text-align:center; padding:10px 0;">
+            <div style="width:40px;height:40px;background:#e8f5e9;border-radius:10px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;">注</div>
+            <div style="font-weight:600;font-size:0.85rem;">注音輸入法</div>
+          </div>
+          <div class="mock-btn-row">
+            <div class="mock-btn">Archive</div>
+            <div class="mock-btn">Disable</div>
+            <div class="mock-btn">Force stop</div>
+          </div>
+          <div class="mock-row"><div class="mock-row-text">Notifications</div></div>
+          <div class="mock-row"><div class="mock-row-text">Permissions</div></div>
+          <div class="mock-row"><div class="mock-row-text">Storage & cache</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="solution">
+    <div class="solution-title">📝 Solution</div>
+    <p style="font-size:0.82rem; color:var(--text2); margin-bottom:0.6rem;">
+      App Info 頁面有兩套 UI 路徑（SPA / Legacy），需覆蓋三個入口：
+    </p>
+
+    <div style="margin-bottom:0.6rem;">
+      <span class="badge badge-spa">SPA</span>
+      <span class="file-tag">TopBarAppLaunchButton.kt</span>
+      <span style="font-size:0.78rem; color:var(--text2);">— 右上角 ⊡ 圖示</span>
+    </div>
+    <div style="margin-bottom:0.6rem;">
+      <span class="badge badge-spa">SPA</span>
+      <span class="file-tag">AppLaunchButton.kt</span>
+      <span style="font-size:0.78rem; color:var(--text2);">— 按鈕列 Open</span>
+    </div>
+    <div style="margin-bottom:0.6rem;">
+      <span class="badge badge-legacy">Legacy</span>
+      <span class="file-tag">AppButtonsPreferenceController.java</span>
+      <span style="font-size:0.78rem; color:var(--text2);">— 按鈕列 Open（備用）</span>
+    </div>
+    <p class="path-note">vendor/mediatek/proprietary/packages/apps/MtkSettings/src/com/android/settings/</p>
+
+    <div class="code-block">
+<span class="cmt">// TopBarAppLaunchButton.kt &amp; AppLaunchButton.kt：</span>
+<span class="add">+ <span class="key">if</span> (app.packageName == <span class="str">"net.toload.main.hd"</span>) <span class="key">return null</span></span>
+
+<span class="cmt">// AppButtonsPreferenceController.java：</span>
+<span class="add">+ <span class="key">if</span> (<span class="str">"net.toload.main.hd"</span>.equals(mPackageName)) {</span>
+<span class="add">+     mButtonsPref.setButton1Visible(<span class="key">false</span>);</span>
+<span class="add">+ }</span>
+    </div>
+  </div>
+
+  <div class="spa-note">
+    💡 <strong>SPA vs Legacy</strong>：透過 <code>adb shell settings get global settings_enable_spa</code> 查詢。回傳 <code>1</code> = SPA 模式（目前裝置），<code>null</code> = Legacy 模式。
+  </div>
+</div>
+
+<!-- ==================== 總表 ==================== -->
+<div class="req-card" style="border-color: var(--accent2);">
+  <div class="req-header">
+    <div class="req-num" style="background: linear-gradient(135deg, var(--accent2), var(--green));">✓</div>
+    <div class="req-title">修改檔案總表</div>
+  </div>
+
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>需求</th>
+        <th>修改檔案</th>
+        <th>層級</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>① 預設啟用</td>
+        <td><span class="file-tag">InputMethodInfoUtils.java</span></td>
+        <td><span class="badge badge-framework">Framework</span></td>
+      </tr>
+      <tr>
+        <td>② 禁止跳轉</td>
+        <td><span class="file-tag">InputMethodPreference.java</span></td>
+        <td><span class="badge badge-framework">SettingsLib</span></td>
+      </tr>
+      <tr>
+        <td rowspan="3">③ 隱藏 Open</td>
+        <td><span class="file-tag">TopBarAppLaunchButton.kt</span></td>
+        <td><span class="badge badge-spa">MtkSettings SPA</span></td>
+      </tr>
+      <tr>
+        <td><span class="file-tag">AppLaunchButton.kt</span></td>
+        <td><span class="badge badge-spa">MtkSettings SPA</span></td>
+      </tr>
+      <tr>
+        <td><span class="file-tag">AppButtonsPreferenceController.java</span></td>
+        <td><span class="badge badge-legacy">MtkSettings Legacy</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</div>
+</body>
+</html>
