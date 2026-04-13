@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MtkSettings 架構全覽 — Android 12 vs 16 vs 現行方案</title>
+<style>
+:root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3344;
+    --text: #e4e6ed;
+    --text2: #9199b0;
+    --accent: #6c8cff;
+    --accent2: #4ecdc4;
+    --green: #4ade80;
+    --red: #f87171;
+    --orange: #fb923c;
+    --purple: #a78bfa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+/* Header */
+.header { text-align: center; padding: 40px 0 30px; border-bottom: 1px solid var(--border); margin-bottom: 30px; }
+.header h1 { font-size: 1.8em; color: var(--accent); margin-bottom: 8px; letter-spacing: -0.5px; }
+.header .subtitle { color: var(--text2); font-size: 0.9em; }
+
+/* TOC */
+.toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 28px;
+    margin: 24px 0;
+}
+.toc h3 { color: var(--accent); margin-bottom: 12px; font-size: 1em; }
+.toc ol { margin-left: 20px; }
+.toc li { margin-bottom: 5px; font-size: 0.88em; }
+.toc a { text-decoration: none; color: var(--accent2); }
+.toc a:hover { text-decoration: underline; color: var(--accent); }
+
+/* Section headings */
+h2 {
+    font-size: 1.3em;
+    color: var(--accent);
+    margin: 40px 0 16px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+}
+h3 {
+    font-size: 1.05em;
+    color: var(--accent2);
+    margin: 20px 0 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Cards */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+}
+
+/* Tables — matching nLimeIme style */
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.85rem;
+}
+.summary-table th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 0.85em;
+}
+.summary-table td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+    line-height: 1.6;
+}
+.summary-table tr:hover td {
+    background: rgba(108, 140, 255, 0.05);
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+.badge-a12 { background: rgba(251,146,60,0.2); color: var(--orange); border: 1px solid rgba(251,146,60,0.3); }
+.badge-a16 { background: rgba(108,140,255,0.2); color: var(--accent); border: 1px solid rgba(108,140,255,0.3); }
+.badge-cur { background: rgba(78,205,196,0.2); color: var(--accent2); border: 1px solid rgba(78,205,196,0.3); }
+
+/* File tags */
+.file-tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.82em;
+    color: var(--accent2);
+}
+
+/* Code blocks */
+code {
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    color: var(--accent2);
+}
+pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.82em;
+    line-height: 1.6;
+    margin: 12px 0;
+    color: var(--text);
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+pre .kw { color: var(--accent); }
+pre .str { color: var(--orange); }
+pre .cm { color: var(--text2); }
+pre .attr { color: var(--accent2); }
+
+/* Info blocks */
+.note {
+    background: rgba(251,146,60,0.08);
+    border-left: 3px solid var(--orange);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 14px 0;
+    font-size: 0.88em;
+    color: var(--text2);
+}
+.note strong { color: var(--orange); }
+
+/* Compare grid */
+.compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+}
+@media (max-width: 900px) { .compare-grid { grid-template-columns: 1fr; } }
+.compare-grid .card { text-align: center; padding: 16px; }
+.compare-grid .card h4 { margin-bottom: 10px; color: var(--text); font-size: 0.95em; }
+
+/* SVG */
+.diagram-wrap { overflow-x: auto; margin: 8px 0; position: relative; }
+.diagram-wrap svg { cursor: pointer; transition: filter 0.2s; }
+.diagram-wrap svg:hover { filter: brightness(1.08); }
+.diagram-wrap::after {
+    content: '🔍 點擊放大';
+    position: absolute; top: 8px; right: 14px;
+    background: rgba(108,140,255,0.25); color: var(--accent);
+    font-size: 0.7rem; padding: 2px 10px; border-radius: 8px;
+    pointer-events: none; opacity: 0; transition: opacity 0.25s;
+}
+.diagram-wrap:hover::after { opacity: 1; }
+svg text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif; }
+
+/* Lightbox modal */
+.svg-lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.88); backdrop-filter: blur(6px);
+    justify-content: center; align-items: center;
+    cursor: zoom-out;
+}
+.svg-lightbox.active { display: flex; }
+.svg-lightbox .lb-inner {
+    max-width: 96vw; max-height: 94vh;
+    overflow: auto; cursor: grab;
+    display: flex; justify-content: center; align-items: center;
+}
+.svg-lightbox .lb-inner:active { cursor: grabbing; }
+.svg-lightbox .lb-inner svg {
+    max-width: none; max-height: none;
+    transform-origin: center center;
+    transition: transform 0.15s ease;
+}
+.svg-lightbox .lb-hint {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.5); font-size: 0.78rem;
+    pointer-events: none;
+}
+.svg-lightbox .lb-close {
+    position: absolute; top: 16px; right: 22px;
+    color: rgba(255,255,255,0.6); font-size: 28px;
+    cursor: pointer; z-index: 10; line-height: 1;
+    transition: color 0.2s;
+}
+.svg-lightbox .lb-close:hover { color: #fff; }
+
+/* List */
+ul, ol { margin-left: 22px; margin-bottom: 10px; }
+li { margin-bottom: 4px; font-size: 0.9em; color: var(--text2); }
+
+p { font-size: 0.9em; color: var(--text2); margin-bottom: 8px; }
+
+/* Separator */
+hr { border: none; border-top: 1px dashed var(--border); margin: 36px 0; }
+
+/* Footer */
+.footer { text-align: center; color: var(--text2); font-size: 0.8em; padding: 30px 0 10px; opacity: 0.6; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>📐 MtkSettings 架構全覽</h1>
+    <div class="subtitle">Android 12（NtxSettings 獨立 APK）→ Android 16（AOSP 原生）→ 現行混合方案（NtxSettings 注入 MtkSettings）</div>
+</div>
+
+<div class="toc">
+<h3>📋 目錄</h3>
+<ol>
+<li><a href="#sec1">三代架構總覽比較表</a></li>
+<li><a href="#sec2">Android 12 — NtxSettings 獨立 APK 架構</a></li>
+<li><a href="#sec3">Android 16 — AOSP 原生 MtkSettings 架構</a></li>
+<li><a href="#sec4">現行方案 — NtxSettings 注入 MtkSettings</a></li>
+<li><a href="#sec5"><strong>⭐ 核心元件關係圖（Preferences / Controller / Activity / Layout）</strong></a></li>
+<li><a href="#sec6">版面布局示意圖（SVG）</a></li>
+<li><a href="#sec7">Theme 繼承鏈</a></li>
+<li><a href="#sec8">Dialog 樣式比較</a></li>
+<li><a href="#sec9">關鍵檔案清單</a></li>
+<li><a href="#sec10">ItemDecoration（分隔線 / Padding）</a></li>
+</ol>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec1">1. 三代架構總覽比較表</h2>
+
+<table class="summary-table">
+<thead>
+<tr>
+    <th style="width:16%">面向</th>
+    <th style="width:28%"><span class="badge badge-a12">Android 12</span></th>
+    <th style="width:28%"><span class="badge badge-a16">Android 16 原生</span></th>
+    <th style="width:28%"><span class="badge badge-cur">現行方案</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+    <td>APK 來源</td>
+    <td>獨立 <code>NtxSettings</code> APK<br>(com.android.ntxsettings)</td>
+    <td>AOSP <code>MtkSettings</code><br>(com.android.settings)</td>
+    <td>MtkSettings 內注入 Ntx 路徑</td>
+</tr>
+<tr>
+    <td>進入點 Activity</td>
+    <td><span class="file-tag">NtxSettingsActivity</span></td>
+    <td><span class="file-tag">SettingsHomepageActivity</span></td>
+    <td><span class="file-tag">SettingsHomepageActivity</span><br>（條件分支選擇 Layout）</td>
+</tr>
+<tr>
+    <td>Layout</td>
+    <td>自訂兩欄 XML</td>
+    <td><code>settings_homepage_container.xml</code><br>CoordinatorLayout + AppBarLayout</td>
+    <td><code>activity_ntx_settings.xml</code><br>（Ntx 模式下使用）</td>
+</tr>
+<tr>
+    <td>左側導覽</td>
+    <td>LinearLayout(weight=1) 裡<br>動態 inflate <code>left_text_layout</code></td>
+    <td>無左側 Tab<br>單欄 RecyclerView (TopLevelSettings)</td>
+    <td>同 A12 左側 Tab</td>
+</tr>
+<tr>
+    <td>右側內容區</td>
+    <td>FrameLayout(weight=2)<br>Title Bar + FragmentTransaction</td>
+    <td>直接 show Fragment<br>（子頁面跳轉 Activity）</td>
+    <td>同 A12 FrameLayout 替換</td>
+</tr>
+<tr>
+    <td>Theme</td>
+    <td>系統預設 DeviceDefault<br>（底層改過）</td>
+    <td><code>Theme.Settings</code><br>(Material 3)</td>
+    <td><code>Theme.NtxSettings</code><br>→ 繼承 NoActionBar<br>→ 注入 alertDialogTheme</td>
+</tr>
+<tr>
+    <td>Divider</td>
+    <td>系統預設 list_divider</td>
+    <td>隱藏（Material 3 留白設計）</td>
+    <td>ItemDecoration 手繪 2px 黑線<br>（32px 左右 margin）</td>
+</tr>
+<tr>
+    <td>Dialog</td>
+    <td>底層 DeviceDefault 全域魔改</td>
+    <td>Material 3 圓角小字</td>
+    <td><code>Theme.NtxAlertDialog</code><br>黑框 + 打勾圓圈 + 72dp 行高</td>
+</tr>
+</tbody>
+</table>
+
+<!-- =========================================================== -->
+<h2 id="sec2">2. Android 12 — NtxSettings 獨立 APK 架構</h2>
+
+<div class="card">
+<h3>概述</h3>
+<p>Android 12 時代的 NtxSettings 是一個<strong style="color:var(--text)">完全獨立</strong>的 APK（<code>com.android.ntxsettings</code>），它不繼承 AOSP Settings 的任何 code，而是用一個簡單的 Activity 搭配手刻兩欄 Layout 來實現所有設定功能。</p>
+<ul>
+    <li>左側 Tab 是用 <code>LinearLayout</code> 動態加入的純文字按鈕（含圖示），每個 Tab 高度 72dp、字體 28dp。</li>
+    <li>右側內容是一個 <code>FrameLayout</code> 搭配 title bar，透過 <code>FragmentTransaction.replace()</code> 切換內容。</li>
+    <li>全域 Dialog、Radio Button 樣式已在 <strong style="color:var(--text)">Frameworks 底層</strong>（Theme.DeviceDefault）被改寫為電子紙風格，因此 Settings XML 不需額外指定 Dialog Theme。</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>Layout 結構</h3>
+<pre>
+<span class="cm">// Android 12 NtxSettings Layout</span>
+<span class="kw">LinearLayout</span> (horizontal, match_parent)
+├── <span class="kw">ScrollView</span> (weight=1)  <span class="cm">// 左側 Tab 欄</span>
+│   └── <span class="kw">LinearLayout</span> <span class="attr">#tab_container_layout</span> (vertical)
+│       ├── <span class="attr">left_text_layout</span> → Wi-Fi       <span class="cm">  72dp, 28sp, icon</span>
+│       ├── <span class="attr">left_text_layout</span> → 藍牙
+│       ├── <span class="attr">left_text_layout</span> → 電池
+│       ├── <span class="attr">left_text_layout</span> → 儲存空間
+│       ├── <span class="attr">left_text_layout</span> → 音效
+│       ├── <span class="attr">left_text_layout</span> → 螢幕
+│       ├── <span class="attr">left_text_layout</span> → 校正
+│       ├── <span class="attr">left_text_layout</span> → 安全性
+│       ├── <span class="attr">left_text_layout</span> → 系統
+│       ├── <span class="attr">left_text_layout</span> → 關於
+│       ├── <span class="attr">left_text_layout</span> → Play商店
+│       └── <span class="attr">left_text_layout</span> → 反饋
+│
+├── <span class="kw">View</span> (1dp, black)  <span class="cm">// 中間分隔線</span>
+│
+└── <span class="kw">FrameLayout</span> (weight=2)  <span class="cm">// 右側內容區</span>
+    ├── <span class="kw">FrameLayout</span> <span class="attr">#main_content</span>  <span class="cm">// Fragment 替換區</span>
+    └── <span class="kw">LinearLayout</span>  <span class="cm">// Right Title Bar</span>
+        ├── <span class="kw">ImageView</span>  <span class="attr">#btn_back</span> (隱藏)
+        ├── <span class="kw">TextView</span>   <span class="attr">#homepage_title</span>  <span class="str">"螢幕"</span> 28sp bold
+        ├── <span class="kw">SwitchBar</span>  <span class="attr">#switch_bar</span> (隱藏)
+        ├── <span class="kw">ImageButton</span> <span class="attr">#btn_delete</span> (隱藏)
+        └── <span class="kw">View</span> (1dp, black)  <span class="cm">// Title 下方分隔線</span>
+</pre>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec3">3. Android 16 — AOSP 原生 MtkSettings 架構</h2>
+
+<div class="card">
+<h3>概述</h3>
+<p>AOSP 原生的 Settings 完全捨棄了兩欄設計，改用<strong style="color:var(--text)">單頁式 Material 3</strong> 長列表。首頁是一個帶有 AppBarLayout、搜尋列、大標題、Avatar 頭像的現代化界面。所有子設定頁面都透過 <strong style="color:var(--text)">Activity Embedding（分屏嵌入）</strong>在大螢幕上展示雙欄。</p>
+<ul>
+    <li>首頁 Fragment：<code>TopLevelSettings</code>，巨大的 RecyclerView 偏好清單。</li>
+    <li>子頁面：點擊後啟動新的 <code>SettingsActivity</code>（或透過 AE 嵌入右側面板）。</li>
+    <li>沒有手動實作 Tab，沒有強制分隔線，沒有手工 Title Bar。</li>
+    <li>Dialog 使用 Material 3 圓角風格。</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>Layout 結構</h3>
+<pre>
+<span class="cm">// Android 16 AOSP: settings_homepage_container.xml</span>
+<span class="kw">CoordinatorLayout</span> <span class="attr">#settings_homepage_container</span>
+├── <span class="kw">NestedScrollView</span> <span class="attr">#main_content_scrollable_container</span>
+│   └── <span class="kw">LinearLayout</span> <span class="attr">#homepage_container</span> (vertical)
+│       ├── <span class="kw">FrameLayout</span> <span class="attr">#contextual_cards_content</span>
+│       └── <span class="kw">FrameLayout</span> <span class="attr">#main_content</span>  <span class="cm">// TopLevelSettings</span>
+│           └── <span class="kw">RecyclerView</span>
+│               ├── 🌐 網路與網際網路
+│               ├── 📱 已連結的裝置
+│               ├── 📦 應用程式
+│               ├── 🔋 電池  /  💾 儲存空間
+│               ├── 🔊 音效與震動  /  🖥️ 螢幕
+│               └── ℹ️ 關於手機 ...
+│
+└── <span class="kw">AppBarLayout</span> <span class="attr">#app_bar</span>
+    └── <span class="kw">LinearLayout</span> <span class="attr">#app_bar_container</span>
+        ├── <span class="kw">ImageView</span>  <span class="attr">#account_avatar</span>
+        ├── <span class="kw">TextView</span>   <span class="attr">#homepage_title</span>  <span class="str">"Settings"</span> (大標題)
+        ├── <span class="kw">FrameLayout</span> <span class="attr">#suggestion_content</span>
+        └── <span class="kw">include</span> <span class="attr">search_bar</span>
+</pre>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec4">4. 現行方案 — NtxSettings 注入 MtkSettings</h2>
+
+<div class="card">
+<h3>概述</h3>
+<p>我們把 Android 12 的兩欄式 E-ink UI <strong style="color:var(--text)">直接嫁接進</strong> MtkSettings 的 <code>SettingsHomepageActivity</code>。<br>
+利用 <code>SharedPreferences("PREF_NTXSETTINGS")</code> 作為開關：</p>
+<ul>
+    <li><code>DEFAULT_SETTINGS_ITEMS = true</code>（預設）→ 使用 <code>activity_ntx_settings.xml</code> 兩欄佈局 + <code>Theme.NtxSettings</code></li>
+    <li><code>DEFAULT_SETTINGS_ITEMS = false</code> → 走原生 AOSP A16 路徑，不做任何干涉</li>
+    <li><strong style="color:var(--green)">兩條路徑完全隔離</strong>，Ntx 模式不會觸碰 AOSP 的 CoordinatorLayout / AppBarLayout / Activity Embedding</li>
+</ul>
+</div>
+
+<div class="card">
+<h3>onCreate() 分支決策流程</h3>
+<pre>
+<span class="kw">protected void</span> onCreate(Bundle savedInstanceState) {
+    SharedPreferences pref = getSharedPreferences(<span class="str">"PREF_NTXSETTINGS"</span>, MODE_PRIVATE);
+    <span class="kw">boolean</span> ntxMode = pref.getBoolean(<span class="str">"DEFAULT_SETTINGS_ITEMS"</span>, <span class="kw">true</span>);
+
+    <span class="kw">if</span> (ntxMode) {
+        setTheme(R.style.<span class="attr">Theme_NtxSettings</span>);    <span class="cm">// ← NoActionBar + 大字體 + NtxAlertDialog</span>
+    }
+
+    <span class="cm">// ... 系統前置檢查 (provisioned, embedding, task root) ...</span>
+
+    <span class="kw">if</span> (ntxMode && !isAlreadyEmbedded) {
+        setContentView(R.layout.<span class="attr">activity_ntx_settings</span>);  <span class="cm">// ← 走 A12 兩欄路徑</span>
+        initNtxView();      <span class="cm">// 綁定 tabContainerLayout, titleTextView, switchBar</span>
+        initNtxTab();        <span class="cm">// 動態 inflate Tab，綁定 tabClickListener</span>
+        <span class="kw">return</span>;             <span class="cm">// ⚠️ 重要：直接 return，不執行 A16 初始化</span>
+    }
+
+    <span class="cm">// ===== 以下是 A16 原生路徑 =====</span>
+    setupEdgeToEdge();
+    setContentView(R.layout.<span class="attr">settings_homepage_container</span>);
+    <span class="cm">// ... TopLevelSettings, AppBarLayout, Suggestions, Avatar ...</span>
+}
+</pre>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec5">5. ⭐ 核心元件關係圖（快速理解全架構）</h2>
+
+<div class="note">
+<strong>📌 本節重點：</strong>用三張關係圖讓你一眼看懂 <code>SettingsHomepageActivity</code>、<code>left_text_layout.xml</code>、<code>Preferences XML</code>、<code>Controller</code> 之間的串接方式。
+</div>
+
+<!-- === 圖 1: 總體流程圖 === -->
+<div class="card">
+<h3>圖 1：Ntx 模式 — 從 Activity 到 UI 的完整流程</h3>
+<p>使用者打開 Settings → <code>SettingsHomepageActivity.onCreate()</code> 判斷 Ntx 模式 → 載入兩欄 Layout → 動態建立左側 Tab → 點擊 Tab → 替換右側 Fragment → Fragment 載入 Preferences XML → 各 Controller 控制每個 Preference 的行為。</p>
+<div class="diagram-wrap">
+<svg width="1060" height="680" viewBox="0 0 1060 680">
+  <!-- Background -->
+  <rect width="1060" height="680" rx="12" fill="#0f1117"/>
+
+  <!-- ============ LAYER 1: Activity ============ -->
+  <rect x="30" y="20" width="1000" height="80" rx="8" fill="rgba(108,140,255,0.12)" stroke="#6c8cff" stroke-width="1.5"/>
+  <text x="50" y="45" font-size="14" font-weight="bold" fill="#6c8cff">① SettingsHomepageActivity.java</text>
+  <text x="50" y="68" font-size="11" fill="#9199b0">onCreate() → pref.getBoolean("DEFAULT_SETTINGS_ITEMS", true) → setContentView(R.layout.activity_ntx_settings) → initNtxView() → initNtxTab()</text>
+
+  <!-- Arrow down -->
+  <line x1="530" y1="100" x2="530" y2="130" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <defs>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#6c8cff"/></marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#4ade80"/></marker>
+    <marker id="arrowCyan" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#4ecdc4"/></marker>
+    <marker id="arrowOrange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#fb923c"/></marker>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#a78bfa"/></marker>
+  </defs>
+
+  <!-- ============ LAYER 2: activity_ntx_settings.xml Layout ============ -->
+  <rect x="30" y="130" width="1000" height="110" rx="8" fill="rgba(78,205,196,0.1)" stroke="#4ecdc4" stroke-width="1.5"/>
+  <text x="50" y="155" font-size="14" font-weight="bold" fill="#4ecdc4">② activity_ntx_settings.xml（兩欄主 Layout）</text>
+
+  <!-- Left panel -->
+  <rect x="50" y="168" width="280" height="58" rx="6" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="65" y="188" font-size="11" font-weight="bold" fill="#fb923c">ScrollView → #tab_container_layout</text>
+  <text x="65" y="205" font-size="10" fill="#9199b0">LinearLayout (vertical) ← initNtxTab() 動態塞入</text>
+
+  <!-- Divider -->
+  <rect x="345" y="168" width="8" height="58" rx="2" fill="rgba(228,230,237,0.2)"/>
+  <text x="349" y="160" font-size="8" fill="#9199b0">1dp</text>
+
+  <!-- Right panel -->
+  <rect x="370" y="168" width="645" height="58" rx="6" fill="rgba(108,140,255,0.1)" stroke="#6c8cff" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="385" y="188" font-size="11" font-weight="bold" fill="#6c8cff">FrameLayout (weight=2)</text>
+  <text x="385" y="205" font-size="10" fill="#9199b0">#homepage_title (28sp bold) + 1dp黑線 + #main_content (Fragment 替換區)</text>
+
+  <!-- Arrow to Layer 3 Left -->
+  <line x1="190" y1="240" x2="190" y2="275" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowOrange)"/>
+  <!-- Arrow to Layer 3 Right -->
+  <line x1="690" y1="240" x2="690" y2="275" stroke="#6c8cff" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- ============ LAYER 3 LEFT: left_text_layout.xml ============ -->
+  <rect x="30" y="275" width="320" height="160" rx="8" fill="rgba(251,146,60,0.12)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="50" y="300" font-size="14" font-weight="bold" fill="#fb923c">③ left_text_layout.xml × N</text>
+  <text x="50" y="318" font-size="10" fill="#9199b0">initNtxTab() 用 for 迴圈 inflate N 個 Tab：</text>
+
+  <!-- Tab items -->
+  <rect x="50" y="328" width="280" height="20" rx="4" fill="rgba(108,140,255,0.15)" stroke="rgba(108,140,255,0.3)"/>
+  <text x="62" y="342" font-size="9" fill="#6c8cff">📶 Wi-Fi         → #tab_background_layout (72dp) + #title_textView (28sp)</text>
+  <rect x="50" y="352" width="280" height="20" rx="4" fill="transparent" stroke="#2e3344"/>
+  <text x="62" y="366" font-size="9" fill="#9199b0">🔵 藍牙            setCompoundDrawables(icon) + setOnClickListener(tabClickListener)</text>
+  <rect x="50" y="376" width="280" height="20" rx="4" fill="transparent" stroke="#2e3344"/>
+  <text x="62" y="390" font-size="9" fill="#9199b0">🖥️ 螢幕          ← tabChild.setTag(i) → onClick 用 tag 判定</text>
+  <text x="62" y="420" font-size="9" fill="#9199b0">⚙️ 系統 / ℹ️ 關於 / ▶ Play商店 / 💬 反饋 ...</text>
+
+  <!-- ============ LAYER 3 RIGHT: tabClickListener → Fragment ============ -->
+  <rect x="380" y="275" width="650" height="160" rx="8" fill="rgba(108,140,255,0.08)" stroke="#6c8cff" stroke-width="1.5"/>
+  <text x="400" y="300" font-size="14" font-weight="bold" fill="#6c8cff">④ tabClickListener.onClick() → changeContent(Fragment)</text>
+  <text x="400" y="318" font-size="10" fill="#9199b0">比對 tabTextView.getText() 找出對應 Fragment，執行 FragmentTransaction.replace(#main_content)：</text>
+
+  <!-- Mapping table -->
+  <text x="410" y="340" font-size="10" fill="#fb923c">Tab Title</text>
+  <text x="600" y="340" font-size="10" fill="#4ade80">Fragment</text>
+  <text x="840" y="340" font-size="10" fill="#a78bfa">Preference XML</text>
+  <line x1="400" y1="345" x2="1010" y2="345" stroke="#2e3344"/>
+
+  <text x="410" y="360" font-size="9" fill="#9199b0">"Wi-Fi"</text>
+  <text x="600" y="360" font-size="9" fill="#9199b0">NetworkDashboardFragment</text>
+  <text x="840" y="360" font-size="9" fill="#9199b0">network_provider_settings.xml</text>
+
+  <text x="410" y="377" font-size="9" fill="#e4e6ed" font-weight="bold">"螢幕" (display_settings)</text>
+  <text x="600" y="377" font-size="9" fill="#4ade80" font-weight="bold">NtxDisplaySettings ★</text>
+  <text x="840" y="377" font-size="9" fill="#a78bfa" font-weight="bold">ntx_display_settings.xml ★</text>
+
+  <text x="410" y="394" font-size="9" fill="#9199b0">"電池"</text>
+  <text x="600" y="394" font-size="9" fill="#9199b0">PowerUsageSummary</text>
+  <text x="840" y="394" font-size="9" fill="#9199b0">power_usage_summary.xml</text>
+
+  <text x="410" y="411" font-size="9" fill="#9199b0">"安全性"</text>
+  <text x="600" y="411" font-size="9" fill="#9199b0">SecuritySettings</text>
+  <text x="840" y="411" font-size="9" fill="#9199b0">security_dashboard_settings.xml</text>
+
+  <text x="410" y="428" font-size="9" fill="#9199b0" font-style="italic">... 共 12+ 個 Tab 對應 ...</text>
+
+  <!-- Arrow from left tabs to right panel -->
+  <path d="M 340 355 Q 365 355 380 345" stroke="#fb923c" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#arrowOrange)"/>
+
+  <!-- ============ LAYER 4: Preference XML (以 Display 為例) ============ -->
+  <line x1="690" y1="435" x2="690" y2="460" stroke="#4ade80" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <rect x="30" y="460" width="1000" height="195" rx="8" fill="rgba(74,222,128,0.08)" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="50" y="488" font-size="14" font-weight="bold" fill="#4ade80">⑤ ntx_display_settings.xml → Controller 綁定（以「螢幕」為例）</text>
+  <text x="50" y="506" font-size="10" fill="#9199b0">NtxDisplaySettings.getPreferenceScreenResId() → R.xml.ntx_display_settings → 每個 &lt;Preference&gt; 由對應 Controller 控制行為</text>
+
+  <!-- Preference → Controller mapping boxes -->
+  <!-- Row 1 -->
+  <rect x="50" y="518" width="220" height="42" rx="5" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="62" y="535" font-size="9" font-weight="bold" fill="#a78bfa">&lt;FrontLightPreference&gt;</text>
+  <text x="62" y="550" font-size="8" fill="#9199b0">key="front_light" · 自訂 Widget</text>
+  <text x="275" y="540" font-size="10" fill="#4ecdc4">→</text>
+  <rect x="290" y="518" width="200" height="42" rx="5" fill="rgba(78,205,196,0.12)" stroke="#4ecdc4" stroke-width="1"/>
+  <text x="302" y="535" font-size="9" font-weight="bold" fill="#4ecdc4">FrontLightPreference.java</text>
+  <text x="302" y="550" font-size="8" fill="#9199b0">内建 SeekBar，直控亮度</text>
+
+  <rect x="530" y="518" width="220" height="42" rx="5" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="542" y="535" font-size="9" font-weight="bold" fill="#a78bfa">&lt;NtxColorPreference&gt;</text>
+  <text x="542" y="550" font-size="8" fill="#9199b0">key="ntx_color_settings" · 自訂 Widget</text>
+  <text x="755" y="540" font-size="10" fill="#4ecdc4">→</text>
+  <rect x="770" y="518" width="240" height="42" rx="5" fill="rgba(78,205,196,0.12)" stroke="#4ecdc4" stroke-width="1"/>
+  <text x="782" y="535" font-size="9" font-weight="bold" fill="#4ecdc4">NtxColorPreference.java</text>
+  <text x="782" y="550" font-size="8" fill="#9199b0">色溫 SeekBar + 色彩模式</text>
+
+  <!-- Row 2 -->
+  <rect x="50" y="570" width="220" height="42" rx="5" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="62" y="587" font-size="9" font-weight="bold" fill="#a78bfa">&lt;NtxRestrictedListPreference&gt;</text>
+  <text x="62" y="602" font-size="8" fill="#9199b0">key="screen_timeout" · 點擊跳出 Dialog</text>
+  <text x="275" y="592" font-size="10" fill="#4ecdc4">→</text>
+  <rect x="290" y="570" width="200" height="42" rx="5" fill="rgba(78,205,196,0.12)" stroke="#4ecdc4" stroke-width="1"/>
+  <text x="302" y="587" font-size="9" font-weight="bold" fill="#4ecdc4">SleepTimeoutController.java</text>
+  <text x="302" y="602" font-size="8" fill="#9199b0">讀寫 SCREEN_OFF_TIMEOUT</text>
+
+  <rect x="530" y="570" width="220" height="42" rx="5" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="542" y="587" font-size="9" font-weight="bold" fill="#a78bfa">&lt;SwitchPreference&gt;</text>
+  <text x="542" y="602" font-size="8" fill="#9199b0">key="hall_sensor_switch"</text>
+  <text x="755" y="592" font-size="10" fill="#4ecdc4">→</text>
+  <rect x="770" y="570" width="240" height="42" rx="5" fill="rgba(78,205,196,0.12)" stroke="#4ecdc4" stroke-width="1"/>
+  <text x="782" y="587" font-size="9" font-weight="bold" fill="#4ecdc4">ProtectiveCaseWakeUpPrefCtrl.java</text>
+  <text x="782" y="602" font-size="8" fill="#9199b0">保護套休眠喚醒開關</text>
+
+  <!-- Row 3 -->
+  <rect x="50" y="622" width="220" height="26" rx="5" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <text x="62" y="639" font-size="9" fill="#a78bfa">&lt;NtxRestrictedListPreference&gt; sleep_screen</text>
+  <text x="275" y="637" font-size="10" fill="#4ecdc4">→</text>
+  <rect x="290" y="622" width="200" height="26" rx="5" fill="rgba(78,205,196,0.08)" stroke="#4ecdc4" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <text x="302" y="639" font-size="9" fill="#4ecdc4">SleepScreenController.java</text>
+
+  <rect x="530" y="622" width="220" height="26" rx="5" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <text x="542" y="639" font-size="9" fill="#a78bfa">&lt;NtxCfaModeRestrictedListPref&gt; ntx_color_mode</text>
+  <text x="755" y="637" font-size="10" fill="#4ecdc4">→</text>
+  <rect x="770" y="622" width="240" height="26" rx="5" fill="rgba(78,205,196,0.08)" stroke="#4ecdc4" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <text x="782" y="639" font-size="9" fill="#4ecdc4">NtxColorModePreferenceController.java</text>
+
+</svg>
+</div>
+
+<div class="note">
+<strong>💡 快速記憶：</strong>
+① Activity 決定 Ntx/AOSP 路徑 →
+② Layout 畫出左Tab右Content →
+③ <code>left_text_layout.xml</code> 是每個 Tab（72dp + icon + 28sp 文字）→
+④ Tab 點擊 → Fragment.replace() 替換右側 →
+⑤ Fragment 載入 Preference XML → Controller 處理邏輯
+</div>
+</div>
+
+<!-- === 圖 2: Dialog 觸發鏈 === -->
+<div class="card">
+<h3>圖 2：Dialog 觸發鏈 — 從「螢幕自動關閉」點擊到 E-ink Dialog 渲染</h3>
+<p>這張圖聚焦於使用者點擊一個 <code>NtxRestrictedListPreference</code> 時，Android 如何沿著 Theme chain 找到對應的 Dialog 風格，最終渲染出「黑框 + 打勾圓圈 + 72dp 行高」的 E-ink Dialog。</p>
+<div class="diagram-wrap">
+<svg width="1060" height="350" viewBox="0 0 1060 350">
+  <rect width="1060" height="350" rx="12" fill="#0f1117"/>
+
+  <!-- Step 1: User taps -->
+  <rect x="20" y="25" width="150" height="54" rx="8" fill="rgba(251,146,60,0.15)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="95" y="48" text-anchor="middle" font-size="11" font-weight="bold" fill="#fb923c">使用者點擊</text>
+  <text x="95" y="66" text-anchor="middle" font-size="9" fill="#9199b0">「螢幕自動關閉」</text>
+
+  <line x1="170" y1="52" x2="200" y2="52" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowOrange)"/>
+
+  <!-- Step 2: NtxRestrictedListPreference -->
+  <rect x="200" y="15" width="190" height="74" rx="8" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="295" y="38" text-anchor="middle" font-size="10" font-weight="bold" fill="#a78bfa">NtxRestrictedListPreference</text>
+  <text x="295" y="54" text-anchor="middle" font-size="8" fill="#9199b0">createListAdapter() override</text>
+  <text x="295" y="66" text-anchor="middle" font-size="8" fill="#9199b0">→ NtxRestrictedArrayAdapter</text>
+  <text x="295" y="78" text-anchor="middle" font-size="8" fill="#4ecdc4">使用 R.layout.ntx_select_dialog_singlechoice</text>
+
+  <line x1="390" y1="52" x2="420" y2="52" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+
+  <!-- Step 3: Theme resolution -->
+  <rect x="420" y="15" width="195" height="74" rx="8" fill="rgba(108,140,255,0.12)" stroke="#6c8cff" stroke-width="1.5"/>
+  <text x="517" y="36" text-anchor="middle" font-size="10" font-weight="bold" fill="#6c8cff">Theme.NtxSettings</text>
+  <text x="517" y="52" text-anchor="middle" font-size="8" fill="#9199b0">alertDialogTheme =</text>
+  <text x="517" y="64" text-anchor="middle" font-size="9" fill="#4ade80">@style/Theme.NtxAlertDialog</text>
+  <text x="517" y="78" text-anchor="middle" font-size="8" fill="#9199b0">→ 系統自動套用到 AlertDialog</text>
+
+  <line x1="615" y1="52" x2="645" y2="52" stroke="#6c8cff" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- Step 4: Theme.NtxAlertDialog -->
+  <rect x="645" y="10" width="195" height="84" rx="8" fill="rgba(74,222,128,0.12)" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="742" y="32" text-anchor="middle" font-size="10" font-weight="bold" fill="#4ade80">Theme.NtxAlertDialog</text>
+  <text x="742" y="47" text-anchor="middle" font-size="8" fill="#9199b0">windowBackground → ntx_dialog_bg</text>
+  <text x="742" y="59" text-anchor="middle" font-size="8" fill="#9199b0">windowTitleStyle → NtxDialogTitle</text>
+  <text x="742" y="71" text-anchor="middle" font-size="8" fill="#9199b0">backgroundDimEnabled → false</text>
+  <text x="742" y="83" text-anchor="middle" font-size="8" fill="#9199b0">alertDialogStyle → NtxAlertDialogStyle</text>
+
+  <line x1="840" y1="52" x2="870" y2="52" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Step 5: Result -->
+  <rect x="870" y="15" width="170" height="74" rx="8" fill="rgba(78,205,196,0.15)" stroke="#4ecdc4" stroke-width="2"/>
+  <text x="955" y="38" text-anchor="middle" font-size="11" font-weight="bold" fill="#4ecdc4">✅ E-ink Dialog</text>
+  <text x="955" y="54" text-anchor="middle" font-size="9" fill="#e4e6ed">2dp 黑框 · 無壓暗</text>
+  <text x="955" y="68" text-anchor="middle" font-size="9" fill="#e4e6ed">Title 底線連左右</text>
+  <text x="955" y="82" text-anchor="middle" font-size="9" fill="#e4e6ed">72dp 打勾 Radio</text>
+
+  <!-- ========== 下方細節分解 ========== -->
+  <line x1="295" y1="89" x2="295" y2="125" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowPurple)"/>
+  <line x1="742" y1="94" x2="742" y2="125" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+
+  <!-- Detail: ntx_select_dialog_singlechoice.xml -->
+  <rect x="120" y="125" width="350" height="85" rx="8" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="140" y="148" font-size="11" font-weight="bold" fill="#a78bfa">📄 ntx_select_dialog_singlechoice.xml</text>
+  <text x="140" y="166" font-size="9" fill="#9199b0">&lt;CheckedTextView android:id="@android:id/text1"</text>
+  <text x="155" y="180" font-size="9" fill="#e4e6ed">layout_height="<tspan fill="#4ade80">72dp</tspan>" · textAppearance="<tspan fill="#4ade80">NtxListItem (28dp)</tspan>"</text>
+  <text x="155" y="194" font-size="9" fill="#e4e6ed">drawableStart="<tspan fill="#4ade80">ntx_dialog_radio_button</tspan>" · checkMark="@null"</text>
+
+  <!-- Detail: Theme drawable breakdown -->
+  <rect x="570" y="125" width="440" height="85" rx="8" fill="rgba(74,222,128,0.08)" stroke="#4ade80" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="590" y="148" font-size="11" font-weight="bold" fill="#4ade80">📄 Drawable 組成</text>
+
+  <rect x="590" y="156" width="130" height="40" rx="4" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="0.8"/>
+  <text x="600" y="172" font-size="9" font-weight="bold" fill="#fb923c">ntx_dialog_bg.xml</text>
+  <text x="600" y="186" font-size="8" fill="#9199b0">白底 + 2dp 黑 stroke</text>
+
+  <rect x="730" y="156" width="130" height="40" rx="4" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="0.8"/>
+  <text x="740" y="172" font-size="9" font-weight="bold" fill="#fb923c">ntx_dialog_title_bg</text>
+  <text x="740" y="186" font-size="8" fill="#9199b0">left=-24dp 溢出黑線</text>
+
+  <rect x="870" y="156" width="130" height="40" rx="4" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="0.8"/>
+  <text x="880" y="172" font-size="9" font-weight="bold" fill="#fb923c">ntx_dialog_radio_btn</text>
+  <text x="880" y="186" font-size="8" fill="#9199b0">✓圓 40dp / 空圓 40dp</text>
+
+  <!-- ========= 底部總結 =========== -->
+  <rect x="120" y="240" width="830" height="90" rx="10" fill="rgba(74,222,128,0.06)" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="535" y="268" text-anchor="middle" font-size="13" font-weight="bold" fill="#4ade80">🔑 關鍵機制總結</text>
+  <text x="160" y="290" font-size="10" fill="#e4e6ed">1. <tspan fill="#a78bfa">NtxRestrictedListPreference</tspan> 覆寫 createListAdapter()，強制用 <tspan fill="#fb923c">ntx_select_dialog_singlechoice.xml</tspan>（72dp + 打勾圓圈）</text>
+  <text x="160" y="308" font-size="10" fill="#e4e6ed">2. <tspan fill="#6c8cff">Theme.NtxSettings</tspan> 透過 alertDialogTheme 指向 <tspan fill="#4ade80">Theme.NtxAlertDialog</tspan>（黑框 + 無壓暗 + title 底線溢出技巧）</text>
+  <text x="160" y="326" font-size="10" fill="#e4e6ed">3. 兩者<tspan fill="#4ecdc4" font-weight="bold">各司其職</tspan>：Preference 控制「列表項目版面」，Theme 控制「對話框殼的樣式」→ 組合出 E-ink Dialog</text>
+
+</svg>
+</div>
+</div>
+
+<!-- === 圖 3: left_text_layout → Fragment 映射 === -->
+<div class="card">
+<h3>圖 3：left_text_layout.xml 結構拆解</h3>
+<div class="diagram-wrap">
+<svg width="800" height="200" viewBox="0 0 800 200">
+  <rect width="800" height="200" rx="10" fill="#0f1117"/>
+
+  <!-- The layout structure -->
+  <rect x="20" y="20" width="360" height="160" rx="8" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="40" y="45" font-size="13" font-weight="bold" fill="#fb923c">📄 left_text_layout.xml</text>
+
+  <rect x="40" y="58" width="320" height="110" rx="6" fill="rgba(228,230,237,0.04)" stroke="#2e3344"/>
+  <text x="55" y="78" font-size="10" fill="#6c8cff" font-weight="bold">LinearLayout</text>
+  <text x="175" y="78" font-size="9" fill="#9199b0">#tab_background_layout</text>
+  <text x="55" y="95" font-size="9" fill="#9199b0">height = @dimen/left_cell_height (<tspan fill="#4ade80" font-weight="bold">72dp</tspan>)</text>
+
+  <rect x="60" y="105" width="280" height="50" rx="4" fill="rgba(108,140,255,0.1)" stroke="#6c8cff" stroke-width="0.8"/>
+  <text x="75" y="123" font-size="10" fill="#6c8cff" font-weight="bold">TextView</text>
+  <text x="160" y="123" font-size="9" fill="#9199b0">#title_textView</text>
+  <text x="75" y="140" font-size="9" fill="#9199b0">textSize = @dimen/left_cell_text (<tspan fill="#4ade80">28sp</tspan>) · drawablePadding=10dp</text>
+  <text x="75" y="152" font-size="8" fill="#9199b0">CompoundDrawable (left icon) 由 Java 動態設定</text>
+
+  <!-- Arrow -->
+  <line x1="380" y1="100" x2="420" y2="100" stroke="#fb923c" stroke-width="2" marker-end="url(#arrowOrange)"/>
+
+  <!-- How it's used -->
+  <rect x="420" y="20" width="360" height="160" rx="8" fill="rgba(78,205,196,0.1)" stroke="#4ecdc4" stroke-width="1.5"/>
+  <text x="440" y="45" font-size="13" font-weight="bold" fill="#4ecdc4">⚙️ Java 動態綁定</text>
+
+  <text x="440" y="70" font-size="10" fill="#e4e6ed">View tabChild = View.inflate(this,</text>
+  <text x="455" y="85" font-size="10" fill="#fb923c" font-weight="bold">R.layout.left_text_layout</text>
+  <text x="647" y="85" font-size="10" fill="#e4e6ed">, null);</text>
+
+  <text x="440" y="107" font-size="10" fill="#e4e6ed">tabChild.<tspan fill="#6c8cff">setTag</tspan>(i);  <tspan fill="#9199b0">// Tab 索引</tspan></text>
+  <text x="440" y="124" font-size="10" fill="#e4e6ed">childTextView.<tspan fill="#6c8cff">setText</tspan>(tabTitles[i]);</text>
+  <text x="440" y="141" font-size="10" fill="#e4e6ed">childTextView.<tspan fill="#6c8cff">setCompoundDrawables</tspan>(icon...);</text>
+  <text x="440" y="158" font-size="10" fill="#e4e6ed">tabChild.<tspan fill="#6c8cff">setOnClickListener</tspan>(<tspan fill="#4ade80">tabClickListener</tspan>);</text>
+  <text x="440" y="172" font-size="10" fill="#e4e6ed">tabContainerLayout.<tspan fill="#6c8cff">addView</tspan>(tabChild);</text>
+
+</svg>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec6">6. 版面布局示意圖</h2>
+
+<div class="compare-grid">
+
+<div class="card">
+<h4><span class="badge badge-a12">A12</span> NtxSettings</h4>
+<div class="diagram-wrap">
+<svg width="300" height="400" viewBox="0 0 300 400">
+  <rect x="5" y="5" width="290" height="390" rx="4" fill="#1a1d27" stroke="#4ecdc4" stroke-width="1.5"/>
+  <rect x="5" y="5" width="95" height="390" fill="#242836" stroke="#2e3344" stroke-width="1"/>
+  <text x="52" y="24" text-anchor="middle" font-size="9" font-weight="bold" fill="#4ecdc4">Left Tabs</text>
+  <line x1="5" y1="30" x2="100" y2="30" stroke="#2e3344" stroke-width="1"/>
+  <rect x="10" y="34" width="85" height="24" rx="3" fill="rgba(108,140,255,0.15)" stroke="rgba(108,140,255,0.3)"/>
+  <text x="52" y="50" text-anchor="middle" font-size="8" fill="#6c8cff">📶 Wi-Fi</text>
+  <text x="52" y="72" text-anchor="middle" font-size="8" fill="#9199b0">🔵 藍牙</text>
+  <text x="52" y="92" text-anchor="middle" font-size="8" fill="#9199b0">🔋 電池</text>
+  <text x="52" y="112" text-anchor="middle" font-size="8" fill="#9199b0">💾 儲存空間</text>
+  <text x="52" y="132" text-anchor="middle" font-size="8" fill="#9199b0">🔊 音效</text>
+  <text x="52" y="152" text-anchor="middle" font-size="8" fill="#9199b0">🖥️ 螢幕</text>
+  <text x="52" y="172" text-anchor="middle" font-size="8" fill="#9199b0">🎯 校正</text>
+  <text x="52" y="192" text-anchor="middle" font-size="8" fill="#9199b0">🔒 安全性</text>
+  <text x="52" y="212" text-anchor="middle" font-size="8" fill="#9199b0">⚙️ 系統</text>
+  <text x="52" y="232" text-anchor="middle" font-size="8" fill="#9199b0">ℹ️ 關於</text>
+  <text x="52" y="252" text-anchor="middle" font-size="8" fill="#9199b0">▶ Play商店</text>
+  <text x="52" y="272" text-anchor="middle" font-size="8" fill="#9199b0">💬 反饋</text>
+  <line x1="100" y1="5" x2="100" y2="395" stroke="#4ecdc4" stroke-width="1.5"/>
+  <rect x="101" y="5" width="193" height="30" fill="#242836"/>
+  <text x="197" y="24" text-anchor="middle" font-size="12" font-weight="bold" fill="#e4e6ed">螢幕</text>
+  <line x1="101" y1="35" x2="294" y2="35" stroke="#4ecdc4" stroke-width="1"/>
+  <text x="197" y="55" text-anchor="middle" font-size="8" fill="#9199b0">main_content (Fragment)</text>
+  <rect x="110" y="65" width="175" height="22" rx="3" fill="#242836" stroke="#2e3344"/>
+  <text x="197" y="80" text-anchor="middle" font-size="8" fill="#9199b0">亮度  ━━━━━</text>
+  <line x1="130" y1="92" x2="270" y2="92" stroke="#2e3344" stroke-width="1"/>
+  <rect x="110" y="97" width="175" height="22" rx="3" fill="#242836" stroke="#2e3344"/>
+  <text x="197" y="112" text-anchor="middle" font-size="8" fill="#9199b0">螢幕自動關閉</text>
+  <line x1="130" y1="124" x2="270" y2="124" stroke="#2e3344" stroke-width="1"/>
+  <rect x="110" y="129" width="175" height="22" rx="3" fill="#242836" stroke="#2e3344"/>
+  <text x="197" y="144" text-anchor="middle" font-size="8" fill="#9199b0">睡眠畫面</text>
+  <line x1="130" y1="156" x2="270" y2="156" stroke="#2e3344" stroke-width="1"/>
+</svg>
+</div>
+<p style="font-size:0.78em;color:var(--text2);">兩欄 · 黑線 Divider · 大字體</p>
+</div>
+
+<div class="card">
+<h4><span class="badge badge-a16">A16</span> 原生</h4>
+<div class="diagram-wrap">
+<svg width="300" height="400" viewBox="0 0 300 400">
+  <rect x="5" y="5" width="290" height="390" rx="12" fill="#1a1d27" stroke="#2e3344" stroke-width="1"/>
+  <rect x="5" y="5" width="290" height="90" rx="12" fill="#242836"/>
+  <circle cx="260" cy="30" r="14" fill="#2e3344"/>
+  <text x="264" y="34" text-anchor="middle" font-size="9" fill="#9199b0">👤</text>
+  <text x="25" y="62" font-size="18" font-weight="bold" fill="#e4e6ed">Settings</text>
+  <rect x="20" y="72" width="260" height="18" rx="9" fill="#1a1d27" stroke="#2e3344"/>
+  <text x="150" y="84" text-anchor="middle" font-size="8" fill="#9199b0">🔍 Search settings</text>
+  <rect x="15" y="102" width="270" height="36" rx="12" fill="#242836"/>
+  <text x="58" y="124" font-size="10" fill="#e4e6ed">🌐 網路與網際網路</text>
+  <rect x="15" y="144" width="270" height="36" rx="12" fill="#242836"/>
+  <text x="58" y="166" font-size="10" fill="#e4e6ed">📱 已連結的裝置</text>
+  <rect x="15" y="186" width="270" height="36" rx="12" fill="#242836"/>
+  <text x="58" y="208" font-size="10" fill="#e4e6ed">📦 應用程式</text>
+  <rect x="15" y="228" width="270" height="36" rx="12" fill="#242836"/>
+  <text x="58" y="250" font-size="10" fill="#e4e6ed">🔔 通知</text>
+  <rect x="15" y="270" width="270" height="36" rx="12" fill="#242836"/>
+  <text x="58" y="292" font-size="10" fill="#e4e6ed">🔋 電池</text>
+  <rect x="15" y="312" width="270" height="36" rx="12" fill="#242836"/>
+  <text x="58" y="334" font-size="10" fill="#e4e6ed">🖥️ 螢幕</text>
+  <text x="150" y="370" text-anchor="middle" font-size="8" fill="#9199b0">↓ 繼續捲動...</text>
+</svg>
+</div>
+<p style="font-size:0.78em;color:var(--text2);">單欄 · 圓角卡片 · 搜尋列 · Material 3</p>
+</div>
+
+<div class="card">
+<h4><span class="badge badge-cur">現行</span> 混合方案</h4>
+<div class="diagram-wrap">
+<svg width="300" height="400" viewBox="0 0 300 400">
+  <rect x="5" y="5" width="290" height="390" rx="4" fill="#1a1d27" stroke="#4ade80" stroke-width="1.5"/>
+  <rect x="5" y="5" width="95" height="390" fill="#242836" stroke="#2e3344" stroke-width="1"/>
+  <text x="52" y="22" text-anchor="middle" font-size="8" font-weight="bold" fill="#4ade80">Ntx Tabs</text>
+  <line x1="5" y1="28" x2="100" y2="28" stroke="#2e3344" stroke-width="1"/>
+  <rect x="10" y="32" width="85" height="22" rx="3" fill="rgba(78,205,196,0.15)" stroke="rgba(78,205,196,0.3)"/>
+  <text x="52" y="47" text-anchor="middle" font-size="8" fill="#4ecdc4">📶 Wi-Fi</text>
+  <text x="52" y="67" text-anchor="middle" font-size="8" fill="#9199b0">🔵 藍牙</text>
+  <text x="52" y="87" text-anchor="middle" font-size="8" fill="#9199b0">🔋 電池</text>
+  <text x="52" y="107" text-anchor="middle" font-size="8" fill="#9199b0">💾 儲存空間</text>
+  <text x="52" y="127" text-anchor="middle" font-size="8" fill="#9199b0">🔊 音效</text>
+  <text x="52" y="147" text-anchor="middle" font-size="8" fill="#9199b0">🖥️ 螢幕</text>
+  <text x="52" y="167" text-anchor="middle" font-size="8" fill="#9199b0">🎯 校正</text>
+  <text x="52" y="187" text-anchor="middle" font-size="8" fill="#9199b0">🔒 安全性</text>
+  <text x="52" y="207" text-anchor="middle" font-size="8" fill="#9199b0">⚙️ 系統</text>
+  <text x="52" y="227" text-anchor="middle" font-size="8" fill="#9199b0">ℹ️ 關於</text>
+  <text x="52" y="247" text-anchor="middle" font-size="8" fill="#9199b0">▶ Play商店</text>
+  <text x="52" y="267" text-anchor="middle" font-size="8" fill="#9199b0">💬 反饋</text>
+  <line x1="100" y1="5" x2="100" y2="395" stroke="#4ade80" stroke-width="1.5"/>
+  <rect x="101" y="5" width="193" height="26" fill="#242836"/>
+  <text x="197" y="22" text-anchor="middle" font-size="11" font-weight="bold" fill="#e4e6ed">螢幕</text>
+  <line x1="101" y1="31" x2="294" y2="31" stroke="#4ade80" stroke-width="1"/>
+  <text x="197" y="48" text-anchor="middle" font-size="7" fill="#4ade80">Theme.NtxSettings (NoActionBar)</text>
+  <text x="197" y="59" text-anchor="middle" font-size="7" fill="#4ade80">ItemDecoration: 32px + 2px黑線</text>
+  <rect x="130" y="64" width="140" height="1" fill="#4ade80" opacity="0.4"/>
+  <rect x="110" y="70" width="175" height="24" rx="0" fill="#242836" stroke="#2e3344"/>
+  <text x="197" y="86" text-anchor="middle" font-size="8" fill="#9199b0">亮度  ━━━━━━</text>
+  <rect x="130" y="98" width="140" height="1" fill="#4ade80" opacity="0.4"/>
+  <rect x="110" y="103" width="175" height="24" rx="0" fill="#242836" stroke="#2e3344"/>
+  <text x="197" y="119" text-anchor="middle" font-size="8" fill="#9199b0">螢幕自動關閉</text>
+  <rect x="130" y="131" width="140" height="1" fill="#4ade80" opacity="0.4"/>
+  <rect x="110" y="136" width="175" height="24" rx="0" fill="#242836" stroke="#2e3344"/>
+  <text x="197" y="152" text-anchor="middle" font-size="8" fill="#9199b0">睡眠畫面</text>
+  <rect x="130" y="164" width="140" height="1" fill="#4ade80" opacity="0.4"/>
+  <!-- dialog annotation -->
+  <rect x="110" y="185" width="175" height="42" rx="6" fill="rgba(78,205,196,0.08)" stroke="rgba(78,205,196,0.3)"/>
+  <text x="197" y="203" text-anchor="middle" font-size="7" fill="#4ecdc4">Dialog: Theme.NtxAlertDialog</text>
+  <text x="197" y="215" text-anchor="middle" font-size="7" fill="#4ecdc4">backgroundDimEnabled=false</text>
+  <text x="197" y="225" text-anchor="middle" font-size="7" fill="#4ecdc4">ntx_dialog_bg + custom radio</text>
+</svg>
+</div>
+<p style="font-size:0.78em;color:var(--text2);">兩欄 · 自訂黑線 · E-ink Dialog ✅</p>
+</div>
+
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec7">7. Theme 繼承鏈</h2>
+
+<div class="card">
+<pre>
+<span class="cm">/* Activity 主題 */</span>
+<span class="kw">Theme.Settings</span>                              <span class="cm">← AOSP Material 3 基礎</span>
+  └── <span class="kw">Theme.Settings.NoActionBar</span>             <span class="cm">← windowActionBar=false, windowNoTitle=true</span>
+        └── <span class="attr">Theme.NtxSettings</span>              <span class="cm">← 我們的入口</span>
+              ├─ textAppearanceListItem       → <span class="str">TextAppearance.NtxListItem</span> (28dp)
+              ├─ textAppearanceListItemSecondary → <span class="str">TextAppearance.NtxListItemSecondary</span> (22dp)
+              └─ <span class="kw">alertDialogTheme</span>           → <span class="attr">Theme.NtxAlertDialog</span>
+
+<span class="cm">/* Dialog 主題 */</span>
+<span class="kw">Theme.AppCompat.Light.Dialog.Alert</span>           <span class="cm">← 純淨 AppCompat（無 Material 3）</span>
+  └── <span class="attr">Theme.NtxAlertDialog</span>
+        ├─ windowBackground                   → <span class="str">@drawable/ntx_dialog_bg</span>        <span class="cm">(白底, 2dp黑框)</span>
+        ├─ windowTitleStyle                   → <span class="str">NtxDialogTitle</span>                <span class="cm">(底部黑線, 28dp字體)</span>
+        ├─ backgroundDimEnabled               → <span class="str">false</span>                          <span class="cm">(電子紙不壓暗)</span>
+        ├─ alertDialogStyle                   → <span class="str">NtxAlertDialogStyle</span>
+        │     └─ singleChoiceItemLayout       → <span class="str">@layout/ntx_select_dialog_singlechoice</span>
+        │           ├─ height = <span class="str">72dp</span>
+        │           ├─ textAppearance = <span class="str">NtxListItem (28dp)</span>
+        │           └─ drawableStart = <span class="str">ntx_dialog_radio_button</span>
+        │                 ├─ checked   → <span class="str">ntx_ic_check_circle_large</span> (40dp)
+        │                 └─ unchecked → <span class="str">ntx_ic_radio_unchecked_large</span> (40dp)
+        └─ windowBackgroundFallback           → <span class="str">@null</span>
+</pre>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec8">8. Dialog 樣式比較</h2>
+
+<div class="compare-grid">
+<div class="card">
+<h4><span class="badge badge-a12">A12</span> Dialog</h4>
+<div class="diagram-wrap">
+<svg width="200" height="280" viewBox="0 0 200 280">
+  <rect x="10" y="10" width="180" height="260" fill="#1a1d27" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="22" y="34" font-size="12" font-weight="bold" fill="#e4e6ed">螢幕自動關閉</text>
+  <line x1="10" y1="42" x2="190" y2="42" stroke="#fb923c" stroke-width="1.5"/>
+  <circle cx="34" cy="66" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="70" font-size="10" fill="#e4e6ed">15 秒</text>
+  <circle cx="34" cy="94" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="98" font-size="10" fill="#e4e6ed">30 秒</text>
+  <circle cx="34" cy="122" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="126" font-size="10" fill="#e4e6ed">1 分鐘</text>
+  <circle cx="34" cy="150" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="154" font-size="10" fill="#e4e6ed">2 分鐘</text>
+  <circle cx="34" cy="178" r="10" fill="none" stroke="#4ade80" stroke-width="1.2"/>
+  <polyline points="28,178 32,182 40,174" fill="none" stroke="#4ade80" stroke-width="1.8"/>
+  <text x="52" y="182" font-size="10" font-weight="bold" fill="#4ade80">5 分鐘</text>
+  <circle cx="34" cy="206" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="210" font-size="10" fill="#e4e6ed">10 分鐘</text>
+  <circle cx="34" cy="234" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="238" font-size="10" fill="#e4e6ed">永遠不要</text>
+</svg>
+</div>
+<p style="font-size:0.78em">黑框 · 大字 · 打勾◯ · 無壓暗</p>
+</div>
+
+<div class="card">
+<h4><span class="badge badge-a16">A16</span> Dialog</h4>
+<div class="diagram-wrap">
+<svg width="200" height="280" viewBox="0 0 200 280">
+  <rect x="0" y="0" width="200" height="280" fill="#9199b0" opacity="0.2" rx="6"/>
+  <rect x="20" y="30" width="160" height="220" fill="#242836" rx="16" stroke="#2e3344"/>
+  <text x="38" y="58" font-size="10" fill="#9199b0">Screen timeout</text>
+  <circle cx="42" cy="82" r="7" fill="#6c8cff"/>
+  <circle cx="42" cy="82" r="3" fill="#242836"/>
+  <text x="56" y="86" font-size="9" fill="#e4e6ed">15 seconds</text>
+  <circle cx="42" cy="106" r="7" fill="none" stroke="#9199b0" stroke-width="1"/>
+  <text x="56" y="110" font-size="9" fill="#e4e6ed">30 seconds</text>
+  <circle cx="42" cy="130" r="7" fill="none" stroke="#9199b0" stroke-width="1"/>
+  <text x="56" y="134" font-size="9" fill="#e4e6ed">1 minute</text>
+  <circle cx="42" cy="154" r="7" fill="none" stroke="#9199b0" stroke-width="1"/>
+  <text x="56" y="158" font-size="9" fill="#e4e6ed">2 minutes</text>
+  <circle cx="42" cy="178" r="7" fill="none" stroke="#9199b0" stroke-width="1"/>
+  <text x="56" y="182" font-size="9" fill="#e4e6ed">5 minutes</text>
+  <text x="138" y="236" font-size="9" fill="#6c8cff" font-weight="bold">Cancel</text>
+</svg>
+</div>
+<p style="font-size:0.78em">圓角 · 小字 · 實心◉ · 灰色壓暗</p>
+</div>
+
+<div class="card">
+<h4><span class="badge badge-cur">現行</span> Dialog</h4>
+<div class="diagram-wrap">
+<svg width="200" height="280" viewBox="0 0 200 280">
+  <rect x="10" y="10" width="180" height="260" fill="#1a1d27" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="22" y="34" font-size="12" font-weight="bold" fill="#e4e6ed">螢幕自動關閉</text>
+  <line x1="10" y1="42" x2="190" y2="42" stroke="#4ade80" stroke-width="1.5"/>
+  <circle cx="34" cy="66" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="70" font-size="10" fill="#e4e6ed">15 秒</text>
+  <circle cx="34" cy="94" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="98" font-size="10" fill="#e4e6ed">30 秒</text>
+  <circle cx="34" cy="122" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="126" font-size="10" fill="#e4e6ed">1 分鐘</text>
+  <circle cx="34" cy="150" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="154" font-size="10" fill="#e4e6ed">2 分鐘</text>
+  <circle cx="34" cy="178" r="10" fill="none" stroke="#4ade80" stroke-width="1.2"/>
+  <polyline points="28,178 32,182 40,174" fill="none" stroke="#4ade80" stroke-width="1.8"/>
+  <text x="52" y="182" font-size="10" font-weight="bold" fill="#4ade80">5 分鐘</text>
+  <circle cx="34" cy="206" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="210" font-size="10" fill="#e4e6ed">10 分鐘</text>
+  <circle cx="34" cy="234" r="10" fill="none" stroke="#9199b0" stroke-width="1.2"/>
+  <text x="52" y="238" font-size="10" fill="#e4e6ed">永遠不要</text>
+  <rect x="12" y="12" width="22" height="6" rx="2" fill="#4ade80"/>
+  <text x="38" y="17" font-size="6" fill="#4ade80">ntx_dialog_bg</text>
+</svg>
+</div>
+<p style="font-size:0.78em">黑框 · 大字 · 自訂打勾 · 無壓暗 ✅</p>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<h2 id="sec9">9. 關鍵檔案清單</h2>
+
+<h3>Layout & Drawable</h3>
+<table class="summary-table">
+<thead>
+<tr><th>檔案</th><th>用途</th><th>所屬</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="file-tag">activity_ntx_settings.xml</span></td><td>兩欄主佈局（左 Tab + 右內容）</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">left_text_layout.xml</span></td><td>左側 Tab 單一項目（72dp、icon + text）</td><td><span class="badge badge-a12">A12</span><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">ntx_select_dialog_singlechoice.xml</span></td><td>Dialog 單選項目（72dp、40dp 打勾、28dp 文字）</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">ntx_dialog_bg.xml</span></td><td>Dialog 背景（白底 + 2dp 黑框）</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">ntx_dialog_title_bg.xml</span></td><td>Dialog 標題底部黑線（-24dp overflow 技巧）</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">ntx_dialog_radio_button.xml</span></td><td>Radio selector（打勾圓/空圓）</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">ntx_ic_check_circle_large.xml</span></td><td>40dp 打勾向量圖</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">ntx_ic_radio_unchecked_large.xml</span></td><td>40dp 空心向量圖</td><td><span class="badge badge-cur">現行</span></td></tr>
+<tr><td><span class="file-tag">settings_homepage_container.xml</span></td><td>A16 原生首頁 Layout</td><td><span class="badge badge-a16">A16</span></td></tr>
+</tbody>
+</table>
+
+<h3>Java / Kotlin 檔案</h3>
+<table class="summary-table">
+<thead>
+<tr><th>檔案</th><th>用途</th><th>改動重點</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="file-tag">SettingsHomepageActivity.java</span></td><td>Settings 入口 Activity</td><td>onCreate() 分支判斷 Ntx/AOSP 路徑；initNtxTab(), tabClickListener</td></tr>
+<tr><td><span class="file-tag">SettingsPreferenceFragment.java</span></td><td>所有偏好設定 Fragment 基礎類別</td><td>onCreateRecyclerView() 注入 ItemDecoration（32px padding + 2px 黑線）</td></tr>
+<tr><td><span class="file-tag">NtxDisplaySettings.java</span></td><td>Ntx 專用螢幕設定 Fragment</td><td>取代原生 DisplaySettings</td></tr>
+<tr><td><span class="file-tag">SleepTimeoutController.java</span></td><td>螢幕自動關閉邏輯</td><td>使用 RestrictedListPreference，點擊跳出 Dialog</td></tr>
+<tr><td><span class="file-tag">SleepScreenController.java</span></td><td>睡眠畫面選項邏輯</td><td>使用 ListPreference</td></tr>
+</tbody>
+</table>
+
+<h3>Theme & Style 定義</h3>
+<table class="summary-table">
+<thead>
+<tr><th>檔案</th><th>定義的 Style</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="file-tag">res/values/styles.xml</span></td><td>
+    <code>TextAppearance.NtxListItem</code> (28dp)<br>
+    <code>TextAppearance.NtxListItemSecondary</code> (22dp)<br>
+    <code>NtxDialogTitle</code><br>
+    <code>NtxAlertDialogStyle</code><br>
+    <code>Theme.NtxAlertDialog</code><br>
+    <code>Theme.NtxSettings</code>
+</td></tr>
+<tr><td><span class="file-tag">res/values/themes.xml</span></td><td>
+    <code>Theme.Settings</code><br>
+    <code>Theme.Settings.NoActionBar</code><br>
+    <code>Theme.AlertDialog</code>
+</td></tr>
+<tr><td><span class="file-tag">res/values/dimens.xml</span></td><td>
+    <code>left_cell_text</code> = 28dp<br>
+    <code>left_cell_text_22</code> = 22dp<br>
+    <code>left_cell_height</code> = 72dp<br>
+    <code>left_cell_padding_top</code> = 12dp
+</td></tr>
+</tbody>
+</table>
+
+<!-- =========================================================== -->
+<h2 id="sec10">10. ItemDecoration（分隔線 / Padding）</h2>
+
+<div class="card">
+<h3>SettingsPreferenceFragment 中的自訂 ItemDecoration</h3>
+<p>在 Ntx 模式下（<code>PREF_NTXSETTINGS = true</code>），在 <code>onCreateRecyclerView()</code> 中強制加入自訂 <code>RecyclerView.ItemDecoration</code>：</p>
+<pre>
+recyclerView.addItemDecoration(<span class="kw">new</span> RecyclerView.ItemDecoration() {
+    <span class="kw">private</span> Paint paint = <span class="kw">new</span> Paint();
+    { paint.setColor(Color.BLACK); }
+
+    <span class="cm">// 每個 item 的上下左右間距</span>
+    <span class="kw">void</span> getItemOffsets(Rect outRect, ...) {
+        outRect.top    = <span class="str">20</span>;   <span class="cm">// 20px 上間距</span>
+        outRect.bottom = <span class="str">20</span>;   <span class="cm">// 20px 下間距</span>
+        outRect.left   = <span class="str">32</span>;   <span class="cm">// 32px 左內縮</span>
+        outRect.right  = <span class="str">32</span>;   <span class="cm">// 32px 右內縮</span>
+    }
+
+    <span class="cm">// 強制手繪黑線 divider（帶左右 margin）</span>
+    <span class="kw">void</span> onDraw(Canvas c, RecyclerView parent, ...) {
+        <span class="kw">for</span> (<span class="kw">int</span> i = 0; i &lt; parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            c.drawRect(
+                <span class="str">32</span>,                           <span class="cm">// left margin</span>
+                child.getBottom() + <span class="str">18</span>,        <span class="cm">// y-start</span>
+                parent.getWidth() - <span class="str">32</span>,        <span class="cm">// right margin</span>
+                child.getBottom() + <span class="str">20</span>,        <span class="cm">// y-end (2px thick)</span>
+                paint
+            );
+        }
+    }
+});
+</pre>
+<div class="note">
+<strong>⚠️ 設計哲學：</strong> A16 的 Material 3 刻意隱藏所有分隔線（留白分隔），但電子紙螢幕因對比度低且無法靠色彩深淺暗示分隔，必須<strong>強制加回黑線</strong>。
+透過 <code>setDivider(null); setDividerHeight(0);</code> 停用系統預設 divider，再用自訂 ItemDecoration 畫出帶 margin 的黑線，避免「雙畫」問題。
+</div>
+</div>
+
+<hr>
+<div class="footer">📄 本文件由開發工具自動產生 · 最後更新：2026-04-13</div>
+
+</div>
+
+<!-- Lightbox Modal -->
+<div class="svg-lightbox" id="svgLightbox">
+    <span class="lb-close" id="lbClose">&times;</span>
+    <div class="lb-inner" id="lbInner"></div>
+    <div class="lb-hint">滾輪縮放 · 拖曳平移 · 點擊任意處或 Esc 關閉</div>
+</div>
+
+<script>
+(function() {
+    const lightbox = document.getElementById('svgLightbox');
+    const lbInner  = document.getElementById('lbInner');
+    const lbClose  = document.getElementById('lbClose');
+    let scale = 1, minScale = 0.5, maxScale = 5;
+    let isDragging = false, startX, startY, scrollL, scrollT;
+
+    // Click any SVG in .diagram-wrap to open lightbox
+    document.querySelectorAll('.diagram-wrap svg').forEach(svg => {
+        svg.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const clone = this.cloneNode(true);
+            // Scale SVG to be large and crisp
+            const vb = this.getAttribute('viewBox') || '';
+            const origW = parseFloat(this.getAttribute('width'))  || 800;
+            const origH = parseFloat(this.getAttribute('height')) || 400;
+            clone.setAttribute('width',  origW * 2);
+            clone.setAttribute('height', origH * 2);
+            clone.style.cursor = 'grab';
+            lbInner.innerHTML = '';
+            lbInner.appendChild(clone);
+            scale = 1;
+            clone.style.transform = 'scale(' + scale + ')';
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    // Close
+    function closeLB() {
+        lightbox.classList.remove('active');
+        lbInner.innerHTML = '';
+        document.body.style.overflow = '';
+        scale = 1;
+    }
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === lightbox || e.target === lbClose) closeLB();
+    });
+    lbClose.addEventListener('click', closeLB);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeLB();
+    });
+
+    // Wheel zoom
+    lbInner.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.15 : 0.15;
+        scale = Math.min(maxScale, Math.max(minScale, scale + delta));
+        const svg = lbInner.querySelector('svg');
+        if (svg) svg.style.transform = 'scale(' + scale + ')';
+    }, { passive: false });
+
+    // Drag to pan
+    lbInner.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        startX = e.pageX - lbInner.offsetLeft;
+        startY = e.pageY - lbInner.offsetTop;
+        scrollL = lbInner.scrollLeft;
+        scrollT = lbInner.scrollTop;
+        lbInner.style.cursor = 'grabbing';
+    });
+    lbInner.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - lbInner.offsetLeft;
+        const y = e.pageY - lbInner.offsetTop;
+        lbInner.scrollLeft = scrollL - (x - startX);
+        lbInner.scrollTop  = scrollT - (y - startY);
+    });
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        lbInner.style.cursor = 'grab';
+    });
+
+    // Prevent lightbox click from closing when clicking on inner SVG
+    lbInner.addEventListener('click', function(e) { e.stopPropagation(); });
+})();
+</script>
+
+</body>
+</html>
