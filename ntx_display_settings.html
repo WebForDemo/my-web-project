@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NtxDisplaySettings 修改紀錄</title>
+<style>
+:root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --accent: #6c8cff; --green: #4ade80; --orange: #fb923c;
+    --purple: #a78bfa; --cyan: #4ecdc4; --red: #f87171;
+    --text: #e4e6ed; --text2: #9199b0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif; line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 30px 24px; }
+.header { text-align: center; margin-bottom: 36px; }
+.header h1 { font-size: 1.8em; color: var(--accent); margin-bottom: 6px; }
+.header .subtitle { font-size: 0.88em; color: var(--text2); }
+.toc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 28px; margin-bottom: 30px; }
+.toc h3 { margin-bottom: 10px; font-size: 1em; color: var(--text); }
+.toc ol { margin-left: 20px; }
+.toc li { margin-bottom: 5px; font-size: 0.88em; }
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+h2 { font-size: 1.3em; color: var(--accent); margin: 40px 0 16px; padding-left: 14px; border-left: 4px solid var(--accent); }
+h3 { font-size: 1.05em; color: var(--green); margin: 18px 0 10px; }
+h4 { font-size: 0.95em; color: var(--orange); margin: 12px 0 6px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 18px; }
+.note { background: rgba(108,140,255,0.08); border-left: 3px solid var(--accent); padding: 12px 18px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 0.88em; }
+.note strong { color: var(--accent); }
+.tip { background: rgba(74,222,128,0.08); border-left: 3px solid var(--green); padding: 12px 18px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 0.88em; }
+.tip strong { color: var(--green); }
+pre { background: #0b0e14; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 0.82em; line-height: 1.6; margin: 10px 0; }
+code { font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; }
+.inline-code { background: rgba(108,140,255,0.12); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.88em; }
+.summary-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.85em; }
+.summary-table th { background: rgba(108,140,255,0.15); color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.summary-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.summary-table tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+.diagram-wrap { overflow-x: auto; margin: 8px 0; position: relative; }
+.diagram-wrap svg { cursor: pointer; transition: filter 0.2s; }
+.diagram-wrap svg:hover { filter: brightness(1.08); }
+.diagram-wrap::after {
+    content: '🔍 點擊放大'; position: absolute; top: 8px; right: 14px;
+    background: rgba(108,140,255,0.25); color: var(--accent);
+    font-size: 0.7rem; padding: 2px 10px; border-radius: 8px;
+    pointer-events: none; opacity: 0; transition: opacity 0.25s;
+}
+.diagram-wrap:hover::after { opacity: 1; }
+svg text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans TC', sans-serif; }
+.svg-lightbox { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.88); backdrop-filter: blur(6px); justify-content: center; align-items: center; cursor: zoom-out; }
+.svg-lightbox.active { display: flex; }
+.svg-lightbox .lb-inner { max-width: 96vw; max-height: 94vh; overflow: auto; cursor: grab; display: flex; justify-content: center; align-items: center; }
+.svg-lightbox .lb-inner:active { cursor: grabbing; }
+.svg-lightbox .lb-inner svg { max-width: none; max-height: none; transform-origin: center center; transition: transform 0.15s ease; }
+.svg-lightbox .lb-hint { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.5); font-size: 0.78rem; pointer-events: none; }
+.svg-lightbox .lb-close { position: absolute; top: 16px; right: 22px; color: rgba(255,255,255,0.6); font-size: 28px; cursor: pointer; z-index: 10; line-height: 1; transition: color 0.2s; }
+.svg-lightbox .lb-close:hover { color: #fff; }
+.file-path { display: inline-block; background: rgba(108,140,255,0.1); color: var(--accent); padding: 3px 10px; border-radius: 5px; font-size: 0.78em; font-family: monospace; margin: 4px 0; }
+ul, ol { margin-left: 22px; margin-bottom: 10px; }
+li { margin-bottom: 4px; font-size: 0.9em; color: var(--text2); }
+p { font-size: 0.9em; color: var(--text2); margin-bottom: 8px; }
+hr { border: none; border-top: 1px dashed var(--border); margin: 36px 0; }
+.footer { text-align: center; color: var(--text2); font-size: 0.8em; padding: 30px 0 10px; opacity: 0.6; }
+.hl { color: var(--green); font-weight: bold; }
+.hl2 { color: var(--orange); font-weight: bold; }
+.hl3 { color: var(--purple); font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+    <h1>🖥️ NtxDisplaySettings 修改紀錄</h1>
+    <div class="subtitle">Q&amp;A 形式 — How &amp; Why</div>
+</div>
+
+<div class="toc">
+<h3>📋 目錄</h3>
+<ol>
+    <li><a href="#q1">如何有 NtxDisplaySettings 的？</a></li>
+    <li><a href="#q2">裡面的 Preference 有哪些？</a></li>
+    <li><a href="#q3">如何引入 Divider 的？</a></li>
+    <li><a href="#q4">如何 Remove ActionBar？</a></li>
+    <li><a href="#q5">如何設定 Dialog Style？</a></li>
+</ol>
+</div>
+
+<!-- ======================================================== -->
+<!-- Q1 -->
+<!-- ======================================================== -->
+<h2 id="q1">Q1. 如何有 NtxDisplaySettings 的？</h2>
+
+<div class="card">
+<h3>入口：SettingsHomepageActivity.java</h3>
+<p>當使用者在左側 Tab 點擊 <b>「Display」</b>時，<code>SettingsHomepageActivity</code> 會比對 title 字串，然後 <code>changeContent()</code> 替換右側 Fragment：</p>
+<pre><code>// SettingsHomepageActivity.java (Line 279-280)
+} else if (title.equals(getString(R.string.display_settings))) {
+    changeContent(new <span class="hl">NtxDisplaySettings</span>(), bundle);
+}</code></pre>
+
+<h3>Fragment 本體：NtxDisplaySettings.java</h3>
+<p>它繼承自 <code>DashboardFragment</code>，指定載入 <code class="hl2">R.xml.ntx_display_settings</code> 並建立 Controller 列表：</p>
+<pre><code>// NtxDisplaySettings.java
+@SearchIndexable
+public class NtxDisplaySettings extends DashboardFragment {
+
+    @Override
+    protected int getPreferenceScreenResId() {
+        return <span class="hl2">R.xml.ntx_display_settings</span>;  // ← 指定 XML
+    }
+
+    @Override
+    protected List&lt;AbstractPreferenceController&gt; createPreferenceControllers(Context context) {
+        return buildPreferenceControllers(context, getSettingsLifecycle());
+    }
+}</code></pre>
+
+<div class="diagram-wrap">
+<svg width="960" height="170" viewBox="0 0 960 170">
+  <rect width="960" height="170" rx="10" fill="#0f1117"/>
+  <defs>
+    <marker id="a1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#6c8cff"/></marker>
+    <marker id="a2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#4ade80"/></marker>
+  </defs>
+
+  <rect x="20" y="30" width="200" height="50" rx="8" fill="rgba(108,140,255,0.12)" stroke="#6c8cff" stroke-width="1.5"/>
+  <text x="42" y="60" font-size="12" font-weight="bold" fill="#6c8cff">Left Tab「Display」被點擊</text>
+
+  <line x1="220" y1="55" x2="280" y2="55" stroke="#6c8cff" stroke-width="2" marker-end="url(#a1)"/>
+
+  <rect x="280" y="20" width="280" height="70" rx="8" fill="rgba(74,222,128,0.08)" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="300" y="45" font-size="12" font-weight="bold" fill="#4ade80">SettingsHomepageActivity</text>
+  <text x="300" y="65" font-size="10" fill="#9199b0">changeContent(new NtxDisplaySettings())</text>
+
+  <line x1="560" y1="55" x2="620" y2="55" stroke="#4ade80" stroke-width="2" marker-end="url(#a2)"/>
+
+  <rect x="620" y="20" width="310" height="70" rx="8" fill="rgba(251,146,60,0.08)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="640" y="45" font-size="12" font-weight="bold" fill="#fb923c">NtxDisplaySettings (Fragment)</text>
+  <text x="640" y="65" font-size="10" fill="#9199b0">getPreferenceScreenResId() → ntx_display_settings.xml</text>
+
+  <text x="20" y="135" font-size="11" fill="#9199b0">AndroidManifest.xml 無須額外宣告，因為 NtxDisplaySettings 是作為 Fragment 被替換進</text>
+  <text x="20" y="155" font-size="11" fill="#9199b0">SettingsHomepageActivity 的 content_frame，不是獨立 Activity。</text>
+</svg>
+</div>
+</div>
+
+<!-- ======================================================== -->
+<!-- Q2 -->
+<!-- ======================================================== -->
+<h2 id="q2">Q2. 裡面的 Preference 有哪些？</h2>
+
+<div class="card">
+<h3>ntx_display_settings.xml</h3>
+
+<table class="summary-table">
+<tr>
+    <th>#</th>
+    <th>Preference 類型</th>
+    <th>key</th>
+    <th>Controller</th>
+    <th>說明</th>
+</tr>
+<tr>
+    <td>1</td>
+    <td><code>FrontLightPreference</code></td>
+    <td>front_light</td>
+    <td>—（自行管理）</td>
+    <td>前光亮度 + 色溫雙 SeekBar</td>
+</tr>
+<tr>
+    <td>2</td>
+    <td><code>NtxColorPreference</code></td>
+    <td>ntx_color_settings</td>
+    <td>—（自行管理）</td>
+    <td>E-ink 色彩 / 對比度調整</td>
+</tr>
+<tr>
+    <td>3</td>
+    <td><code>ToolsPickActivityPreference</code></td>
+    <td>—</td>
+    <td>—</td>
+    <td>自定義快捷鍵設定</td>
+</tr>
+<tr>
+    <td>4</td>
+    <td><code>SwitchPreference</code></td>
+    <td>hall_sensor_switch</td>
+    <td><code>ProtectiveCaseWakeUpPreferenceController</code></td>
+    <td>保護殼喚醒開關</td>
+</tr>
+<tr>
+    <td>5</td>
+    <td><code class="hl">NtxRestrictedListPreference</code></td>
+    <td>screen_timeout</td>
+    <td><code>SleepTimeoutController</code></td>
+    <td>螢幕逾時（單選 Dialog）</td>
+</tr>
+<tr>
+    <td>6</td>
+    <td><code class="hl">NtxRestrictedListPreference</code></td>
+    <td>sleep_screen_mode</td>
+    <td><code>SleepScreenController</code></td>
+    <td>休眠畫面（單選 Dialog）</td>
+</tr>
+<tr>
+    <td>7</td>
+    <td><code>NtxCfaModeRestrictedListPreference</code></td>
+    <td>ntx_color_mode</td>
+    <td><code>NtxColorModePreferenceController</code></td>
+    <td>CFA 色彩模式（單選 Dialog）</td>
+</tr>
+</table>
+
+<div class="tip">
+<strong>💡 規則：</strong>凡是會彈出 Dialog 的 ListPreference，一律使用 <code>NtxRestrictedListPreference</code>，確保 E-ink 樣式（72dp 行高 / 黑色圓圈 Radio）。
+</div>
+</div>
+
+<!-- ======================================================== -->
+<!-- Q3 -->
+<!-- ======================================================== -->
+<h2 id="q3">Q3. 如何引入 Divider 的？</h2>
+
+<div class="card">
+<h3>位置：SettingsPreferenceFragment.java</h3>
+<p>所有設定頁的 Fragment 都繼承自 <code>SettingsPreferenceFragment</code>，我們在這裡統一注入分隔線。</p>
+
+<h4>Step 1. 停用系統預設 Divider</h4>
+<pre><code>// SettingsPreferenceFragment.java → onViewCreated()
+SharedPreferences tempPref = getContext().getSharedPreferences(PREF_NTXSETTINGS, Context.MODE_PRIVATE);
+if (tempPref.getBoolean(DEFAULT_SETTINGS_ITEMS, true)) {
+    <span class="hl">setDivider(null);</span>       // 拿掉系統預設的灰色 divider
+    <span class="hl">setDividerHeight(0);</span>   // 高度歸零
+}</code></pre>
+
+<h4>Step 2. 自訂 ItemDecoration</h4>
+<pre><code>// SettingsPreferenceFragment.java → onCreateRecyclerView()
+if (tempPref.getBoolean(DEFAULT_SETTINGS_ITEMS, true)) {
+    recyclerView.addItemDecoration(new RecyclerView.ItemDecoration() {
+        private Paint paint = new Paint();
+        { paint.setColor(<span class="hl">Color.BLACK</span>); }
+
+        @Override
+        public void getItemOffsets(Rect outRect, View view, ...) {
+            outRect.top    = <span class="hl2">20</span>;   // 上方間距 20px
+            outRect.bottom = <span class="hl2">20</span>;   // 下方間距 20px
+            outRect.left   = <span class="hl2">32</span>;   // 左邊距 32px
+            outRect.right  = <span class="hl2">32</span>;   // 右邊距 32px
+        }
+
+        @Override
+        public void onDraw(Canvas c, RecyclerView parent, ...) {
+            for (int i = 0; i &lt; parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                // 項目底部畫一條 2px 寬的黑線
+                c.drawRect(
+                    32,                        // left
+                    child.getBottom() + 18,    // top
+                    parent.getWidth() - 32,    // right
+                    child.getBottom() + <span class="hl2">20</span>,    // bottom (線寬 = 20-18 = 2px)
+                    paint
+                );
+            }
+        }
+    });
+}</code></pre>
+
+<div class="diagram-wrap">
+<svg width="700" height="240" viewBox="0 0 700 240">
+  <rect width="700" height="240" rx="10" fill="#0f1117"/>
+
+  <!-- Item 1 -->
+  <rect x="52" y="30" width="596" height="50" rx="4" fill="rgba(108,140,255,0.08)" stroke="#30363d"/>
+  <text x="70" y="60" font-size="12" fill="#e4e6ed">Preference Item 1（例如 Front Light）</text>
+
+  <!-- spacing -->
+  <text x="660" y="92" font-size="9" fill="#9199b0">↕ 20px</text>
+  <!-- divider line -->
+  <line x1="52" y1="98" x2="648" y2="98" stroke="#e4e6ed" stroke-width="2"/>
+  <text x="660" y="102" font-size="9" fill="#4ade80">2px 線</text>
+
+  <!-- Item 2 -->
+  <rect x="52" y="110" width="596" height="50" rx="4" fill="rgba(108,140,255,0.08)" stroke="#30363d"/>
+  <text x="70" y="140" font-size="12" fill="#e4e6ed">Preference Item 2（例如 Screen Timeout）</text>
+
+  <!-- spacing -->
+  <text x="660" y="172" font-size="9" fill="#9199b0">↕ 20px</text>
+  <line x1="52" y1="178" x2="648" y2="178" stroke="#e4e6ed" stroke-width="2"/>
+
+  <!-- Item 3 -->
+  <rect x="52" y="190" width="596" height="50" rx="4" fill="rgba(108,140,255,0.08)" stroke="#30363d"/>
+  <text x="70" y="220" font-size="12" fill="#e4e6ed">Preference Item 3（例如 Sleep Screen）</text>
+
+  <!-- Left margin label -->
+  <line x1="20" y1="30" x2="20" y2="240" stroke="#fb923c" stroke-width="1" stroke-dasharray="3"/>
+  <text x="25" y="18" font-size="9" fill="#fb923c">← 32px →</text>
+
+</svg>
+</div>
+
+<div class="note">
+<strong>📌 條件控制：</strong>只有 <code>SharedPreferences PREF_NTXSETTINGS</code> 中 <code>DEFAULT_SETTINGS_ITEMS == true</code> 時才生效（也就是 Ntx 模式），一般 AOSP 模式不會引入。
+</div>
+</div>
+
+<!-- ======================================================== -->
+<!-- Q4 -->
+<!-- ======================================================== -->
+<h2 id="q4">Q4. 如何 Remove ActionBar？</h2>
+
+<div class="card">
+<h3>Theme 繼承鏈</h3>
+<p>ActionBar 的移除透過 <b>Theme 繼承</b>完成，不需要在 Java 層做任何事情：</p>
+
+<div class="diagram-wrap">
+<svg width="960" height="250" viewBox="0 0 960 250">
+  <rect width="960" height="250" rx="10" fill="#0f1117"/>
+  <defs><marker id="b1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#6c8cff"/></marker></defs>
+
+  <!-- Manifest -->
+  <rect x="20" y="20" width="280" height="70" rx="8" fill="rgba(251,146,60,0.08)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="40" y="45" font-size="12" font-weight="bold" fill="#fb923c">AndroidManifest.xml</text>
+  <text x="40" y="63" font-size="10" fill="#9199b0">android:theme="@style/Theme.Settings.Home"</text>
+
+  <line x1="160" y1="90" x2="160" y2="120" stroke="#6c8cff" stroke-width="2" marker-end="url(#b1)"/>
+
+  <!-- onCreate -->
+  <rect x="20" y="120" width="450" height="60" rx="8" fill="rgba(74,222,128,0.08)" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="40" y="145" font-size="12" font-weight="bold" fill="#4ade80">SettingsHomepageActivity.onCreate()</text>
+  <text x="40" y="165" font-size="10" fill="#e4e6ed">if (isNtxMode) setTheme(<span><tspan fill="#fb923c">R.style.Theme_NtxSettings</tspan></span>);</text>
+
+  <line x1="470" y1="150" x2="520" y2="150" stroke="#6c8cff" stroke-width="2" marker-end="url(#b1)"/>
+
+  <!-- Theme.NtxSettings -->
+  <rect x="520" y="110" width="410" height="80" rx="8" fill="rgba(108,140,255,0.12)" stroke="#6c8cff" stroke-width="1.5"/>
+  <text x="540" y="135" font-size="12" font-weight="bold" fill="#6c8cff">Theme.NtxSettings</text>
+  <text x="540" y="153" font-size="10" fill="#9199b0">parent: <tspan fill="#a78bfa">Theme.Settings.NoActionBar</tspan></text>
+  <text x="540" y="173" font-size="10" fill="#9199b0">（定義在 styles.xml）</text>
+
+  <!-- NoActionBar Detail -->
+  <rect x="520" y="210" width="410" height="30" rx="6" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="540" y="230" font-size="10" fill="#a78bfa">windowActionBar = false · windowNoTitle = true</text>
+</svg>
+</div>
+
+<h3>themes.xml 中的定義</h3>
+<pre><code>&lt;!-- themes.xml --&gt;
+&lt;style name="Theme.Settings.NoActionBar"&gt;
+    &lt;item name="android:windowActionBar"&gt;<span class="hl">false</span>&lt;/item&gt;
+    &lt;item name="android:windowNoTitle"&gt;<span class="hl">true</span>&lt;/item&gt;
+&lt;/style&gt;</code></pre>
+
+<h3>styles.xml 中的 NtxSettings</h3>
+<pre><code>&lt;!-- styles.xml --&gt;
+&lt;style name="Theme.NtxSettings" parent="<span class="hl3">Theme.Settings.NoActionBar</span>"&gt;
+    &lt;item name="android:textAppearanceListItem"&gt;@style/TextAppearance.NtxListItem&lt;/item&gt;
+    &lt;item name="android:textAppearanceListItemSecondary"&gt;@style/TextAppearance.NtxListItemSecondary&lt;/item&gt;
+    &lt;item name="alertDialogTheme"&gt;@style/Theme.NtxAlertDialog&lt;/item&gt;
+    &lt;item name="materialAlertDialogTheme"&gt;@style/Theme.NtxAlertDialog&lt;/item&gt;
+&lt;/style&gt;</code></pre>
+
+<div class="note">
+<strong>📌 關鍵：</strong><code>setTheme()</code> 必須在 <code>super.onCreate()</code> <b>之前</b>呼叫，否則 Window 的 ActionBar 已經建立完成就來不及了。
+</div>
+</div>
+
+<!-- ======================================================== -->
+<!-- Q5 -->
+<!-- ======================================================== -->
+<h2 id="q5">Q5. 如何設定 Dialog Style？</h2>
+
+<div class="card">
+<h3>整體繼承鏈</h3>
+<div class="diagram-wrap">
+<svg width="1060" height="460" viewBox="0 0 1060 460">
+  <rect width="1060" height="460" rx="12" fill="#0f1117"/>
+  <defs>
+    <marker id="c1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#6c8cff"/></marker>
+    <marker id="c2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#4ade80"/></marker>
+    <marker id="c3" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#fb923c"/></marker>
+  </defs>
+
+  <!-- Level 0 -->
+  <rect x="30" y="20" width="350" height="90" rx="8" fill="rgba(108,140,255,0.12)" stroke="#6c8cff" stroke-width="1.5"/>
+  <text x="50" y="45" font-size="13" font-weight="bold" fill="#6c8cff">Theme.NtxSettings</text>
+  <text x="50" y="65" font-size="10" fill="#fb923c">alertDialogTheme → Theme.NtxAlertDialog</text>
+  <text x="50" y="83" font-size="10" fill="#fb923c">materialAlertDialogTheme → Theme.NtxAlertDialog</text>
+
+  <line x1="205" y1="110" x2="205" y2="145" stroke="#6c8cff" stroke-width="2" marker-end="url(#c1)"/>
+
+  <!-- Level 1: Theme.NtxAlertDialog -->
+  <rect x="30" y="145" width="500" height="185" rx="8" fill="rgba(74,222,128,0.08)" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="50" y="170" font-size="13" font-weight="bold" fill="#4ade80">Theme.NtxAlertDialog</text>
+  <text x="50" y="188" font-size="9" fill="#9199b0">parent: Theme.AppCompat.Light.Dialog.Alert</text>
+
+  <text x="50" y="212" font-size="10" fill="#e4e6ed">windowBackground → <tspan fill="#fb923c">@drawable/ntx_dialog_bg</tspan>（白底 + 2dp 黑框）</text>
+  <text x="50" y="230" font-size="10" fill="#e4e6ed">windowTitleStyle → <tspan fill="#a78bfa">@style/NtxDialogTitle</tspan>（底部黑線）</text>
+  <text x="50" y="248" font-size="10" fill="#e4e6ed">backgroundDimEnabled → <tspan fill="#4ade80">false</tspan>（E-ink 不需要背景變暗）</text>
+  <text x="50" y="266" font-size="10" fill="#e4e6ed">windowElevation → <tspan fill="#4ade80">0dp</tspan>（移除陰影，E-ink 上陰影會殘留）</text>
+  <text x="50" y="284" font-size="10" fill="#e4e6ed">colorBackgroundFloating → <tspan fill="#4ade80">transparent</tspan>（讓 windowBackground 的黑框露出）</text>
+  <text x="50" y="302" font-size="10" fill="#e4e6ed">colorSurface → <tspan fill="#4ade80">transparent</tspan>（防 Material 3 蓋白背景）</text>
+  <text x="50" y="320" font-size="10" fill="#e4e6ed">textColorPrimary → <tspan fill="#4ade80">black</tspan>（標題文字強制黑色）</text>
+
+  <!-- Level 2: NtxAlertDialogStyle -->
+  <rect x="560" y="145" width="470" height="115" rx="8" fill="rgba(251,146,60,0.08)" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="580" y="170" font-size="13" font-weight="bold" fill="#fb923c">NtxAlertDialogStyle</text>
+  <text x="580" y="188" font-size="9" fill="#9199b0">parent: AlertDialog.AppCompat.Light</text>
+  <text x="580" y="212" font-size="10" fill="#e4e6ed">singleChoiceItemLayout → <tspan fill="#a78bfa">ntx_select_dialog_singlechoice</tspan></text>
+  <text x="580" y="232" font-size="10" fill="#e4e6ed">android:background → <tspan fill="#fb923c">@drawable/ntx_dialog_bg</tspan></text>
+  <text x="580" y="250" font-size="9" fill="#9199b0">（雙重保險：最表層容器也套用黑框背景）</text>
+
+  <line x1="530" y1="200" x2="560" y2="200" stroke="#fb923c" stroke-width="1.5" marker-end="url(#c3)"/>
+
+  <!-- Bottom: Drawable details -->
+  <rect x="30" y="355" width="320" height="90" rx="8" fill="rgba(251,146,60,0.1)" stroke="#fb923c" stroke-width="1"/>
+  <text x="50" y="380" font-size="11" font-weight="bold" fill="#fb923c">ntx_dialog_bg.xml</text>
+  <text x="50" y="400" font-size="10" fill="#e4e6ed">白底 + 2dp 黑 stroke</text>
+  <text x="50" y="418" font-size="10" fill="#4ade80" font-weight="bold">+ padding 2dp（防子 View 覆蓋框線）</text>
+  <text x="50" y="436" font-size="9" fill="#9199b0">用在 windowBackground + alertDialogStyle.background</text>
+
+  <rect x="380" y="355" width="310" height="90" rx="8" fill="rgba(78,205,196,0.1)" stroke="#4ecdc4" stroke-width="1"/>
+  <text x="400" y="380" font-size="11" font-weight="bold" fill="#4ecdc4">ntx_dialog_title_bg.xml</text>
+  <text x="400" y="400" font-size="10" fill="#e4e6ed">layer-list：白底 + 底部 2dp 黑線</text>
+  <text x="400" y="418" font-size="10" fill="#4ade80" font-weight="bold">gravity="bottom" → 只畫底線不畫框</text>
+  <text x="400" y="436" font-size="10" fill="#e4e6ed">left/right = -24dp → 線條延伸到邊緣</text>
+
+  <rect x="720" y="355" width="310" height="90" rx="8" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1"/>
+  <text x="740" y="380" font-size="11" font-weight="bold" fill="#a78bfa">ntx_select_dialog_singlechoice.xml</text>
+  <text x="740" y="400" font-size="10" fill="#e4e6ed">CheckedTextView, height = 72dp</text>
+  <text x="740" y="418" font-size="10" fill="#e4e6ed">drawableStart = ntx_dialog_radio_button</text>
+  <text x="740" y="436" font-size="10" fill="#9199b0">使用 android:id/text1（系統 namespace）</text>
+
+  <!-- Arrows -->
+  <line x1="190" y1="330" x2="190" y2="355" stroke="#fb923c" stroke-width="1.5" marker-end="url(#c3)"/>
+  <line x1="535" y1="330" x2="535" y2="355" stroke="#4ecdc4" stroke-width="1.5"/>
+  <line x1="775" y1="260" x2="875" y2="355" stroke="#a78bfa" stroke-width="1"/>
+
+</svg>
+</div>
+
+<h3>Adapter 注入：NtxRestrictedListPreference.java</h3>
+<p>光靠 Theme 只能控制 Dialog 的外觀框架，列表項目內部的 Layout 需要透過覆寫 <code>createListAdapter()</code> 來注入：</p>
+<pre><code>public class NtxRestrictedListPreference extends RestrictedListPreference {
+
+    @Override
+    protected ListAdapter createListAdapter(Context context) {
+        return new NtxRestrictedArrayAdapter(context, getEntries(), getSelectedValuePos());
+    }
+
+    public class NtxRestrictedArrayAdapter extends ArrayAdapter&lt;CharSequence&gt; {
+        public NtxRestrictedArrayAdapter(Context context, CharSequence[] objects, int selectedIndex) {
+            super(context,
+                R.layout.<span class="hl">ntx_select_dialog_singlechoice</span>,  // ← 自訂 Layout
+                <span class="hl">android.R.id.text1</span>,                      // ← 系統 namespace ID
+                objects);
+        }
+    }
+}</code></pre>
+
+<div class="note">
+<strong>📌 總結：Dialog Style = Theme 控制外框 + Adapter 控制列表項</strong>
+<br>
+• <b>外框</b>：Theme.NtxAlertDialog → windowBackground / colorBackgroundFloating / elevation<br>
+• <b>標題</b>：NtxDialogTitle style → ntx_dialog_title_bg.xml（底部黑線）<br>
+• <b>列表項</b>：NtxRestrictedListPreference → createListAdapter() → ntx_select_dialog_singlechoice.xml（72dp 行高 + 40dp Radio）
+</div>
+</div>
+
+<hr>
+<div class="footer">📄 NtxDisplaySettings 修改紀錄 · 最後更新：2026-04-14</div>
+
+</div>
+
+<!-- Lightbox Modal -->
+<div class="svg-lightbox" id="svgLightbox">
+    <span class="lb-close" id="lbClose">&times;</span>
+    <div class="lb-inner" id="lbInner"></div>
+    <div class="lb-hint">滾輪縮放 · 拖曳平移 · 點擊任意處或 Esc 關閉</div>
+</div>
+
+<script>
+(function() {
+    const lightbox = document.getElementById('svgLightbox');
+    const lbInner  = document.getElementById('lbInner');
+    const lbClose  = document.getElementById('lbClose');
+    let scale = 1;
+
+    document.querySelectorAll('.diagram-wrap svg').forEach(svg => {
+        svg.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const clone = this.cloneNode(true);
+            const origW = parseFloat(this.getAttribute('width'))  || 800;
+            const origH = parseFloat(this.getAttribute('height')) || 400;
+            clone.setAttribute('width',  origW * 2);
+            clone.setAttribute('height', origH * 2);
+            clone.style.cursor = 'grab';
+            lbInner.innerHTML = '';
+            lbInner.appendChild(clone);
+            scale = 1;
+            clone.style.transform = 'scale(' + scale + ')';
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    function closeLB() {
+        lightbox.classList.remove('active');
+        lbInner.innerHTML = '';
+        document.body.style.overflow = '';
+        scale = 1;
+    }
+    lightbox.addEventListener('click', function(e) { if (e.target === lightbox || e.target === lbClose) closeLB(); });
+    lbClose.addEventListener('click', closeLB);
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLB(); });
+
+    lbInner.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        scale = Math.min(5, Math.max(0.5, scale + (e.deltaY > 0 ? -0.15 : 0.15)));
+        const svg = lbInner.querySelector('svg');
+        if (svg) svg.style.transform = 'scale(' + scale + ')';
+    }, { passive: false });
+
+    let isDragging = false, startX, startY, scrollL, scrollT;
+    lbInner.addEventListener('mousedown', function(e) {
+        isDragging = true; startX = e.pageX - lbInner.offsetLeft; startY = e.pageY - lbInner.offsetTop;
+        scrollL = lbInner.scrollLeft; scrollT = lbInner.scrollTop; lbInner.style.cursor = 'grabbing';
+    });
+    lbInner.addEventListener('mousemove', function(e) {
+        if (!isDragging) return; e.preventDefault();
+        lbInner.scrollLeft = scrollL - (e.pageX - lbInner.offsetLeft - startX);
+        lbInner.scrollTop  = scrollT - (e.pageY - lbInner.offsetTop - startY);
+    });
+    document.addEventListener('mouseup', function() { isDragging = false; lbInner.style.cursor = 'grab'; });
+    lbInner.addEventListener('click', function(e) { e.stopPropagation(); });
+})();
+</script>
+
+</body>
+</html>
