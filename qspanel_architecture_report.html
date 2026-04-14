@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SystemUI QSPanel 客製化架構報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+    --pink:#f472b6;--pink-d:rgba(244,114,182,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:900px;margin:0 auto}
+
+  /* header */
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+
+  /* section */
+  .sec{margin-bottom:40px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+
+  /* card */
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:10px}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:3px}
+
+  /* badge */
+  .b{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.3px;vertical-align:middle}
+  .b-aosp{background:var(--green-d);color:var(--green)}
+  .b-ntx{background:var(--purple-d);color:var(--purple)}
+  .b-anson{background:var(--cyan-d);color:var(--cyan)}
+  .b-new{background:var(--amber-d);color:var(--amber)}
+  .b-mod{background:var(--blue-d);color:var(--blue)}
+  .b-del{background:var(--red-d);color:var(--red)}
+
+  /* table */
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:8px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+  .tb tr:last-child td{border-bottom:none}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+
+  /* timeline */
+  .tl{position:relative;padding-left:28px;margin:16px 0}
+  .tl::before{content:'';position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--bd)}
+  .tl-item{position:relative;margin-bottom:14px}
+  .tl-item::before{content:'';position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+  .tl-item.first::before{background:var(--green)}
+  .tl-item.last::before{background:var(--cyan)}
+  .tl-date{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .tl-msg{font-size:13px;margin-top:2px}
+
+  /* arch diagram */
+  .arch{display:grid;gap:10px;margin:16px 0}
+  .arch-3{grid-template-columns:1fr 1fr 1fr}
+  .arch-2{grid-template-columns:1fr 1fr}
+  .arch-box{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;text-align:center}
+  .arch-box .lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .arch-box .name{font-size:13px;font-weight:600}
+  .arch-box .desc{font-size:11px;color:var(--dim);margin-top:4px}
+  .arch-box.highlight{border-color:var(--purple);box-shadow:0 0 12px rgba(167,139,250,.1)}
+  .arch-box.highlight2{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.1)}
+  .arch-arrow{text-align:center;font-size:18px;color:var(--dim);padding:4px 0}
+
+  /* layer diagram */
+  .layer{margin:16px 0}
+  .layer-row{display:flex;align-items:stretch;margin-bottom:6px;gap:6px}
+  .layer-label{width:80px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.3px}
+  .layer-content{flex:1;display:flex;gap:6px;flex-wrap:wrap}
+  .layer-chip{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 14px;font-size:12px;flex:1;min-width:120px;text-align:center}
+  .layer-chip.ntx{border-color:var(--purple);background:var(--purple-d)}
+  .layer-chip.aosp{border-color:var(--green);background:var(--green-d);color:var(--green)}
+  .layer-chip.both{border-left:3px solid var(--green);border-right:3px solid var(--purple)}
+
+  /* legend */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+  .divider{border:none;border-top:1px solid var(--bd);margin:32px 0}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+
+  @media(max-width:640px){
+    .arch-3{grid-template-columns:1fr}
+    .arch-2{grid-template-columns:1fr}
+    .layer-row{flex-direction:column}
+    .layer-label{width:auto;justify-content:flex-start;padding:0 0 4px 0}
+  }
+</style>
+</head>
+<body>
+<div class="c">
+
+<!-- ═══ HEADER ═══ -->
+<div class="hdr">
+  <h1>SystemUI QSPanel 客製化架構報告</h1>
+  <div class="sub">AOSP 原生 vs. NTX 客製化差異分析</div>
+  <div class="meta">
+    <div class="chip">原作者：<b>weichen lin</b></div>
+    <div class="chip">修訂：<b>Anson</b></div>
+    <div class="chip">異動檔案：<b>143 files</b></div>
+    <div class="chip">異動量：<b>+6,004 / −945 lines</b></div>
+  </div>
+</div>
+
+<!-- ═══ 1. 修改時間線 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 開發時間線</div>
+  <div class="card">
+    <div class="tl">
+      <div class="tl-item first">
+        <div class="tl-date">2025-12-22</div>
+        <div class="tl-msg"><b>add Panel view</b> — 初始框架建立，最大量的改動 <span class="b b-new">核心提交</span></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-01-19</div>
+        <div class="tl-msg"><b>MediaView 移位</b> — 從 QS 右側移到 Notification 左側</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-02-10</div>
+        <div class="tl-msg"><b>UI 修飾 + Statusbar 修正</b> — MediaView 外觀 & 下拉不隱藏 StatusBar</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-04</div>
+        <div class="tl-msg"><b>Panel View 下拉精度 & Tile 修正</b> — 觸控判定 & QS Tile 點擊修正</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-11</div>
+        <div class="tl-msg"><b>新增 Display 按鈕</b> — StatusBar 加入顯示設定快捷鍵</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-27</div>
+        <div class="tl-msg"><b>新增音量控制</b> — QS Footer 內嵌 Media / Ring / Alarm 三個 SeekBar</div>
+      </div>
+      <div class="tl-item last">
+        <div class="tl-date">2026-04-14</div>
+        <div class="tl-msg"><b>前光同步 & 亮度/色溫改寫</b> — ContentObserver 跨元件同步 <span class="b b-anson">Anson</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2. 架構總覽 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 架構總覽：AOSP vs NTX</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> AOSP 原生</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> NTX 客製 (weichen)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> Anson 修訂</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> 全新新增</div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--green)">▎AOSP 原生下拉選單</h4>
+    <p>Quick Settings Tiles (WiFi、BT、飛航…) + BrightnessSlider + 少量按鈕（編輯、設定）。<br>
+    通知面板與 QS 面板是<strong>上下堆疊</strong>的單一畫面。</p>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--purple)">▎NTX 客製後的下拉選單</h4>
+    <p>改為<strong>左右分割畫面</strong>：左邊 = 通知列表，右邊 = QS (Tiles + 自訂控制面板)。<br>
+    QS Footer 從原本幾乎空白的底部，變成一個<strong>完整的控制中心</strong>，內含：</p>
+    <ul style="margin-top:6px">
+      <li>🔊 音量區：開關 + Media / Ring / Alarm 三條 SeekBar</li>
+      <li>💡 前光區：開關 + 亮度 SeekBar + 色溫 SeekBar</li>
+      <li>🌗 顯示區：對比度 (Gamma) SeekBar + 白滴 (Whiteness) SeekBar</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ═══ 3. 畫面結構對照圖 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 畫面結構 → 程式碼對照圖</div>
+  <div class="card">
+    <p style="margin-bottom:14px">下圖是你在裝置上<b>實際看到的畫面</b>，每個區塊標注了負責的程式碼檔案：</p>
+
+    <!-- StatusBar (top bar) -->
+    <div style="background:var(--s2);border:2px solid var(--purple);border-radius:8px;padding:12px 16px;margin-bottom:4px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:11px;color:var(--purple);font-weight:600">頂部 StatusBar</div>
+          <div style="font-size:12px;margin-top:2px">◀ 🏠 ⬛ 🔄 ⚙️ 📺 &nbsp;&nbsp;&nbsp; 🔋 📶 🕐</div>
+        </div>
+        <div style="text-align:right">
+          <div class="mono" style="font-size:11px;color:var(--dim)">PhoneStatusBarView.java</div>
+          <div class="mono" style="font-size:11px;color:var(--dim)">status_bar.xml</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main split layout -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+
+      <!-- LEFT: Notification -->
+      <div style="background:var(--s2);border:2px solid var(--purple);border-radius:8px;padding:14px 16px;min-height:340px;display:flex;flex-direction:column">
+        <div style="font-size:12px;color:var(--purple);font-weight:700;margin-bottom:10px;text-align:center">◀ 左半邊：通知區</div>
+
+        <div style="background:var(--s3);border-radius:6px;padding:10px 12px;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:600">📩 LINE — 新訊息</div>
+          <div style="font-size:10px;color:var(--dim)">你好，明天可以開會嗎？</div>
+        </div>
+        <div style="background:var(--s3);border-radius:6px;padding:10px 12px;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:600">📧 Gmail — 會議通知</div>
+          <div style="font-size:10px;color:var(--dim)">週五 14:00 產品 Review</div>
+        </div>
+        <div style="background:var(--s3);border-radius:6px;padding:10px 12px;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:600">🎵 Media Player</div>
+          <div style="font-size:10px;color:var(--dim)">⏮ ▶️ ⏭ &nbsp; ━━━●━━━</div>
+        </div>
+
+        <div style="flex:1"></div>
+        <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:8px">
+          <div class="mono" style="font-size:10px;color:var(--dim)">NotificationStackScrollLayout.java</div>
+          <div class="mono" style="font-size:10px;color:var(--dim)">SharedNotificationContainer.kt</div>
+          <div class="mono" style="font-size:10px;color:var(--dim)">MediaControlPanel.java</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: QS Panel -->
+      <div style="background:var(--s2);border:2px solid var(--purple);border-radius:8px;padding:14px 16px;min-height:340px;display:flex;flex-direction:column">
+        <div style="font-size:12px;color:var(--purple);font-weight:700;margin-bottom:10px;text-align:center">右半邊：QS Panel ▶</div>
+
+        <!-- Tiles -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:10px">
+          <div style="background:var(--bg);border:1px solid var(--dim);border-radius:4px;padding:4px;text-align:center;font-size:10px">WiFi</div>
+          <div style="background:var(--bg);border:1px solid var(--dim);border-radius:4px;padding:4px;text-align:center;font-size:10px">BT</div>
+          <div style="background:var(--bg);border:1px solid var(--dim);border-radius:4px;padding:4px;text-align:center;font-size:10px">飛航</div>
+          <div style="background:var(--bg);border:1px solid var(--dim);border-radius:4px;padding:4px;text-align:center;font-size:10px">省電</div>
+        </div>
+
+        <!-- QSFooter: Volume -->
+        <div style="border:1px solid var(--amber);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:var(--amber-d)">
+          <div style="font-size:10px;font-weight:700;color:var(--amber)">🔊 音量區</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:3px">
+            🎵 ━━━●━━━ Media<br>
+            🔔 ━━●━━━━ Ring<br>
+            ⏰ ━━━━●━━ Alarm
+          </div>
+        </div>
+
+        <!-- QSFooter: Front Light -->
+        <div style="border:1px solid var(--cyan);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:var(--cyan-d)">
+          <div style="font-size:10px;font-weight:700;color:var(--cyan)">💡 前光區</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:3px">
+            💡 ━━━●━━━ 亮度<br>
+            🌡 ━━●━━━━ 色溫
+          </div>
+        </div>
+
+        <!-- QSFooter: Display -->
+        <div style="border:1px solid var(--dim);border-radius:6px;padding:8px 10px;margin-bottom:6px">
+          <div style="font-size:10px;font-weight:700;color:var(--dim)">🌗 顯示區</div>
+          <div style="font-size:10px;color:var(--dim);margin-top:3px">
+            🌗 ━━━●━━━ 對比<br>
+            ⬜ ━━━━●━━ 白滴
+          </div>
+        </div>
+
+        <div style="flex:1"></div>
+        <div style="border-top:1px solid var(--bd);padding-top:8px;margin-top:8px">
+          <div class="mono" style="font-size:10px;color:var(--dim)">QSTileViewImpl.kt</div>
+          <div class="mono" style="font-size:10px;color:var(--cyan)">QSFooterViewController.java ⬅ 核心</div>
+          <div class="mono" style="font-size:10px;color:var(--dim)">qs_footer_impl.xml</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom: controlling files -->
+    <div style="background:var(--s2);border:2px dashed var(--bd);border-radius:8px;padding:10px 16px;margin-top:4px">
+      <div style="font-size:11px;color:var(--dim);font-weight:600;margin-bottom:4px">⚙️ 幕後控制器（負責左右分割與觸控分發）</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="mono" style="font-size:11px">NotificationPanelViewController.java</div>
+        <div class="mono" style="font-size:11px">NotificationShadeWindowViewController.java</div>
+        <div class="mono" style="font-size:11px">QuickSettingsControllerImpl.java</div>
+        <div class="mono" style="font-size:11px">status_bar_expanded.xml</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ 4. 核心檔案清單 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> 核心異動檔案</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>檔案</th><th>狀態</th><th>異動重點</th></tr>
+
+      <tr><td colspan="3" style="background:var(--s2);font-weight:600;font-size:12px;color:var(--dim)">── QS Panel & Footer ──</td></tr>
+      <tr>
+        <td class="mono">QSFooterViewController.java</td>
+        <td><span class="b b-mod">大改</span></td>
+        <td>從 30 行 → 550+ 行。加入音量/前光/顯示所有控制邏輯</td>
+      </tr>
+      <tr>
+        <td class="mono">qs_footer_impl.xml</td>
+        <td><span class="b b-mod">大改</span></td>
+        <td>原生 85 行被註解保留，新增全新 449 行客製佈局</td>
+      </tr>
+      <tr>
+        <td class="mono">QSPanelController.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>BrightnessSlider 掛載調整、Footer 擴充接口</td>
+      </tr>
+      <tr>
+        <td class="mono">QSImpl.java / QSPanel.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>禁用原生 QS 展開動畫、調整容器高度</td>
+      </tr>
+      <tr>
+        <td class="mono">QSTileViewImpl.kt</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>Tile 背景改黑框白底、移除漸層色</td>
+      </tr>
+
+      <tr><td colspan="3" style="background:var(--s2);font-weight:600;font-size:12px;color:var(--dim)">── Shade (下拉面板) ──</td></tr>
+      <tr>
+        <td class="mono">NotificationPanelViewController.java</td>
+        <td><span class="b b-mod">大改</span></td>
+        <td>+872 行。實現左右分割、自訂觸控手勢判定</td>
+      </tr>
+      <tr>
+        <td class="mono">QuickSettingsControllerImpl.java</td>
+        <td><span class="b b-mod">大改</span></td>
+        <td>+471 行。QS 展開/收合動畫、高度計算重寫</td>
+      </tr>
+      <tr>
+        <td class="mono">NotificationShadeWindowViewController.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>觸控事件分發至左(通知)右(QS)區域</td>
+      </tr>
+      <tr>
+        <td class="mono">status_bar_expanded.xml</td>
+        <td><span class="b b-mod">大改</span></td>
+        <td>從垂直堆疊改為水平分割佈局</td>
+      </tr>
+
+      <tr><td colspan="3" style="background:var(--s2);font-weight:600;font-size:12px;color:var(--dim)">── Media 播放器 ──</td></tr>
+      <tr>
+        <td class="mono">MediaControlPanel.java</td>
+        <td><span class="b b-mod">大改</span></td>
+        <td>+788 行。自訂播放控制 UI、進度條、E-ink 風格</td>
+      </tr>
+      <tr>
+        <td class="mono">media_session_view.xml</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>重新排版播放器佈局</td>
+      </tr>
+
+      <tr><td colspan="3" style="background:var(--s2);font-weight:600;font-size:12px;color:var(--dim)">── StatusBar ──</td></tr>
+      <tr>
+        <td class="mono">PhoneStatusBarView.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>頂部狀態列加入 6 個快捷按鈕 (Back / Home / Recent…)</td>
+      </tr>
+      <tr>
+        <td class="mono">status_bar.xml</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>StatusBar 佈局加入 KeyButtonView 元件</td>
+      </tr>
+
+      <tr><td colspan="3" style="background:var(--s2);font-weight:600;font-size:12px;color:var(--dim)">── 全新檔案 ──</td></tr>
+      <tr>
+        <td class="mono">CustomRecentsActivity.java</td>
+        <td><span class="b b-new">NEW</span></td>
+        <td>自訂最近任務畫面 (取代原生 Recents)</td>
+      </tr>
+      <tr>
+        <td class="mono">TaskLoader.java / TaskData.java</td>
+        <td><span class="b b-new">NEW</span></td>
+        <td>最近任務資料載入器 & 模型</td>
+      </tr>
+      <tr>
+        <td class="mono">FLStateReceiver.java</td>
+        <td><span class="b b-new">NEW</span></td>
+        <td>前光狀態廣播接收器</td>
+      </tr>
+      <tr>
+        <td class="mono">50+ drawable / icon XML</td>
+        <td><span class="b b-new">NEW</span></td>
+        <td>E-ink 風格圖示 (ic_light, ic_temp, ic_media…)</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ 5. 佈局架構對比 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 下拉面板佈局對比</div>
+
+  <div class="arch arch-2">
+    <div class="arch-box">
+      <div class="lbl" style="color:var(--green)">AOSP 原生</div>
+      <div class="name">垂直堆疊</div>
+      <div style="text-align:left;margin-top:10px;font-size:12px;color:var(--dim);line-height:2">
+        ┌─────────────────┐<br>
+        │ &nbsp; Quick Tiles &nbsp; │<br>
+        ├─────────────────┤<br>
+        │ Brightness Slider│<br>
+        ├─────────────────┤<br>
+        │ &nbsp; Notifications &nbsp;│<br>
+        │ &nbsp; &nbsp; &nbsp; ↓ &nbsp; &nbsp; &nbsp; │<br>
+        │ &nbsp; &nbsp; &nbsp; ↓ &nbsp; &nbsp; &nbsp; │<br>
+        └─────────────────┘
+      </div>
+    </div>
+    <div class="arch-box highlight">
+      <div class="lbl" style="color:var(--purple)">NTX 客製</div>
+      <div class="name">左右分割</div>
+      <div style="text-align:left;margin-top:10px;font-size:12px;color:var(--dim);line-height:2">
+        ┌────────┬────────┐<br>
+        │Notific.│QS Tiles│<br>
+        │ &nbsp; ↓ &nbsp; │────────│<br>
+        │ &nbsp; ↓ &nbsp; │🔊 音量 │<br>
+        │ &nbsp; ↓ &nbsp; │💡 前光 │<br>
+        │ &nbsp; ↓ &nbsp; │🌗 顯示 │<br>
+        │ Media &nbsp;│ &nbsp;Edit &nbsp;│<br>
+        └────────┴────────┘
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 6. QSFooter 控制中心 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> QSFooter 控制中心結構</div>
+  <div class="card">
+    <p style="margin-bottom:12px">QSFooterViewController 是客製化的<strong>核心</strong>，集中管理所有硬體控制：</p>
+    <div style="background:var(--s2);border-radius:8px;padding:16px;font-size:13px;line-height:2.2">
+      <div>┌─ <b>音量區</b> ─────────────────────────┐</div>
+      <div>│ &nbsp; <span class="b b-ntx">Switch</span> 音量開關（靜音 / 恢復） &nbsp; │</div>
+      <div>│ &nbsp; 🎵 <span style="color:var(--amber)">Media</span> SeekBar &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; │</div>
+      <div>│ &nbsp; 🔔 <span style="color:var(--amber)">Ring</span> &nbsp;SeekBar &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; │</div>
+      <div>│ &nbsp; ⏰ <span style="color:var(--amber)">Alarm</span> SeekBar &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; │</div>
+      <div>└──────────────────────────────────┘</div>
+      <div style="margin-top:6px">┌─ <b>前光區</b> ─────────────────────────┐</div>
+      <div>│ &nbsp; <span class="b b-ntx">Switch</span> 前光開關 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;│</div>
+      <div>│ &nbsp; 💡 <span style="color:var(--cyan)">Brightness</span> SeekBar (0~255) &nbsp;│</div>
+      <div>│ &nbsp; 🌡 <span style="color:var(--cyan)">Color Temp</span> SeekBar (0~255) &nbsp;│</div>
+      <div>└──────────────────────────────────┘</div>
+      <div style="margin-top:6px">┌─ <b>顯示區</b> ─────────────────────────┐</div>
+      <div>│ &nbsp; 🌗 Contrast (Gamma) SeekBar &nbsp; &nbsp;│</div>
+      <div>│ &nbsp; ⬜ Whiteness Threshold SeekBar &nbsp;│</div>
+      <div>└──────────────────────────────────┘</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 7. 資料同步架構 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">7</span> 前光資料同步架構 <span class="b b-anson">Anson 修訂</span></div>
+  <div class="card">
+    <p style="margin-bottom:14px">所有元件透過 <code>Settings.System</code> + <code>ContentObserver</code> 實現即時雙向同步：</p>
+    <div class="arch arch-3">
+      <div class="arch-box highlight2">
+        <div class="lbl">Settings App</div>
+        <div class="name">FrontLight<br>Preference</div>
+        <div class="desc">ContentObserver ×3</div>
+      </div>
+      <div class="arch-box" style="background:var(--blue-d);border-color:var(--blue)">
+        <div class="lbl">唯一真理</div>
+        <div class="name" style="font-size:16px">🗄️</div>
+        <div class="name">Settings.System</div>
+        <div class="desc" style="margin-top:6px;font-size:11px">
+          screen_brightness<br>
+          screen_brightness_color<br>
+          screen_front_light_mode
+        </div>
+      </div>
+      <div class="arch-box highlight2">
+        <div class="lbl">Quick Settings</div>
+        <div class="name">QSFooter<br>ViewController</div>
+        <div class="desc">ContentObserver ×3</div>
+      </div>
+    </div>
+    <div class="arch arch-2" style="margin-top:6px">
+      <div class="arch-box">
+        <div class="lbl">實體按鍵</div>
+        <div class="name">PhoneWindowManager</div>
+        <div class="desc">寫入 DB → 自動觸發所有 Observer</div>
+      </div>
+      <div class="arch-box">
+        <div class="lbl">開發偵錯</div>
+        <div class="name">ADB Shell</div>
+        <div class="desc">settings put system → 同上</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 8. 設計決策摘要 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">8</span> 關鍵設計決策</div>
+  <div class="card">
+    <table class="tb">
+      <tr><th>決策</th><th>原生做法</th><th>NTX 做法</th><th>原因</th></tr>
+      <tr>
+        <td>面板佈局</td>
+        <td>上下堆疊</td>
+        <td><b>左右分割</b></td>
+        <td>E-ink 螢幕刷新慢，減少滾動操作</td>
+      </tr>
+      <tr>
+        <td>亮度控制</td>
+        <td>BrightnessController<br>(0.0~1.0 浮點)</td>
+        <td><b>直操 SeekBar</b><br>(0~255 整數)</td>
+        <td>對齊 E-ink 驅動原生值域</td>
+      </tr>
+      <tr>
+        <td>同步機制</td>
+        <td>BroadcastReceiver</td>
+        <td><b>ContentObserver</b></td>
+        <td>實體按鍵不發廣播，需監聽 DB</td>
+      </tr>
+      <tr>
+        <td>QS Tile 風格</td>
+        <td>Material 3 圓角漸層</td>
+        <td><b>黑框白底</b></td>
+        <td>E-ink 無法顯示彩色漸層</td>
+      </tr>
+      <tr>
+        <td>StatusBar</td>
+        <td>僅顯示系統圖示</td>
+        <td><b>內嵌 6 個按鈕</b></td>
+        <td>E-ink 裝置無實體導航列</td>
+      </tr>
+      <tr>
+        <td>Recent Apps</td>
+        <td>原生 Overview</td>
+        <td><b>自訂 Activity</b></td>
+        <td>原生動畫在 E-ink 上體驗差</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<hr class="divider">
+<div class="note">SystemUI QSPanel Architecture Report · NTX E-ink Customization · 2026-04-14</div>
+
+</div>
+</body>
+</html>
