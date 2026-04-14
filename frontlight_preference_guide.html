@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FrontLightPreference 技術講解</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e2e4eb;
+    --text-dim: #8b90a0;
+    --accent: #6c8cff;
+    --accent-dim: rgba(108,140,255,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .header .path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    word-break: break-all;
+  }
+
+  /* ── Section ── */
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .card p, .card li {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .card ul {
+    padding-left: 18px;
+  }
+  .card li {
+    margin-bottom: 4px;
+  }
+
+  /* ── Key-value table ── */
+  .kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .kv-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .kv-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .kv-table tr:last-child td { border-bottom: none; }
+  .kv-table .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+  .kv-table .type {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+    font-size: 12px;
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-top: 12px;
+    color: var(--text-dim);
+  }
+  .code-block .comment { color: #555c70; }
+  .code-block .keyword { color: var(--accent); }
+  .code-block .string { color: var(--green); }
+  .code-block .number { color: var(--amber); }
+  .code-block .highlight { color: var(--text); font-weight: 500; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-red   { background: var(--red-dim);   color: var(--red); }
+  .badge-cyan  { background: var(--cyan-dim);  color: var(--cyan); }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .flow-node.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.15);
+  }
+  .flow-arrow {
+    font-size: 18px;
+    color: var(--text-dim);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── Lifecycle pills ── */
+  .lifecycle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .lifecycle .pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .pill .dot-green { background: var(--green); }
+  .pill .dot-red { background: var(--red); }
+  .pill .dot-amber { background: var(--amber); }
+
+  /* ── Sync diagram ── */
+  .sync-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin: 16px 0;
+  }
+  .sync-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    text-align: center;
+  }
+  .sync-box .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .sync-box .name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .sync-center {
+    text-align: center;
+  }
+  .sync-center .db-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+  .sync-center .db-label {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══════ HEADER ═══════ -->
+  <div class="header">
+    <h1>FrontLightPreference 技術講解</h1>
+    <div class="subtitle">E-ink 前光控制元件 ─ MtkSettings 模組</div>
+    <div class="path">MtkSettings/src/com/android/settings/display/FrontLightPreference.java</div>
+  </div>
+
+  <!-- ═══════ 1. 角色定位 ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> 角色定位</div>
+    <div class="card">
+      <p>這是一個<strong>自訂 Preference 元件</strong>，繼承自 <code>SwitchTwoSeekbarPreference</code>（一個開關 + 兩條拉桿的佈局）。<br>
+      它負責在 <strong>Settings → 顯示設定</strong> 裡提供 E-ink 前光的三項控制：</p>
+      <ul style="margin-top:8px">
+        <li><strong>開關</strong> ─ 前光 ON / OFF</li>
+        <li><strong>SeekBar 1</strong> ─ 亮度 (0 ~ 255)</li>
+        <li><strong>SeekBar 2</strong> ─ 色溫 (0 ~ 255)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ═══════ 2. Settings.System Keys ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> 資料庫 Keys（唯一真理來源）</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="kv-table">
+        <tr>
+          <th>Key</th>
+          <th>用途</th>
+          <th>範圍</th>
+        </tr>
+        <tr>
+          <td class="key">screen_brightness</td>
+          <td>前光亮度</td>
+          <td class="type">0 ~ 255</td>
+        </tr>
+        <tr>
+          <td class="key">screen_brightness_color</td>
+          <td>前光色溫</td>
+          <td class="type">0 ~ 255</td>
+        </tr>
+        <tr>
+          <td class="key">screen_front_light_mode</td>
+          <td>前光開關</td>
+          <td class="type">0 / 1</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════ 3. 生命週期 ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> 生命週期</div>
+    <div class="card">
+      <div class="lifecycle">
+        <div class="pill"><span class="dot dot-green"></span> <strong>onAttached</strong> ─ 註冊 ContentObserver</div>
+        <div class="pill"><span class="dot dot-amber"></span> <strong>onBindViewHolder</strong> ─ 初始化 UI</div>
+        <div class="pill"><span class="dot dot-red"></span> <strong>onDetached</strong> ─ 解除 ContentObserver</div>
+      </div>
+      <div class="code-block" style="margin-top:16px">
+<span class="comment">// onAttached — 監聽三個 Settings.System 欄位的變化</span>
+context.getContentResolver().<span class="highlight">registerContentObserver</span>(
+    Settings.System.getUriFor(<span class="string">"screen_brightness"</span>), ...);
+    Settings.System.getUriFor(<span class="string">"screen_brightness_color"</span>), ...);
+    Settings.System.getUriFor(<span class="string">"screen_front_light_mode"</span>), ...);
+
+<span class="comment">// onDetached — 解除監聽，避免記憶體洩漏</span>
+context.getContentResolver().<span class="highlight">unregisterContentObserver</span>(...);
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ 4. 使用者操作流程 ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> 使用者操作流程</div>
+
+    <!-- Switch -->
+    <div class="card">
+      <h4>⚡ 開關被切換時</h4>
+      <div class="flow">
+        <div class="flow-node">使用者切換 Switch</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">寫入 Settings.System<br><code style="font-size:11px;">screen_front_light_mode</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">呼叫 PowerManager<br><span class="badge badge-green">硬體生效</span></div>
+      </div>
+      <p>開啟時：恢復亮度 + 色溫到硬體<br>關閉時：<code>setBacklightBrightness(0)</code> 關閉前光</p>
+    </div>
+
+    <!-- SeekBar -->
+    <div class="card">
+      <h4>🎚️ 拉桿滑動時</h4>
+      <div class="flow">
+        <div class="flow-node">手指觸摸拉桿</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--amber)">切換 E-ink<br><span class="badge badge-amber">DU 極速模式</span></div>
+      </div>
+      <div class="flow" style="margin-top:4px">
+        <div class="flow-node">滑動中 (onProgressChanged)</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">即時寫入 DB + 推送 PowerManager</div>
+      </div>
+      <div class="flow" style="margin-top:4px">
+        <div class="flow-node">手指放開</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--green)">E-ink 回歸<br><span class="badge badge-green">正常高畫質</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ 5. 同步機制 ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> 跨元件同步機制 — ContentObserver</div>
+    <div class="card">
+      <p style="margin-bottom:12px">透過 <code>ContentObserver</code> 監聽 <code>Settings.System</code> 資料庫。<br>
+      不管是誰修改了資料庫，UI 都會<strong>即時自動更新</strong>。</p>
+
+      <div class="sync-grid">
+        <div class="sync-box">
+          <div class="label">Settings App</div>
+          <div class="name">FrontLightPreference</div>
+        </div>
+        <div class="sync-center">
+          <div class="db-icon">🗄️</div>
+          <div class="db-label">Settings.System</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px">ContentObserver</div>
+        </div>
+        <div class="sync-box">
+          <div class="label">Quick Settings</div>
+          <div class="name">QSFooterViewController</div>
+        </div>
+      </div>
+      <div class="sync-grid" style="margin-top:0">
+        <div class="sync-box">
+          <div class="label">實體按鍵</div>
+          <div class="name">PhoneWindowManager</div>
+        </div>
+        <div class="sync-center">
+          <div style="font-size:18px;color:var(--accent)">↑↓</div>
+        </div>
+        <div class="sync-box">
+          <div class="label">開發偵錯</div>
+          <div class="name">ADB Shell</div>
+        </div>
+      </div>
+
+      <p style="font-size:13px;color:var(--text-dim);margin-top:12px">
+        <strong>防止無限迴圈：</strong>Observer 收到通知後會先比對 <code>seekBar.getProgress() != newValue</code>，只有真的不同才更新 UI，避免自己改的值又觸發自己。
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ 6. 方法速查 ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> 方法速查表</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="kv-table">
+        <tr>
+          <th>方法</th>
+          <th>功能</th>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">init()</td>
+          <td>取得 PowerManager 實例</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">onBindViewHolder()</td>
+          <td>綁定 UI 元件、讀取初始狀態、設定監聽器</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">getBrightnessLevel()</td>
+          <td>從 DB 讀取亮度值 (0~255)</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">setBrightnessLevel()</td>
+          <td>寫 DB + 呼叫 <code>setBacklightBrightness()</code></td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">getBrightnessColourLevel()</td>
+          <td>從 DB 讀取色溫值 (0~255)</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">setBrightnessColourLevel()</td>
+          <td>寫 DB + 呼叫 <code>setFrontlightBrightnessColor()</code></td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">setFrontLightMode()</td>
+          <td>寫 DB + 開/關硬體前光</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">broadcastEinkMode()</td>
+          <td>發送 E-ink 更新模式廣播 (DU ⇄ 正常)</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">checkSettingsSystemKey()</td>
+          <td>檢查 DB 中某個 key 是否存在</td>
+        </tr>
+        <tr>
+          <td class="key" style="font-size:12px">changeTextDrawableEnable()</td>
+          <td>切換 icon 圖示 (亮/暗)</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════ 7. E-ink 優化 ═══════ -->
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> E-ink 螢幕優化 (Dango Eink Opt)</div>
+    <div class="card">
+      <p>滑動拉桿時，為了防止 E-ink 螢幕反覆全刷導致閃爍：</p>
+      <table class="kv-table" style="margin-top:12px;">
+        <tr>
+          <th>時機</th>
+          <th>發送值</th>
+          <th>效果</th>
+        </tr>
+        <tr>
+          <td><span class="badge badge-amber">手指觸摸</span></td>
+          <td class="type">0x402</td>
+          <td>切換到 DU 極速模式，畫面流暢不閃</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">手指放開</span></td>
+          <td class="type">0x0</td>
+          <td>恢復正常 GC16 高畫質模式</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="note">FrontLightPreference.java · 最後更新 2026-04-14</div>
+
+</div>
+</body>
+</html>
