@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FrontLight 底層串接分析</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e2e4eb;
+    --text-dim: #8b90a0;
+    --accent: #6c8cff;
+    --accent-dim: rgba(108,140,255,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-size: 30px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .header .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .header .path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    word-break: break-all;
+  }
+
+  .section {
+    margin-bottom: 36px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+
+  .card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .card p, .card li {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .card ul, .card ol {
+    padding-left: 18px;
+    margin-top: 8px;
+  }
+
+  .card li {
+    margin-bottom: 4px;
+  }
+
+  .kv-wrap {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  .kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+    min-width: 680px;
+  }
+
+  .kv-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .kv-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text-dim);
+  }
+
+  .kv-table tr:last-child td { border-bottom: none; }
+
+  .kv-table .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .kv-table .type,
+  .kv-table .sha {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+    font-size: 12px;
+  }
+
+  .kv-table .sha {
+    white-space: normal;
+    word-break: break-all;
+    color: var(--green);
+  }
+
+  .kv-table .path-col {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    word-break: break-word;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-red   { background: var(--red-dim); color: var(--red); }
+  .badge-cyan  { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-top: 12px;
+    color: var(--text-dim);
+  }
+
+  .code-block .comment { color: #555c70; }
+  .code-block .keyword { color: var(--accent); }
+  .code-block .string { color: var(--green); }
+  .code-block .number { color: var(--amber); }
+  .code-block .highlight { color: var(--text); font-weight: 500; }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+  }
+
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .flow-node.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.15);
+  }
+
+  .flow-arrow {
+    font-size: 18px;
+    color: var(--text-dim);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  .sync-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin: 16px 0;
+  }
+
+  .sync-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    text-align: center;
+  }
+
+  .sync-box .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .sync-box .name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .sync-center {
+    text-align: center;
+  }
+
+  .sync-center .db-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+
+  .sync-center .db-label {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .lifecycle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .lifecycle .pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .pill .dot-green { background: var(--green); }
+  .pill .dot-red { background: var(--red); }
+  .pill .dot-amber { background: var(--amber); }
+
+  .callout {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 720px) {
+    body { padding: 24px 12px; }
+    .card { padding: 16px 16px; }
+    .sync-grid { grid-template-columns: 1fr; }
+    .kv-table { min-width: 620px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>FrontLight 底層串接分析</h1>
+    <div class="subtitle">Settings key → system_server → lights / HAL 的完整追蹤</div>
+    <div class="path">frameworks/base + vendor/mediatek/proprietary/packages/apps/MtkSettings</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> 結論先看</div>
+    <div class="card">
+      <ul>
+        <li><code>screen_brightness</code> 被拿來當 front light 白光值，但它同時也是 Android 標準亮度 key，所以和一般 display brightness 流程有耦合。</li>
+        <li><code>screen_brightness_color</code>、<code>screen_front_light_mode</code> 是後續 FrontLight 客製新增到 <code>Settings.System</code> 的 key。</li>
+        <li>整體有兩條路徑：一條寫進 <code>Settings.System</code> 供 observer 消費，一條由 UI 直接 call <code>PowerManager</code> 立即生效。</li>
+        <li><code>screen_front_light_mode</code> 是跨層 gating 開關，UI、PowerManagerService、LightsService 都會看它。</li>
+        <li>色溫通道目前借用 <code>LIGHT_ID_ATTENTION</code>，不是獨立的 light type。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> 三個 Key 與角色</div>
+    <div class="card kv-wrap">
+      <div class="table-scroll">
+        <table class="kv-table">
+          <tr>
+            <th>Key</th>
+            <th>定義</th>
+            <th>主要寫入者</th>
+            <th>主要讀取者</th>
+            <th>影響</th>
+          </tr>
+          <tr>
+            <td class="key">screen_brightness</td>
+            <td><span class="badge badge-accent">Settings.System</span></td>
+            <td><code>settings put</code>、<code>FrontLightPreference</code></td>
+            <td><code>PowerManagerService</code>、標準 display brightness 流程</td>
+            <td>front light 白光亮度，且與系統亮度共用 key</td>
+          </tr>
+          <tr>
+            <td class="key">screen_brightness_color</td>
+            <td><span class="badge badge-cyan">vendor patch</span></td>
+            <td><code>settings put</code>、<code>FrontLightPreference</code></td>
+            <td><code>PowerManagerService</code>、<code>FrontLightPreference</code></td>
+            <td>front light 色溫通道亮度</td>
+          </tr>
+          <tr>
+            <td class="key">screen_front_light_mode</td>
+            <td><span class="badge badge-cyan">vendor patch</span></td>
+            <td><code>settings put</code>、<code>FrontLightPreference</code></td>
+            <td><code>PowerManagerService</code>、<code>LightsService</code>、<code>FrontLightPreference</code></td>
+            <td>front light 主開關與硬體輸出 gating</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> 生命週期與觀察點</div>
+    <div class="card">
+      <div class="lifecycle">
+        <div class="pill"><span class="dot dot-green"></span> <strong>Settings.java</strong> 定義 key 常數</div>
+        <div class="pill"><span class="dot dot-amber"></span> <strong>FrontLightPreference</strong> 寫值 + 即時下發</div>
+        <div class="pill"><span class="dot dot-red"></span> <strong>PowerManagerService</strong> observer + 真正套用</div>
+      </div>
+      <div class="code-block">
+<span class="comment">// Settings.System key 定義</span>
+<span class="highlight">SCREEN_BRIGHTNESS</span> = <span class="string">"screen_brightness"</span>
+<span class="highlight">SCREEN_BRIGHTNESS_COLOR</span> = <span class="string">"screen_brightness_color"</span>
+<span class="highlight">SCREEN_FRONT_LIGHT_MODE</span> = <span class="string">"screen_front_light_mode"</span>
+
+<span class="comment">// PowerManagerService 監聽這三個 URI</span>
+resolver.registerContentObserver(Settings.System.getUriFor(<span class="string">SCREEN_BRIGHTNESS</span>), ...);
+resolver.registerContentObserver(Settings.System.getUriFor(<span class="string">SCREEN_BRIGHTNESS_COLOR</span>), ...);
+resolver.registerContentObserver(Settings.System.getUriFor(<span class="string">SCREEN_FRONT_LIGHT_MODE</span>), ...);
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> 實際資料流</div>
+
+    <div class="card">
+      <h4>CLI / adb 路徑</h4>
+      <div class="flow">
+        <div class="flow-node">settings put system</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">Settings.System</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">PowerManagerService observer</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">LogicalLight / HAL</div>
+      </div>
+      <p><code>screen_brightness</code> 改變時直接套白光；<code>screen_brightness_color</code> 改變時會走 <code>applyFrontLightColorLocked()</code>；<code>screen_front_light_mode=0</code> 時會把白光與色溫都清成 0。</p>
+    </div>
+
+    <div class="card">
+      <h4>Settings UI 路徑</h4>
+      <div class="flow">
+        <div class="flow-node">FrontLightPreference</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">putInt 到 Settings.System</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">直接 call PowerManager</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">硬體即時生效</div>
+      </div>
+      <p>白光 slider 走 <code>setBacklightBrightness()</code>；色溫 slider 走 <code>setFrontlightBrightnessColor()</code>；switch 關閉時會把 backlight 寫成 0。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> 跨元件同步機制</div>
+    <div class="card">
+      <p>這套設計不是只有 Settings app 在控制，實際上是透過 <code>Settings.System</code> 當共享狀態，再由 system_server 消費。因此 CLI、UI、其他 service 都能共享同一組 key。</p>
+
+      <div class="sync-grid">
+        <div class="sync-box">
+          <div class="label">UI</div>
+          <div class="name">FrontLightPreference</div>
+        </div>
+        <div class="sync-center">
+          <div class="db-icon">🗄️</div>
+          <div class="db-label">Settings.System</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:2px">ContentObserver</div>
+        </div>
+        <div class="sync-box">
+          <div class="label">System Server</div>
+          <div class="name">PowerManagerService</div>
+        </div>
+      </div>
+
+      <div class="sync-grid" style="margin-top:0">
+        <div class="sync-box">
+          <div class="label">CLI</div>
+          <div class="name">settings put system</div>
+        </div>
+        <div class="sync-center">
+          <div style="font-size:18px;color:var(--accent)">↑↓</div>
+        </div>
+        <div class="sync-box">
+          <div class="label">Lights</div>
+          <div class="name">LightsService / HAL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> 關鍵實作細節</div>
+    <div class="card kv-wrap">
+      <div class="table-scroll">
+        <table class="kv-table">
+          <tr>
+            <th>項目</th>
+            <th>確認結果</th>
+            <th>意義</th>
+          </tr>
+          <tr>
+            <td class="key">LogicalLight 綁定</td>
+            <td><code>mFrontLight = LIGHT_ID_BACKLIGHT</code><br><code>mFrontLightColor = LIGHT_ID_ATTENTION</code></td>
+            <td>色溫通道是借用 attention light ID</td>
+          </tr>
+          <tr>
+            <td class="key">LightsService gating</td>
+            <td>讀 <code>screen_front_light_mode</code>，關閉時直接輸出 0</td>
+            <td>mode key 不是只影響 UI，而是底層也再檢查一次</td>
+          </tr>
+          <tr>
+            <td class="key">Wake / boot delay</td>
+            <td><code>systemReady=800ms</code><br><code>boot=2700ms</code><br><code>wake=2700ms</code></td>
+            <td>色溫通道需要延遲重套，表示底層上電時序有依賴</td>
+          </tr>
+          <tr>
+            <td class="key">SettingsProvider defaults</td>
+            <td>只看到 <code>screen_brightness</code> 預設值</td>
+            <td><code>screen_brightness_color</code> 初始是否存在，會影響 UI 第二條 slider 是否可用</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> 主要程式碼落點</div>
+    <div class="card kv-wrap">
+      <div class="table-scroll">
+        <table class="kv-table">
+          <tr>
+            <th>位置</th>
+            <th>說明</th>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/core/java/android/provider/Settings.java</td>
+            <td>定義 <code>SCREEN_BRIGHTNESS</code>、<code>SCREEN_BRIGHTNESS_COLOR</code>、<code>SCREEN_FRONT_LIGHT_MODE</code></td>
+          </tr>
+          <tr>
+            <td class="path-col">vendor/mediatek/proprietary/packages/apps/MtkSettings/src/com/android/settings/display/FrontLightPreference.java</td>
+            <td>UI 元件，負責 switch / 兩條 seekbar、寫 DB、call PowerManager、同步 observer</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+            <td>註冊 observer、讀三個 key、套 front light white / color、處理 mode on/off</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/lights/LightsService.java</td>
+            <td>真正把 brightness 轉成 light state，並再次檢查 <code>screen_front_light_mode</code></td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/core/java/android/os/IPowerManager.aidl</td>
+            <td>新增 <code>setFrontlightBrightness()</code>、<code>setFrontlightBrightnessColor()</code></td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/jni/com_android_server_lights_LightsService.cpp</td>
+            <td>legacy light HAL bridge，最終進到 <code>ILight::setLight()</code></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">8</span> 後續 FrontLight Patch</div>
+    <div class="card">
+      <p>以下只列出這次追到的後續 FrontLight 客製 patch。`frameworks/base` 這批是 <code>jungwen</code>，UI 的 <code>FrontLightPreference.java</code> 則是另一筆較新的支援 patch。</p>
+    </div>
+    <div class="card kv-wrap">
+      <div class="table-scroll">
+        <table class="kv-table">
+          <tr>
+            <th style="min-width:260px;">Path</th>
+            <th style="min-width:220px;">Commit SHA1</th>
+            <th style="min-width:90px;">Author</th>
+            <th style="min-width:90px;">Date</th>
+            <th style="min-width:220px;">Subject</th>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/core/java/android/os/IPowerManager.aidl</td>
+            <td class="sha">c15346968cd5b3e3d2bcbc95e581b4deae4842c4</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-03-30</td>
+            <td>[Front-Light]: Supports front light control.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/core/java/android/os/PowerManager.java</td>
+            <td class="sha">c15346968cd5b3e3d2bcbc95e581b4deae4842c4</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-03-30</td>
+            <td>[Front-Light]: Supports front light control.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/core/java/android/provider/Settings.java</td>
+            <td class="sha">c15346968cd5b3e3d2bcbc95e581b4deae4842c4</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-03-30</td>
+            <td>[Front-Light]: Supports front light control.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/lights/LightsManager.java</td>
+            <td class="sha">c15346968cd5b3e3d2bcbc95e581b4deae4842c4</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-03-30</td>
+            <td>[Front-Light]: Supports front light control.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/lights/LightsService.java</td>
+            <td class="sha">c15346968cd5b3e3d2bcbc95e581b4deae4842c4</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-03-30</td>
+            <td>[Front-Light]: Supports front light control.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+            <td class="sha">c15346968cd5b3e3d2bcbc95e581b4deae4842c4</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-03-30</td>
+            <td>[Front-Light]: Supports front light control.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+            <td class="sha">43a66531269751ff383909c1300060421836f375</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-04-01</td>
+            <td>Supports switching the front light on or off.</td>
+          </tr>
+          <tr>
+            <td class="path-col">frameworks/base/services/core/java/com/android/server/lights/LightsService.java</td>
+            <td class="sha">7caf931eb0e722fae8e64fc23988c6946de7ca5c</td>
+            <td><code>jungwen</code></td>
+            <td class="type">2026-04-01</td>
+            <td>Support for front light button off control logic.</td>
+          </tr>
+          <tr>
+            <td class="path-col">vendor/mediatek/proprietary/packages/apps/MtkSettings/src/com/android/settings/display/FrontLightPreference.java</td>
+            <td class="sha">9ecc19e91cd57655b730cc971a542cdafc41310c</td>
+            <td><code>Anson</code></td>
+            <td class="type">2026-04-14</td>
+            <td>[Feat] - DisplaySetting Support FrontLight</td>
+          </tr>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>觀察：</strong> 如果你問的是 system 層後續 FrontLight 客製作者，現有 git metadata 顯示主作者是 <code>jungwen</code>；如果把 UI 端一起算進來，則還有 <code>Anson</code> 這筆較新的 Settings app patch。
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">9</span> 邊界與風險</div>
+    <div class="card">
+      <ul>
+        <li>已確認到 <code>LightsService</code> / <code>ILight</code> 這層，但 tree 內沒有直接找到特定板子的 vendor light HAL / sysfs mapping。</li>
+        <li>因此最底層 driver 節點目前只能合理推定是由 vendor HAL 將 <code>BACKLIGHT</code> 與 <code>ATTENTION</code> 對應到白光與色溫控制。</li>
+        <li><code>screen_brightness</code> 共用標準系統亮度 key，是後續維護最容易踩到的耦合點。</li>
+        <li><code>LIGHT_ID_ATTENTION</code> 被借來當色溫 channel，如果未來 attention light 要恢復原用途，會直接衝突。</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="note">FrontLight Architecture Report · 最後更新 2026-04-15</div>
+
+</div>
+</body>
+</html>
