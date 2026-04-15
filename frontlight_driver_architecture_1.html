@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>前光控制底層架構指南 - PowerManagerService (PMS) 鏈路</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  
+  :root {
+    --bg-color: #0d1117;
+    --surface-1: #161b22;
+    --surface-2: #21262d;
+    --border-color: #30363d;
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    
+    --accent-blue: #58a6ff;
+    --accent-blue-dim: rgba(88, 166, 255, 0.1);
+    --accent-purple: #bc8cff;
+    --accent-cyan: #39c5cf;
+    --accent-amber: #e3b341;
+    --accent-green: #3fb950;
+    
+    /* Syntax Highlighting */
+    --code-bg: #0d1117;
+    --code-keyword: #ff7b72;
+    --code-string: #a5d6ff;
+    --code-function: #d2a8ff;
+    --code-type: #ff7b72;
+    --code-comment: #8b949e;
+    --code-var: #c9d1d9;
+    --code-num: #79c0ff;
+    --code-annotate: #7ee787;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 40px 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 950px; margin: 0 auto; }
+
+  /* Typography */
+  h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  h2 { 
+    font-size: 18px; font-weight: 600; color: #fff; 
+    margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);
+  }
+  p { margin-bottom: 16px; font-size: 14.5px; color: var(--text-primary); }
+  
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 13.5px; }
+
+  /* Header */
+  .header {
+    background: var(--surface-1);
+    padding: 32px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 40px;
+    border-left: 4px solid var(--accent-blue);
+  }
+  .header p { color: var(--text-secondary); margin-bottom: 20px; }
+  .meta-tag {
+    display: inline-block; padding: 4px 10px; border-radius: 6px;
+    background: var(--surface-2); font-size: 12px; font-weight: 500;
+    color: var(--text-secondary); border: 1px solid var(--border-color);
+    margin-right: 8px;
+  }
+
+  /* Info Box */
+  .info-box {
+    background: var(--surface-1); border: 1px solid var(--border-color);
+    border-radius: 8px; padding: 20px 24px; margin: 20px 0; border-left: 4px solid var(--accent-blue);
+  }
+  .info-box.warning { border-left-color: var(--accent-amber); }
+  .info-box.success { border-left-color: var(--accent-green); }
+  .info-box h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .info-box ul { padding-left: 20px; margin-top: 8px; }
+  .info-box li { font-size: 14.5px; margin-bottom: 6px; }
+
+  /* Code Block */
+  .code-container {
+    background: var(--code-bg); border: 1px solid var(--border-color);
+    border-radius: 10px; margin: 20px 0; overflow: hidden;
+  }
+  .code-header {
+    background: var(--surface-2); border-bottom: 1px solid var(--border-color);
+    padding: 8px 16px; font-size: 12px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;
+    display: flex; justify-content: space-between;
+  }
+  .code-content {
+    padding: 20px 0; overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.6;
+    display: flex;
+  }
+  .line-numbers {
+    padding: 0 16px; color: #484f58; text-align: right; user-select: none;
+    border-right: 1px solid var(--border-color); margin-right: 16px;
+    display: flex; flex-direction: column;
+  }
+  .line-numbers span { display: block; height: 21.6px; }
+  .code-lines { flex: 1; padding-right: 20px; }
+  .code-line { height: 21.6px; white-space: pre; }
+  
+  /* Highlighter Definitions */
+  .k { color: var(--code-keyword); } /* Keyword */
+  .s { color: var(--code-string); } /* String */
+  .f { color: var(--code-function); } /* Function */
+  .t { color: var(--code-type); } /* Type */
+  .c { color: var(--code-comment); font-style: italic; } /* Comment */
+  .n { color: var(--code-num); } /* Number */
+  .v { color: #79c0ff; } /* Variable/Constant */
+
+  /* Architecture Diagram */
+  .diagram-container {
+    background: var(--surface-1); border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 32px; margin: 24px 0;
+  }
+  
+  .node-row { display: flex; justify-content: center; gap: 24px; align-items: stretch; margin-bottom: 30px; position:relative; }
+  .node-row:last-child { margin-bottom: 0; }
+  
+  .node {
+    background: var(--surface-2); border: 1px solid var(--border-color);
+    border-radius: 8px; padding: 16px 20px; width: 280px; text-align: center;
+    position: relative; z-index: 2;
+  }
+  
+  .node.source { border-top: 3px solid var(--accent-purple); box-shadow: 0 4px 20px rgba(188,140,255,0.05); }
+  .node.service { border-top: 3px solid var(--accent-cyan); box-shadow: 0 4px 20px rgba(57,197,207,0.05); }
+  .node.hal { border-top: 3px solid var(--accent-amber); box-shadow: 0 4px 20px rgba(227,179,65,0.05); }
+  
+  .node-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;}
+  .node-name { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px;}
+  .node-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; text-align: left; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px;}
+
+  .flow-arrow {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--text-secondary); margin: -10px 0 20px;
+  }
+  .flow-arrow span { font-size: 12px; font-weight: 500; background: var(--surface-1); padding: 4px 10px; border:1px solid var(--border-color); border-radius: 12px; z-index: 2; margin-bottom: -10px;}
+  .flow-arrow .line { width: 2px; height: 30px; background: var(--border-color); }
+  .flow-arrow .head { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--border-color); }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; background: var(--surface-1); border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+  th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+  th { background: var(--surface-2); color: #fff; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>前光控制底層架構指南 <span style="font-size:16px;color:var(--text-secondary);font-weight:400">PowerManagerService (PMS) 鏈路</span></h1>
+    <p>這份指南詳細解析了當你在畫面上拉動亮度拉桿，或是寫入 <code>settings put system...</code> 指令後，Android 系統是如何將這些數值一路穿透 Framework，最終抵達底層 PMIC 發光二極體的。</p>
+    <div class="meta-tag">架構：System Server</div>
+    <div class="meta-tag">核心類別：PowerManagerService.java</div>
+    <div class="meta-tag">原作者：Jungwen</div>
+  </div>
+
+  <h2>▍1. 核心流程示意圖</h2>
+  <p>這是一條從「資料庫改變」到「硬體驅動點亮」的單向高速公路。整個機制都是寫死在 Android 核心服務 <code>PowerManagerService.java</code> 中（由 Jungwen 客製化添加）：</p>
+
+  <div class="diagram-container">
+    <div class="node-row">
+      <div class="node source">
+        <div class="node-title">應用層寫入 唯一真理</div>
+        <div class="node-name">Settings.System DB</div>
+        <div class="node-desc">
+          • <span class="mono">screen_brightness</span> (0~255)<br>
+          • <span class="mono">screen_brightness_color</span> (0~255)<br>
+          • <span class="mono">screen_front_light_mode</span> (0/1)
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow">
+      <span>ContentObserver (自動監聽)</span>
+      <div class="line"></div><div class="head"></div>
+    </div>
+    <div class="node-row">
+      <div class="node service">
+        <div class="node-title">系統服務層 (System Server)</div>
+        <div class="node-name">PowerManagerService</div>
+        <div class="node-desc" style="background:var(--accent-cyan-dim); border:1px solid rgba(57,197,207,0.2)">
+          • 內建 <span class="mono">SettingsObserver</span><br>
+          • 抓取數值變化<br>
+          • 處理 Mode = 0 (全關) 防呆邏輯
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow">
+      <span>轉發至 Lights Manager</span>
+      <div class="line"></div><div class="head"></div>
+    </div>
+    <div class="node-row" style="gap:20px;">
+      <div class="node hal" style="width:230px">
+        <div class="node-title">硬體服務 (冷光 / 亮度)</div>
+        <div class="node-name">LightsService</div>
+        <div class="node-desc">
+          通道：<span class="mono" style="color:var(--accent-cyan)">LIGHT_ID_BACKLIGHT</span><br>
+          接收 0~255 的硬體亮度指令。
+        </div>
+      </div>
+      <div class="node hal" style="width:230px">
+        <div class="node-title">硬體服務 (暖光 / 色溫)</div>
+        <div class="node-name">LightsService</div>
+        <div class="node-desc">
+          通道：<span class="mono" style="color:var(--accent-amber)">LIGHT_ID_ATTENTION</span><br>
+          借用注意力燈通道來控制色溫。
+        </div>
+      </div>
+    </div>
+    <div class="flow-arrow" style="margin-top:20px">
+      <span>HAL (Hardware Abstraction Layer)</span>
+      <div class="line"></div><div class="head"></div>
+    </div>
+    <div class="node-row">
+      <div class="node" style="border-top: 3px solid var(--accent-green);">
+        <div class="node-title">Kernel / Driver Node</div>
+        <div class="node-name">LED / PMIC 驅動</div>
+        <div class="node-desc" style="text-align:center">實際驅動 E-ink 前光模組發亮</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>▍2. 核心觀念：「偷天換日」的通道借用</h2>
+  
+  <p>這套架構最精采的地方，在於解決了 Android 原生架構的一個限制：<b>Android 原生沒有「色溫」這個實體燈泡通道。</b></p>
+  
+  <div class="info-box">
+    <h3>🤔 為什麼不自己新建一個通道？</h3>
+    <p>如果要為 E-ink 專門創建一個全新的 <code>LIGHT_ID_EINK_WARM</code> 通道，工程師必須要修改：</p>
+    <ul>
+      <li><span class="mono">hardware/interfaces/light/.../ILight.hal</span> (底層 HIDL/AIDL 定義，動到這個可能導致 CTS 認證失敗)</li>
+      <li><span class="mono">LightsManager.java</span> (Framework API)</li>
+      <li><span class="mono">LightsService.java</span> (System Server 實作)</li>
+      <li>以及底層 Vendor Tree 的 C++ HAL 實作。</li>
+    </ul>
+    <p>這個牽扯層級太廣了。因此，Jungwen 採取了非常聰明且低風險的策略：<b>借用系統中「原本就不會用到」的實體燈泡通道。</b></p>
+  </div>
+
+  <p>在 E-ink 閱讀器這種裝置上，並不需要像傳統手機那樣有「充電呼吸燈」或「未接來電閃爍燈」。因此，這些閒置的硬體通道就被徵收拿來對接前光的冷/暖 LED 燈珠了：</p>
+
+  <table>
+    <tr>
+      <th>E-ink 實際功能</th>
+      <th>對應 Settings DB Key</th>
+      <th>PMS 綁定的 LightsManager 原生通道</th>
+    </tr>
+    <tr>
+      <td><b>前光亮度</b> (冷光)</td>
+      <td class="mono">screen_brightness</td>
+      <td><span class="mono" style="color:var(--accent-cyan)">LIGHT_ID_BACKLIGHT</span> (最合理，原本就是螢幕背光)</td>
+    </tr>
+    <tr>
+      <td><b>前光色溫</b> (暖光)</td>
+      <td class="mono">screen_brightness_color</td>
+      <td><span class="mono" style="color:var(--accent-amber)">LIGHT_ID_ATTENTION</span> (原本是通知注意力指示燈)</td>
+    </tr>
+    <tr>
+      <td><b>電源指示燈</b></td>
+      <td>(無, 系統接管)</td>
+      <td><span class="mono" style="color:var(--accent-green)">LIGHT_ID_BATTERY</span> (原本是電池充電燈)</td>
+    </tr>
+  </table>
+
+  <h2>▍2. 系統服務初始化 (繫結通道)</h2>
+
+  <p>在 <code>PowerManagerService.java</code> 啟動時，會向 <code>LightsManager</code> 要這些通道物件，並指派給對應的內部變數。這就是偷天換日發生的地點：</p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span>PowerManagerService.java</span>
+      <span>systemReady() 方法內部</span>
+    </div>
+    <div class="code-content">
+      <div class="line-numbers">
+        <span>1601</span><span>1602</span><span>1603</span><span>1604</span><span>1605</span><span>1606</span><span>1607</span><span>1608</span><span>1609</span><span>1610</span><span>1611</span><span>1612</span>
+      </div>
+      <div class="code-lines">
+<div class="code-line">mLightsManager = getLocalService(LightsManager.<span class="k">class</span>);</div>
+<div class="code-line"></div>
+<div class="code-line"><span class="c">//------------------------------------------------------------------------------------------</span></div>
+<div class="code-line"><span class="c">// To do: for front-light temperture screen color, we use LIGHT_ID_NOTIFICATIONS to control</span></div>
+<div class="code-line"><span class="c">//        brightness value.</span></div>
+<div class="code-line"><span class="c">//        if this ID have another function, we can change to others.</span></div>
+<div class="code-line"><span class="c">//        write by Jungwen 2026.03.20                        </span></div>
+<div class="code-line"><span class="c">//------------------------------------------------------------------------------------------ </span></div>
+<div class="code-line"></div>
+<div class="code-line">mFrontLight      = mLightsManager.getLight(LightsManager.<span class="v">LIGHT_ID_BACKLIGHT</span>);</div>
+<div class="code-line">mFrontLightColor = mLightsManager.getLight(LightsManager.<span class="v">LIGHT_ID_ATTENTION</span>);</div>
+<div class="code-line">mPowerLED        = mLightsManager.getLight(LightsManager.<span class="v">LIGHT_ID_BATTERY</span>);</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>▍3. 攔截器 (SettingsObserver) 原理解析</h2>
+
+  <p>當 UI 或實體按鍵修改資料庫後，<code>SettingsObserver</code> 會被觸發 (<code>onChange()</code> 回呼)。這裡是 PMS 的第二個重頭戲：<b>開關與狀態的防呆判定。</b></p>
+  
+  <div class="info-box success">
+    <h3>💡 為什麼要有這個防呆機制？</h3>
+    <p>如果系統目前是<b>「前光關閉」 (Mode = 0)</b> 的狀態，使用者如果用指令強行改變了 DB 中的亮度值 (例如 `settings put system screen_brightness 200`)，此時 <b>底層燈泡絕對不能亮起來</b>。</p>
+    <p>因此 Observer 中實作了強制的覆寫機制：如果是關閉狀態，無論亮度值為何，往底層傳的永遠是 `0`。</p>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span>PowerManagerService.java</span>
+      <span>SettingsObserver 的 onChange()</span>
+    </div>
+    <div class="code-content">
+      <div class="line-numbers">
+        <span>5916</span><span>5917</span><span>5918</span><span>5919</span><span>5920</span><span>5921</span><span>5922</span><span>5923</span><span>5924</span><span>5925</span><span>5926</span><span>5927</span><span>5928</span><span>5929</span><span>5930</span><span>5931</span><span>5932</span><span>5933</span><span>5934</span><span>5935</span>
+      </div>
+      <div class="code-lines">
+<div class="code-line"><span class="k">else if</span> (Settings.System.getUriFor(Settings.System.<span class="v">SCREEN_FRONT_LIGHT_MODE</span>)</div>
+<div class="code-line">             .getLastPathSegment().equals(uri.getLastPathSegment())) {</div>
+<div class="code-line">                                                                        </div>
+<div class="code-line">    mFLModeSettings = Settings.System.getInt(mContext.getContentResolver(), Settings.System.<span class="v">SCREEN_FRONT_LIGHT_MODE</span>, <span class="n">0</span>);</div>
+<div class="code-line">    </div>
+<div class="code-line">    <span class="k">if</span> (mFLModeSettings == <span class="n">1</span>) { <span class="c">// 🌟 開啟模式</span></div>
+<div class="code-line">        <span class="c">// 抓取最新的亮度值，並點亮冷光</span></div>
+<div class="code-line">        mFLBrightnessSettings = Settings.System.getInt(mContext.getContentResolver(), Settings.System.<span class="v">SCREEN_BRIGHTNESS</span>, <span class="n">0</span>);</div>
+<div class="code-line">        <span class="f">setFrontlightBrightnessInternal</span>(mFLBrightnessSettings);</div>
+<div class="code-line">        </div>
+<div class="code-line">        <span class="c">// 抓取最新的色溫值，並點亮暖光</span></div>
+<div class="code-line">        mFLBrightnessColorSettings = Settings.System.getInt(mContext.getContentResolver(), Settings.System.<span class="v">SCREEN_BRIGHTNESS_COLOR</span>, <span class="n">0</span>);</div>
+<div class="code-line">        <span class="f">applyFrontLightColorLocked</span>();</div>
+<div class="code-line">        </div>
+<div class="code-line">        Slog.d(TAG, <span class="s">"SCREEN_FRONT_LIGHT_MODE : ON"</span>);</div>
+<div class="code-line">    } <span class="k">else</span> { <span class="c">// 🌑 關閉模式</span></div>
+<div class="code-line">        <span class="c">// 無視 DB 目前的亮度和色溫，強制送出 0 (關閉) 到硬體</span></div>
+<div class="code-line">        <span class="f">setFrontlightBrightnessInternal</span>(<span class="n">0</span>);</div>
+<div class="code-line">        <span class="f">setFrontlightBrightnessColorInternal</span>(<span class="n">0</span>);</div>
+<div class="code-line">        Slog.d(TAG, <span class="s">"SCREEN_FRONT_LIGHT_MODE : OFF"</span>);</div>
+<div class="code-line">    }</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>▍4. 寫入 HAL 服務</h2>
+
+  <p>當判定完數值後，最終會透過 <code>setFrontlightBrightnessColorInternal()</code> 這樣的方法封裝，將一般整數轉換為底層 HAL 需要的浮點數，然後呼叫 <code>mFrontLightColor.setBrightness()</code>，資料就正式離開 Java 層，進入 C++ 的 Driver 層了。</p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span>PowerManagerService.java</span>
+      <span>寫入硬體的最終函式</span>
+    </div>
+    <div class="code-content">
+      <div class="line-numbers">
+        <span>8698</span><span>8699</span><span>8700</span><span>8701</span><span>8702</span><span>8703</span><span>8704</span><span>8705</span><span>8706</span><span>8707</span><span>8708</span><span>8709</span>
+      </div>
+      <div class="code-lines">
+<div class="code-line"><span class="k">public void</span> <span class="f">setFrontlightBrightnessColorInternal</span>(<span class="t">int</span> brightness) {</div>
+<div class="code-line">    mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DEVICE_POWER, <span class="k">null</span>);</div>
+<div class="code-line">    <span class="k">synchronized</span> (mLock) {</div>
+<div class="code-line">        <span class="k">if</span> (!mSystemReady) {</div>
+<div class="code-line">            <span class="k">return</span>;</div>
+<div class="code-line">        }</div>
+<div class="code-line"></div>
+<div class="code-line">        <span class="c">// 將 0~255 的 int 轉換為驅動需要的 float (此為 Android 10 以後架構)</span></div>
+<div class="code-line">        <span class="t">float</span> brightness_f = BrightnessSynchronizer.brightnessIntToFloat(brightness);</div>
+<div class="code-line">        </div>
+<div class="code-line">        <span class="c">// 對借用來的 Attention(注意力指示燈) 通道寫入亮度值，實際上是控制暖光 LED</span></div>
+<div class="code-line">        mFrontLightColor.setBrightness(brightness_f);</div>
+<div class="code-line">    }</div>
+<div class="code-line">}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:60px; text-align:center; font-size:13px; color:var(--text-secondary); border-top:1px solid var(--border-color); padding-top:24px; padding-bottom:40px;">
+    Android System Service Architecture Report • Generated by Anson
+  </div>
+
+</div>
+
+</body>
+</html>
