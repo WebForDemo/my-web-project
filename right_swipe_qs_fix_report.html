@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SystemUI 右上外圍滑入 QS 修正報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+    --pink:#f472b6;--pink-d:rgba(244,114,182,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:900px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+  .sec{margin-bottom:40px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:10px}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:3px}
+  .b{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.3px;vertical-align:middle}
+  .b-aosp{background:var(--green-d);color:var(--green)}
+  .b-ntx{background:var(--purple-d);color:var(--purple)}
+  .b-anson{background:var(--cyan-d);color:var(--cyan)}
+  .b-new{background:var(--amber-d);color:var(--amber)}
+  .b-mod{background:var(--blue-d);color:var(--blue)}
+  .b-del{background:var(--red-d);color:var(--red)}
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:8px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+  .tb tr:last-child td{border-bottom:none}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .tl{position:relative;padding-left:28px;margin:16px 0}
+  .tl::before{content:'';position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--bd)}
+  .tl-item{position:relative;margin-bottom:14px}
+  .tl-item::before{content:'';position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+  .tl-item.first::before{background:var(--green)}
+  .tl-item.last::before{background:var(--cyan)}
+  .tl-date{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .tl-msg{font-size:13px;margin-top:2px}
+  .arch{display:grid;gap:10px;margin:16px 0}
+  .arch-3{grid-template-columns:1fr 1fr 1fr}
+  .arch-2{grid-template-columns:1fr 1fr}
+  .arch-box{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;text-align:center}
+  .arch-box .lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .arch-box .name{font-size:13px;font-weight:600}
+  .arch-box .desc{font-size:11px;color:var(--dim);margin-top:4px}
+  .arch-box.highlight{border-color:var(--purple);box-shadow:0 0 12px rgba(167,139,250,.1)}
+  .arch-box.highlight2{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.1)}
+  .arch-arrow{text-align:center;font-size:18px;color:var(--dim);padding:4px 0}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+  @media(max-width:640px){
+    .arch-3,.arch-2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>SystemUI 右上外圍滑入 QS 修正報告</h1>
+  <div class="sub">針對「第一次從右上外圍滑入只會出 Notification，第二次才出 QS」的最終修正說明</div>
+  <div class="meta">
+    <div class="chip">範圍：<b>MTK Vendor SystemUI</b></div>
+    <div class="chip">保留異動：<b>2 files</b></div>
+    <div class="chip">核心原因：<b>DOWN 事件入口 + 左右判定時機</b></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 問題摘要</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> 原本錯誤行為</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> 修正後預期行為</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> 最終保留改動</div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--red)">▎異常現象</h4>
+    <p>當手勢從<strong>右上外圍</strong>滑入時，第一次通常只會叫出 <strong>Notification Panel</strong>；但若 Notification 已經打開、不關閉再滑一次，就能叫出 <strong>QS</strong>。</p>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--green)">▎最終結論</h4>
+    <p>真正的問題不是「右邊被判成左邊」，而是：</p>
+    <ul style="margin-top:6px">
+      <li>第一次從右上外圍滑入時，<strong>ACTION_DOWN 在最上緣被保護邏輯吃掉</strong>。</li>
+      <li>左右分流原本又是看 <strong>ACTION_MOVE 當下的 X</strong>，不是看手勢起點。</li>
+      <li>因此第一次常會掉進 Notification 的預設流程，第二次才因為 panel 已開、走到另一條既有 QS 路徑而成功。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 問題事件流</div>
+  <div class="card">
+    <p style="margin-bottom:14px">下面是這次問題的核心架構圖：</p>
+
+    <div class="arch arch-3">
+      <div class="arch-box highlight">
+        <div class="lbl">入口</div>
+        <div class="name">PhoneStatusBarViewController</div>
+        <div class="desc">第一層接到最上方手勢<br>原本 top-edge DOWN 會直接被吃掉</div>
+      </div>
+      <div class="arch-box highlight2">
+        <div class="lbl">分流</div>
+        <div class="name">NotificationPanelViewController</div>
+        <div class="desc">原本用 MOVE 的 X 判左右<br>修正後改用 DOWN 起點 X</div>
+      </div>
+      <div class="arch-box">
+        <div class="lbl">結果</div>
+        <div class="name">Notification / QS</div>
+        <div class="desc">左半邊起手 → Notification<br>右半邊起手 → QS</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow">↓</div>
+
+    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:16px">
+      <div class="mono" style="font-size:12px;line-height:1.9;color:var(--tx)">
+        第一次右上外圍滑入：<br>
+        1. ACTION_DOWN 落在最上緣<br>
+        2. top-edge guard 吃掉 DOWN<br>
+        3. 後面只剩 MOVE 傳下去<br>
+        4. 無法穩定進入 QS 分流，最後掉進 Notification<br><br>
+
+        修正後：<br>
+        1. 右半邊的 top-edge DOWN 不再被吃掉<br>
+        2. NPVC 記錄起手 downX<br>
+        3. 往下滑超過 status bar 高度後，用 downX 決定左右<br>
+        4. 右半邊第一次外圍滑入就直接進 QS
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 最終保留的改動</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>檔案</th><th>狀態</th><th>異動重點</th></tr>
+      <tr>
+        <td class="mono">NotificationPanelViewController.java</td>
+        <td><span class="b b-mod">保留</span></td>
+        <td>新增 <span class="mono">mTrackingFromStatusBarDownX</span>，將左右分流從「看 MOVE 的 X」改成「看 DOWN 起點 X」。</td>
+      </tr>
+      <tr>
+        <td class="mono">PhoneStatusBarViewController.kt</td>
+        <td><span class="b b-mod">保留</span></td>
+        <td>保留原本 top-edge guard，但右半邊起手時不再吃掉最上緣 <span class="mono">ACTION_DOWN</span>。</td>
+      </tr>
+      <tr>
+        <td class="mono">NotificationShadeWindowViewController.java</td>
+        <td><span class="b b-del">已還原</span></td>
+        <td>排查時加過的入口擴大與 debug log 已全部還原。</td>
+      </tr>
+      <tr>
+        <td class="mono">QuickSettingsControllerImpl.java</td>
+        <td><span class="b b-del">已還原</span></td>
+        <td>先前為了排查加入的 split shade 邏輯擴改已全部撤回，不保留。</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> 兩個修正的細節</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎修正 1：左右分流改看 DOWN 起點</h4>
+    <p>位置：<span class="mono">NotificationPanelViewController.java</span></p>
+    <ul style="margin-top:6px">
+      <li>原本：從 status bar 往下滑後，用 <span class="mono">ACTION_MOVE</span> 當下的 <span class="mono">event.getX()</span> 來判定左邊還是右邊。</li>
+      <li>問題：手指只要在下滑途中往左或往右飄，就可能被改判。</li>
+      <li>修正後：在 <span class="mono">ACTION_DOWN</span> 時先記住起手 <span class="mono">X</span>，後續統一用這個起點值判定。</li>
+      <li>結果：右邊起手，就算途中斜著左下滑，仍然維持走 QS。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎修正 2：只放行右半邊 top-edge DOWN</h4>
+    <p>位置：<span class="mono">PhoneStatusBarViewController.kt</span></p>
+    <ul style="margin-top:6px">
+      <li>原本：當 panel fully collapsed 且 <span class="mono">event.y &lt; 1f</span>，最上緣觸控會被直接吃掉。</li>
+      <li>問題：右上外圍第一次滑入時，第一筆 <span class="mono">DOWN</span> 就在這裡消失，後面剩下的只有 <span class="mono">MOVE</span>。</li>
+      <li>修正後：左半邊仍保留原保護；右半邊則放行，讓完整手勢能送進 shade / QS 分流。</li>
+      <li>結果：第一次從右上外圍滑入，也能正確進入 QS 流程。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 修正前後對照</div>
+  <div class="card">
+    <div class="arch arch-2">
+      <div class="arch-box" style="border-color:var(--red);background:var(--red-d)">
+        <div class="lbl">Before</div>
+        <div class="name">第一次右上外圍滑入</div>
+        <div class="desc">
+          top-edge DOWN 被吃掉<br>
+          → NPVC 拿不到完整起點<br>
+          → 容易掉進 Notification
+        </div>
+      </div>
+      <div class="arch-box" style="border-color:var(--green);background:var(--green-d)">
+        <div class="lbl">After</div>
+        <div class="name">第一次右上外圍滑入</div>
+        <div class="desc">
+          右半邊 DOWN 被放行<br>
+          → NPVC 記錄 downX<br>
+          → 右半邊直接進 QS
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> 最終預期行為</div>
+  <div class="card">
+    <ul>
+      <li>左半邊起手下滑：叫出 Notification。</li>
+      <li>右半邊起手下滑：叫出 QS。</li>
+      <li>右半邊從 status bar 內下滑：直接進 QS。</li>
+      <li>右半邊從更上方外圍滑入：第一次也直接進 QS，不需要先開 Notification 再滑第二次。</li>
+      <li>左右判定以手勢起點為準，不受滑動途中飄移影響。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">SystemUI Right-Edge QS Fix Report · Final Minimal Patch</div>
+
+</div>
+</body>
+</html>
