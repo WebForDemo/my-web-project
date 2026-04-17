@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA0T4A 手寫速度量測報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:960px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+  .sec{margin-bottom:40px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:12px}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:9px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:10px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+  .tb tr:last-child td{border-bottom:none}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .grid{display:grid;gap:12px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .summary-grid{grid-template-columns:1fr 1fr;margin-bottom:14px}
+  .mini{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
+  .mini .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .mini .v{font-size:15px;font-weight:700}
+  .mini .d{font-size:11px;color:var(--dim);margin-top:4px}
+  .mini.green{border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.08)}
+  .mini.cyan{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.08)}
+  .mini.amber{border-color:var(--amber);box-shadow:0 0 12px rgba(251,191,36,.08)}
+  .mini.red{border-color:var(--red);box-shadow:0 0 12px rgba(248,113,113,.08)}
+  .formula{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--tx);text-align:center;padding:16px;border-radius:8px;background:var(--s2);border:1px solid var(--bd);margin-top:12px}
+  .steps{position:relative;padding-left:28px}
+  .steps::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--bd)}
+  .step{position:relative;margin-bottom:14px}
+  .step::before{content:'';position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+  .step:last-child{margin-bottom:0}
+  .step h5{font-size:13px;margin-bottom:2px}
+  .step p{font-size:13px;color:var(--dim)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .code{background:#0c0e14;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre;word-break:normal}
+  .sampling{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:18px 18px 14px;margin-top:12px}
+  .sampling-line{position:relative;height:84px;margin:10px 0 6px}
+  .sampling-line::before{content:'';position:absolute;left:5%;right:5%;top:48px;height:2px;background:var(--bd)}
+  .tick{position:absolute;top:18px;transform:translateX(-50%);text-align:center}
+  .tick::after{content:'';display:block;width:2px;height:34px;background:var(--cyan);margin:8px auto 0}
+  .tick .t1{font-size:11px;color:var(--tx);font-family:'JetBrains Mono',monospace}
+  .tick .t2{font-size:10px;color:var(--dim)}
+  .event{position:absolute;top:2px;transform:translateX(-50%);text-align:center}
+  .event .dot{width:12px;height:12px;border-radius:50%;background:var(--red);margin:0 auto 6px;box-shadow:0 0 0 4px rgba(248,113,113,.12)}
+  .event .label{font-size:11px;color:var(--red);font-weight:700;white-space:nowrap}
+  .event .desc{font-size:10px;color:var(--dim);white-space:nowrap}
+  .arrow-note{margin-top:10px;font-size:12px;color:var(--dim);text-align:center}
+  .qa{padding-left:0;list-style:none}
+  .qa li{padding:12px 0;border-bottom:1px solid var(--bd)}
+  .qa li:last-child{border-bottom:none}
+  .qa b{color:var(--tx)}
+  .video-card{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-top:12px}
+  .video-card .title{font-size:13px;font-weight:600;color:var(--tx)}
+  .video-card .desc{font-size:12px;color:var(--dim);margin-top:4px}
+  .video-wrap{position:relative;width:100%;padding-top:56.25%;margin-top:12px;border-radius:8px;overflow:hidden;border:1px solid var(--bd);background:#0c0e14}
+  .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .video-link{margin-top:10px}
+  .video-link a{color:var(--cyan);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:12px}
+  .video-link a:hover{text-decoration:underline}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+  @media(max-width:760px){
+    .grid-2,.grid-3,.summary-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>EA0T4A 手寫速度量測報告</h1>
+  <div class="sub">EPD 手寫延遲量測流程、誤差校準與技術答辯整理</div>
+  <div class="meta">
+    <div class="chip">主方法：<b>原始影格計算法</b></div>
+    <div class="chip">核心素材：<b>960 fps / 240 fps</b></div>
+    <div class="chip">主要結論：<b>以 frame count 最準</b></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 量測結論摘要</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> 建議方法：格數 ÷ 原始 fps</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> 次要方法：影片秒數 ÷ 倍率</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> 風險來源：0.041s / 0.042s 顯示跳動</div>
+  </div>
+
+  <div class="grid summary-grid">
+    <div class="mini cyan">
+      <div class="k">Target Range</div>
+      <div class="v">20 ~ 30 ms</div>
+      <div class="d">一般體感上，好的手寫速度大致落在這個區間。</div>
+    </div>
+    <div class="mini green">
+      <div class="k">Best Method</div>
+      <div class="v">157 ÷ 960 × 1000 = 163.54 ms</div>
+      <div class="d">直接用原始影格換算，不受播放器顯示秒數干擾。</div>
+    </div>
+    <div class="mini amber">
+      <div class="k">Time Conversion</div>
+      <div class="v">160.9 ~ 164.8 ms</div>
+      <div class="d">若只看影片時間，會落在一個區間而不是唯一值。</div>
+    </div>
+    <div class="mini red">
+      <div class="k">Error Margin</div>
+      <div class="v">約 3.9 ms</div>
+      <div class="d">0.041 與 0.042 的累積差異，會隨總格數放大。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎評估基準</h4>
+    <p>以手寫體感來看，<strong>好的手寫速度基本上約在 20 ~ 30 ms</strong>。因此這份報告除了說明怎麼量，更重要的是讓量測結果能對照到實際體感標準。</p>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--green)">▎最終判斷</h4>
+    <p>手寫延遲量測應優先採用 <strong>原始影格計算法</strong>。對 960 fps 素材而言，每一格代表約 <strong>1.04 ms</strong>，最大誤差被固定在單一影格範圍內；相較之下，若只依賴播放器顯示的影片秒數，會因為 <strong>0.041s / 0.042s</strong> 的切換而出現累積誤差。若最終量測值明顯高於 <strong>20 ~ 30 ms</strong>，就代表手寫反應仍有優化空間。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 錄製設備與前置準備</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>設備</th><th>原始規格</th><th>Avidemux 顯示節奏</th><th>實務解讀</th></tr>
+      <tr>
+        <td>iPhone</td>
+        <td><span class="mono">240 fps</span></td>
+        <td>每格約 <span class="mono">0.004s</span>，等效顯示約 <span class="mono">250 fps</span></td>
+        <td>倍率幾乎接近 <span class="mono">1x</span>，可視為接近即時速度。</td>
+      </tr>
+      <tr>
+        <td>DQA 相機</td>
+        <td><span class="mono">960 fps</span></td>
+        <td>每格顯示約在 <span class="mono">0.041s</span> 與 <span class="mono">0.042s</span> 間切換</td>
+        <td>播放器端約為 <span class="mono">24 fps</span> 慢速播放，整體約被拉成 <span class="mono">40x</span> 慢動作。</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎錄製注意事項</h4>
+      <ul>
+        <li>先畫兩筆基準線，後續筆畫需通過兩條基準線。</li>
+        <li>量測時同時觀察「筆尖到達基準線」與「墨水出現在基準線」兩個時間點。</li>
+        <li>拍攝時注意反光，避免影響筆尖與墨跡判讀。</li>
+        <li>照明要注意直流電燈或交流電燈造成的頻閃問題。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎效能前置指令</h4>
+      <ul>
+        <li><span class="mono">adb root</span>：取得 root 權限，後續才能寫入 governor 節點。</li>
+        <li><span class="mono">mali governor</span>：將 GPU 調成 <span class="mono">performance</span> 模式。</li>
+        <li><span class="mono">policy0</span>：將 CPU 叢集調成 <span class="mono">performance</span> 模式。</li>
+        <li><span class="mono">policy6</span>：將另一組 CPU 叢集也調成 <span class="mono">performance</span> 模式。</li>
+      </ul>
+      <div class="code">adb root
+adb shell "echo performance &gt; /sys/class/devfreq/13000000.mali/governor"
+adb shell "echo performance &gt; /sys/devices/system/cpu/cpufreq/policy0/scaling_governor"
+adb shell "echo performance &gt; /sys/devices/system/cpu/cpufreq/policy6/scaling_governor"</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 實際量測流程</div>
+
+  <div class="card">
+    <div class="steps">
+      <div class="step">
+        <h5>Step 1. 建立基準</h5>
+        <p>先在畫面上畫兩筆固定基準線，後續要量測的筆畫需穿過這兩條線。</p>
+      </div>
+      <div class="step">
+        <h5>Step 2. 記兩個事件點</h5>
+        <p>在影片中找出筆尖碰到基準線的那一格，以及墨水首次出現在基準線的那一格。</p>
+      </div>
+      <div class="step">
+        <h5>Step 3. 求出延遲差值</h5>
+        <p>兩者相減得到總影格數。若是以慢速影片秒數推估，需再除以對應倍率；若追求精度，直接以原始影格換算毫秒。</p>
+      </div>
+      <div class="step">
+        <h5>Step 4. 優先採用絕對精準算法</h5>
+        <p>以 <span class="mono">總影格數 ÷ 960 × 1000</span> 算出毫秒值，這是最穩定且不受轉檔顯示節奏影響的方法。</p>
+      </div>
+    </div>
+
+    <div class="video-card">
+      <div class="title">量測手寫速度示意影片</div>
+      <div class="desc">可直接在頁面內播放。若公司環境擋住嵌入，仍可用下方連結開新頁觀看。</div>
+      <div class="video-wrap">
+        <iframe src="https://drive.google.com/file/d/1ldfJCElhQMfTctkLYFggDLvbOfNS3sL7/preview" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      </div>
+      <div class="video-link">
+        <a href="https://drive.google.com/file/d/1ldfJCElhQMfTctkLYFggDLvbOfNS3sL7/view?usp=sharing" target="_blank" rel="noopener noreferrer">備用開新頁連結</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> 計算邏輯對比</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎為什麼影片秒數要除以 40？</h4>
+    <p>DQA 相機是以 <span class="mono">960 fps</span> 錄製，但播放器顯示時大致是用 <span class="mono">24 fps</span> 在播，所以同一段真實動作會被拉長成慢動作影片：</p>
+    <div class="formula">慢動作倍率 ≈ 960 ÷ 24 = 40 倍</div>
+    <p style="margin-top:10px">因此，若你現在看到的是「慢了 40 倍」的影片秒數，要還原回真實世界時間，就要再 <strong>除以 40</strong>。這裡的 <span class="mono">40</span> 是方便溝通的近似值，不是固定不變的精確常數；因為實際顯示會在 <span class="mono">0.041s</span> / <span class="mono">0.042s</span> 間跳動，所以精算時仍應回到原始影格或分段權重算法。</p>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>方法</th><th>計算方式</th><th>優點</th><th>缺點</th></tr>
+      <tr>
+        <td>時間換算法</td>
+        <td><span class="mono">影片秒數 ÷ 慢動作倍率</span><br><span class="mono">DQA 常用近似值：÷ 40</span></td>
+        <td>直觀、快速，適合初步估算。</td>
+        <td>若把 <span class="mono">40</span> 當成絕對值，或影片顯示節奏不穩，數值會偏掉。</td>
+      </tr>
+      <tr>
+        <td>格數換算法</td>
+        <td><span class="mono">格數 ÷ 960 × 1000</span></td>
+        <td>絕對精準，不受播放器或轉檔顯示影響。</td>
+        <td>需要手動數格數，操作成本較高。</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4 style="color:var(--amber)">▎相對準確算法</h4>
+      <p>若觀察的是慢速影片中的秒數差，可將結果除以慢動作倍率。DQA 960 fps 素材在播放器中約以 <span class="mono">24 fps</span> 顯示，因此常先用 <span class="mono">960 ÷ 24 = 40x</span> 做快速估算。</p>
+      <div class="formula">影片秒數 ÷ 40 ≈ 實際延遲</div>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--green)">▎絕對精準算法</h4>
+      <p>若已經數出行為跨越的原始影格數，直接回到相機原始 fps 換算即可，不需相信播放器顯示的時間。</p>
+      <div class="formula">總影格數 ÷ 960 × 1000 = 實際延遲(ms)</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 157 格案例與誤差分析</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎實驗數據彙整</h4>
+    <table class="tb">
+      <tr><th>項目</th><th>數據內容</th><th>物理意義</th></tr>
+      <tr>
+        <td>錄製規格</td>
+        <td><strong>960 fps</strong></td>
+        <td>每一影格約代表 <strong>1.0416 ms</strong></td>
+      </tr>
+      <tr>
+        <td>總量測影格</td>
+        <td><strong>157 格</strong></td>
+        <td>筆頭觸碰至像素顯色之總跨度</td>
+      </tr>
+      <tr>
+        <td>軟體顯示跳動</td>
+        <td><strong>45 格 (0.041s) / 112 格 (0.042s)</strong></td>
+        <td>播放器因進位造成的顯示節律</td>
+      </tr>
+      <tr>
+        <td>影片總時長</td>
+        <td><strong>6.549 秒</strong></td>
+        <td>播放器端可觀察到的慢速影片長度</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4 style="color:var(--green)">▎方法 1：物理影格計算法</h4>
+      <p>直接排除播放器顯示時間的干擾，回歸錄影物理本質：</p>
+      <div class="formula">157 ÷ 960 × 1000 = 163.54 ms</div>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--purple)">▎方法 2：時間權重還原法</h4>
+      <p>考慮 0.041s / 0.042s 對應不同顯示 fps，做分段權重計算：</p>
+      <div class="code">A 段：6.549 × (45 / 157) × (24.3902 / 960) × 1000 = 47.69 ms
+B 段：6.549 × (112 / 157) × (23.8095 / 960) × 1000 = 115.87 ms
+
+總計：163.56 ms</div>
+      <p style="margin-top:8px">兩種算法高度一致，差值約 <span class="mono">0.02 ms</span>。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--red)">▎為什麼直接看影片秒數不夠準確？</h4>
+    <p>播放器每格時間並不是固定值，而是在 <span class="mono">0.041s</span> 與 <span class="mono">0.042s</span> 間切換。這個差異單看很小，但當量測總格數來到 <strong>157 格</strong> 時，就會形成可見的累積誤差：</p>
+    <div class="code">若全部按 0.041s 估算：
+157 × 0.041 = 6.437s
+6.437 ÷ 40 = 160.9 ms
+
+若全部按 0.042s 估算：
+157 × 0.042 = 6.594s
+6.594 ÷ 40 = 164.8 ms</div>
+    <p style="margin-top:8px">也就是說，只看影片時間會得到 <strong>160.9 ms ~ 164.8 ms</strong> 的區間，模糊帶約 <strong>3.9 ms</strong>。對需要精準調校的 EPD 產品來說，這個誤差不可忽略。</p>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>量測方式</th><th>計算結果</th><th>誤差區間</th><th>結論</th></tr>
+      <tr>
+        <td>影片時間換算</td>
+        <td>160.9 ~ 164.8 ms</td>
+        <td>3.9 ms</td>
+        <td>會隨格數增加而擴大誤差</td>
+      </tr>
+      <tr>
+        <td>原始影格計算法</td>
+        <td>163.54 ms</td>
+        <td>1.04 ms</td>
+        <td>恆定精度，不受顯示節奏影響</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> 為什麼還是有 1.04 ms 誤差？</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎簡單理解：這是相機取樣間隔，不是計算錯誤</h4>
+    <p><span class="mono">960 fps</span> 代表相機每 <span class="mono">1 / 960 ≈ 1.04 ms</span> 才拍一張，所以它不是連續量時間，而是每隔一小段時間看一次世界。若事件剛好發生在兩張影格中間，影片只能在下一張畫面才看見它，因此會留下單格等級的不確定範圍。</p>
+
+    <div class="sampling">
+      <div class="sampling-line">
+        <div class="tick" style="left:10%">
+          <div class="t1">0.00 ms</div>
+          <div class="t2">Frame 1</div>
+        </div>
+        <div class="tick" style="left:32%">
+          <div class="t1">1.04 ms</div>
+          <div class="t2">Frame 2</div>
+        </div>
+        <div class="event" style="left:46%">
+          <div class="dot"></div>
+          <div class="label">真實事件發生</div>
+          <div class="desc">例如 1.50 ms</div>
+        </div>
+        <div class="tick" style="left:58%">
+          <div class="t1">2.08 ms</div>
+          <div class="t2">Frame 3</div>
+        </div>
+        <div class="tick" style="left:82%">
+          <div class="t1">3.12 ms</div>
+          <div class="t2">Frame 4</div>
+        </div>
+      </div>
+      <div class="arrow-note">事件若發生在 Frame 2 與 Frame 3 中間，相機只能到 Frame 3 才看得到。</div>
+    </div>
+
+    <p style="margin-top:12px">所以這個誤差的意思不是「公式有問題」，而是「這台相機最細只能看到 1.04 ms 一格」。也因此，原始影格計算法雖然仍有單格級誤差，但這個誤差是固定上限，不會像影片秒數換算法那樣隨總時長一直累積。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">7</span> 技術答辯 Q&amp;A</div>
+
+  <div class="card">
+    <ul class="qa">
+      <li>
+        <b>老闆問：為什麼 4 秒錄影會變成 2 分多鐘？</b><br>
+        這是因為 <span class="mono">960 fps</span> 的素材被以約 <span class="mono">24 fps</span> 慢速播放，時間被稀釋了大約 <span class="mono">40 倍</span>。量測時若看的是原始影格，精度不受影響。
+      </li>
+      <li>
+        <b>老闆問：量測準確嗎？</b><br>
+        準確。對 960 fps 而言，每格僅約 <span class="mono">1.04 ms</span>。這個誤差不是計算錯誤，而是相機每 1.04 ms 才取樣一次，因此最大不確定範圍就是單一影格，而且不會隨動作時長持續放大。
+      </li>
+      <li>
+        <b>老闆問：為什麼不能只看播放器顯示的秒數？</b><br>
+        因為播放器顯示每格的秒數不是固定值，而是 <span class="mono">0.041s</span> 與 <span class="mono">0.042s</span> 交替。短片段看不出差異，但總格數一多就會形成數毫秒級誤差。
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">8</span> 最終結論</div>
+  <div class="card">
+    <p><strong>結論：</strong>影格越多，若不處理 <span class="mono">0.041 / 0.042</span> 的跳動差異，單靠影片時間換算的誤差就會逐步擴張，157 格案例已可達約 <strong>3.9 ms</strong>。因此，EA0T4A 手寫速度量測的正式報告與對外答辯，都應以 <strong>原始影格計算法</strong> 作為主結論。</p>
+  </div>
+</div>
+
+<div class="note">EA0T4A Handwriting Speed Measurement Report · Frame-Based Latency Analysis</div>
+
+</div>
+</body>
+</html>
