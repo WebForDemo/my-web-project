@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera2 Anson 修改整理報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+    --pink:#f472b6;--pink-d:rgba(244,114,182,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:920px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+  .sec{margin-bottom:40px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:10px}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:3px}
+  .b{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.3px;vertical-align:middle}
+  .b-anson{background:var(--cyan-d);color:var(--cyan)}
+  .b-new{background:var(--amber-d);color:var(--amber)}
+  .b-ui{background:var(--purple-d);color:var(--purple)}
+  .b-cam{background:var(--green-d);color:var(--green)}
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:8px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+  .tb tr:last-child td{border-bottom:none}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .tl{position:relative;padding-left:28px;margin:16px 0}
+  .tl::before{content:'';position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--bd)}
+  .tl-item{position:relative;margin-bottom:14px}
+  .tl-item::before{content:'';position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+  .tl-item.first::before{background:var(--green)}
+  .tl-item.last::before{background:var(--cyan)}
+  .tl-date{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .tl-msg{font-size:13px;margin-top:2px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .commit{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 20px;margin-bottom:12px}
+  .commit .top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:8px}
+  .commit .date{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .commit .title{font-size:14px;font-weight:700}
+  .commit .hash{font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .stat{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--dim)}
+  .paths{margin-top:8px;padding-left:18px}
+  .paths li{font-size:12px;color:var(--dim)}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+  @media(max-width:640px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>Camera2 Anson 修改整理報告</h1>
+  <div class="sub">僅統計 <span class="mono">Author: Anson &lt;chistine101814@gmail.com&gt;</span> 在 Camera2 專案內的提交</div>
+  <div class="meta">
+    <div class="chip">作者：<b>Anson</b></div>
+    <div class="chip">專案：<b>vendor/mediatek/proprietary/packages/apps/Camera2</b></div>
+    <div class="chip">提交數：<b>6 commits</b></div>
+    <div class="chip">異動檔案：<b>6 files</b></div>
+    <div class="chip">異動量：<b>+889 / −89 lines</b></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 開發時間線</div>
+  <div class="card">
+    <div class="tl">
+      <div class="tl-item first">
+        <div class="tl-date">2026-03-19 13:31</div>
+        <div class="tl-msg"><b>加入即時 FPS 與 Debug 控制面板</b>，建立 Camera2 EMI 測試入口 <span class="b b-new">起點</span></div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-19 17:12</div>
+        <div class="tl-msg"><b>補上 Preview Quality 控制</b>，可在 UI 直接切預覽解析度並重建 session</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-20 13:27</div>
+        <div class="tl-msg"><b>Debug UI 改版</b>，調整版面、選單與控制布局</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-03-31 14:19</div>
+        <div class="tl-msg"><b>WF Mode GC + Wait</b>，於 <span class="mono">CameraActivity</span> 加入 EMI 測試輔助行為</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">2026-04-16 13:23</div>
+        <div class="tl-msg"><b>保存 X / Y Scale</b>，讓 debug 版面比例可持久化</div>
+      </div>
+      <div class="tl-item last">
+        <div class="tl-date">2026-04-16 15:52</div>
+        <div class="tl-msg"><b>新增 Display FPS</b>，把 request/result/callback 與 UI 顯示節流串起來 <span class="b b-anson">最新</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 修改主軸</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> Preview UI / Debug Overlay</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Camera Request / Result 注入與觀測</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> EMI Test / 行為驗證</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h4 style="color:var(--purple)">▎UI / 操作面板</h4>
+      <p>主要集中在 <span class="mono">TextureViewController.java</span> 與 <span class="mono">textureview_layout.xml</span>。<br>
+      內容包含 FPS 顯示、Target FPS、Preview Quality、Display FPS、Scale X/Y 與持久化設定。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--green)">▎Camera Request / Result 驗證</h4>
+      <p>在 Photo / Video 的 device controller 內注入 <span class="mono">CONTROL_AE_TARGET_FPS_RANGE</span>，並加入 capability / request / result 的 debug log，方便驗證 1fps~60fps 行為。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--amber)">▎EMI Test / 特殊模式</h4>
+      <p>另有一筆針對 <span class="mono">CameraActivity</span> 的 WF Mode GC + Wait 測試修改，屬於 EMI 測試輔助邏輯。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎整體結論</h4>
+      <p>Anson 的 Camera2 變更幾乎都聚焦在 <b>「可觀測、可調參、可重現」</b> 的測試型預覽工具化，而不是一般拍照功能本身。</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 檔案熱點</div>
+  <div class="card">
+    <table class="tb">
+      <thead>
+        <tr>
+          <th>檔案</th>
+          <th>角色</th>
+          <th>觸及次數</th>
+          <th>異動量</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">host/src/com/mediatek/camera/ui/preview/TextureViewController.java</td>
+          <td><span class="b b-ui">核心 UI</span></td>
+          <td>5 commits</td>
+          <td>+443 / −25</td>
+        </tr>
+        <tr>
+          <td class="mono">host/res/layout/textureview_layout.xml</td>
+          <td><span class="b b-ui">版面配置</span></td>
+          <td>5 commits</td>
+          <td>+248 / −64</td>
+        </tr>
+        <tr>
+          <td class="mono">common/src/com/mediatek/camera/common/mode/photo/device/PhotoDevice2Controller.java</td>
+          <td><span class="b b-cam">Photo Request</span></td>
+          <td>3 commits</td>
+          <td>+124 / −0</td>
+        </tr>
+        <tr>
+          <td class="mono">common/src/com/mediatek/camera/common/mode/video/device/v2/VideoDevice2Controller.java</td>
+          <td><span class="b b-cam">Video Request</span></td>
+          <td>2 commits</td>
+          <td>+51 / −0</td>
+        </tr>
+        <tr>
+          <td class="mono">portability/src/com/mediatek/camera/portability/SystemProperties.java</td>
+          <td><span class="b b-new">支援層</span></td>
+          <td>1 commit</td>
+          <td>+13 / −0</td>
+        </tr>
+        <tr>
+          <td class="mono">host/src/com/mediatek/camera/CameraActivity.java</td>
+          <td><span class="b b-new">EMI Test</span></td>
+          <td>1 commit</td>
+          <td>+10 / −0</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> Commit 詳細整理</div>
+
+  <div class="commit">
+    <div class="top">
+      <div>
+        <div class="date">2026-04-16</div>
+        <div class="title">[Feat] - Display FPS</div>
+        <div class="hash">47b30112205cf6f1bfa86e9aed77a3460dc2c23a</div>
+      </div>
+      <span class="b b-anson">Display 節流</span>
+    </div>
+    <p>加入 Display FPS 選項，將 UI 顯示更新頻率從底層 camera callback 中拆分，支援 Native / 1 / 2 / 5 / 10 顯示節流。同時補上 photo / video request-result 的 fps debug log。</p>
+    <div class="stats">
+      <div class="stat">4 files</div>
+      <div class="stat">+302 / −18</div>
+    </div>
+    <ul class="paths">
+      <li class="mono">common/src/com/mediatek/camera/common/mode/photo/device/PhotoDevice2Controller.java</li>
+      <li class="mono">common/src/com/mediatek/camera/common/mode/video/device/v2/VideoDevice2Controller.java</li>
+      <li class="mono">host/res/layout/textureview_layout.xml</li>
+      <li class="mono">host/src/com/mediatek/camera/ui/preview/TextureViewController.java</li>
+    </ul>
+  </div>
+
+  <div class="commit">
+    <div class="top">
+      <div>
+        <div class="date">2026-04-16</div>
+        <div class="title">[Feat] - X &amp; Y Percent Save.</div>
+        <div class="hash">ca5236614745ceb5edc9b1d51ec88aae35abc000</div>
+      </div>
+      <span class="b b-ui">UI 持久化</span>
+    </div>
+    <p>把 preview 的 Scale X / Scale Y 存入 SharedPreferences，debug 調整後重新進入 app 可保留上次設定值。</p>
+    <div class="stats">
+      <div class="stat">2 files</div>
+      <div class="stat">+98 / −3</div>
+    </div>
+  </div>
+
+  <div class="commit">
+    <div class="top">
+      <div>
+        <div class="date">2026-03-31</div>
+        <div class="title">[EMI Test] - WF Mode GC + Wait.</div>
+        <div class="hash">1b98bf74a4048d8d15e63e08ee493ee0fe640461</div>
+      </div>
+      <span class="b b-new">EMI Test</span>
+    </div>
+    <p>在 <span class="mono">CameraActivity.java</span> 補入 WF Mode GC + Wait 相關測試邏輯，用於 EMI 驗證場景。</p>
+    <div class="stats">
+      <div class="stat">1 file</div>
+      <div class="stat">+10 / −0</div>
+    </div>
+  </div>
+
+  <div class="commit">
+    <div class="top">
+      <div>
+        <div class="date">2026-03-20</div>
+        <div class="title">[EMI Test] - Debug UI Modify.</div>
+        <div class="hash">4960d31241c7982ccb2777b316df2a4fcf8f2122</div>
+      </div>
+      <span class="b b-ui">版面改版</span>
+    </div>
+    <p>大幅重整 debug overlay 的 UI 樣式與控制排版，讓預覽品質、fps、scale 等測試項目更易操作。</p>
+    <div class="stats">
+      <div class="stat">2 files</div>
+      <div class="stat">+149 / −65</div>
+    </div>
+  </div>
+
+  <div class="commit">
+    <div class="top">
+      <div>
+        <div class="date">2026-03-19</div>
+        <div class="title">[EMI Test] - Add real-time FPS monitor, preview quality control, and debug panel to Camera2</div>
+        <div class="hash">1dad18563cccc7056c65fa4300132508530e37ca</div>
+      </div>
+      <span class="b b-cam">Quality 控制</span>
+    </div>
+    <p>在既有 debug 面板上再加入 Preview Quality 選單，讓解析度切換後能直接重建 preview session，方便觀察不同 size 對 fps 與顯示行為的影響。</p>
+    <div class="stats">
+      <div class="stat">3 files</div>
+      <div class="stat">+116 / −2</div>
+    </div>
+  </div>
+
+  <div class="commit">
+    <div class="top">
+      <div>
+        <div class="date">2026-03-19</div>
+        <div class="title">[EMI Test] - Add real-time FPS monitor and debug control panel to Camera2 preview</div>
+        <div class="hash">b576fb38e320f1fb3fbd897773e0d747f700d812</div>
+      </div>
+      <span class="b b-new">功能起點</span>
+    </div>
+    <p>這是整個 Camera2 EMI/Debug 工具化的起始提交。建立 FPS 顯示、Target FPS 選擇、X/Y layout scale 與 CONTROL_AE_TARGET_FPS_RANGE 注入能力。</p>
+    <div class="stats">
+      <div class="stat">5 files</div>
+      <div class="stat">+214 / −1</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 總結</div>
+  <div class="card">
+    <ul>
+      <li>Anson 在 Camera2 的 6 筆提交，主軸高度集中在 <b>preview debug / EMI 測試工具化</b>。</li>
+      <li>真正的核心檔案只有兩個：<span class="mono">TextureViewController.java</span> 與 <span class="mono">textureview_layout.xml</span>，兩者合計佔了大部分 UI 改動。</li>
+      <li>Photo / Video device controller 的修改主要是為了把 UI 選擇真正注入到 capture request，並增加 capability / request / result 的觀測能力。</li>
+      <li>若要 review Anson 的 Camera2 客製內容，優先看 <span class="mono">TextureViewController.java</span>，再看 Photo / Video controller 的 fps 注入與 log。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">資料來源：Camera2 專案 git log，僅篩選 Author = Anson &lt;chistine101814@gmail.com&gt;</div>
+</div>
+</body>
+</html>
