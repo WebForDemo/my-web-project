@@ -28,7 +28,7 @@
   .sec{margin-bottom:40px}
   .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
   .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:12px}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:12px;min-width:0}
   .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
   .card p,.card li{font-size:13.5px;color:var(--dim)}
   .card ul{padding-left:18px}
@@ -39,9 +39,9 @@
   .tb tr:last-child td{border-bottom:none}
   .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
   .grid{display:grid;gap:12px}
-  .grid-2{grid-template-columns:1fr 1fr}
-  .grid-3{grid-template-columns:repeat(3,1fr)}
-  .summary-grid{grid-template-columns:1fr 1fr;margin-bottom:14px}
+  .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
   .mini{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
   .mini .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
   .mini .v{font-size:15px;font-weight:700}
@@ -61,7 +61,7 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
   .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
   .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
-  .code{background:#0c0e14;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre;word-break:normal}
+  .code{background:#0c0e14;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
   .sampling{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:18px 18px 14px;margin-top:12px}
   .sampling-line{position:relative;height:84px;margin:10px 0 6px}
   .sampling-line::before{content:'';position:absolute;left:5%;right:5%;top:48px;height:2px;background:var(--bd)}
@@ -86,6 +86,14 @@
   .video-link{margin-top:10px}
   .video-link a{color:var(--cyan);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:12px}
   .video-link a:hover{text-decoration:underline}
+  .mpv-shot{margin-top:12px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px}
+  .mpv-shot a{display:block;text-decoration:none}
+  .mpv-shot img{display:block;width:100%;height:auto;border-radius:8px;border:1px solid var(--bd);background:#111}
+  .mpv-shot .hint{font-size:11px;color:var(--dim);text-align:center;margin-top:8px}
+  .kbd{display:inline-block;min-width:24px;padding:2px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--bd);font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx);text-align:center}
+  .tip-list{list-style:none;padding-left:0}
+  .tip-list li{padding:8px 0;border-bottom:1px solid var(--bd)}
+  .tip-list li:last-child{border-bottom:none}
   .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
   @media(max-width:760px){
     .grid-2,.grid-3,.summary-grid{grid-template-columns:1fr}
@@ -416,6 +424,68 @@ B 段：6.549 × (112 / 157) × (23.8095 / 960) × 1000 = 115.87 ms
   <div class="sec-t"><span class="n">8</span> 最終結論</div>
   <div class="card">
     <p><strong>結論：</strong>影格越多，若不處理 <span class="mono">0.041 / 0.042</span> 的跳動差異，單靠影片時間換算的誤差就會逐步擴張，157 格案例已可達約 <strong>3.9 ms</strong>。因此，EA0T4A 手寫速度量測的正式報告與對外答辯，都應以 <strong>原始影格計算法</strong> 作為主結論。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">9</span> MPV 量測工具教學</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎mpv 是什麼？為什麼適合拿來量測</h4>
+    <p><strong>mpv</strong> 是一套輕量、開源、跨平台的播放器，優點是可以直接用鍵盤做 <strong>暫停 / 逐格播放 / OSD 疊字顯示</strong>。對手寫延遲量測來說，它很適合拿來觀察「第幾格發生事件」以及「目前播放時間」，用來輔助判讀筆尖碰線與墨水出現的時間點。</p>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4 style="color:var(--green)">▎啟動指令</h4>
+      <p>下面這條指令會在 mpv 視窗上顯示 frame 與 time，方便逐格量測：</p>
+      <div class="code">mpv --osd-level=3 --osd-fractions --osd-msg3='Frame: ${estimated-frame-number} / ${estimated-frame-count}\nTime: ${time-pos}' '/home/anson/桌面/C0175.MP4'</div>
+      <p style="margin-top:8px">若換別支影片，只要把最後的檔案路徑改掉即可。</p>
+    </div>
+
+    <div class="card">
+      <h4 style="color:var(--amber)">▎畫面怎麼看</h4>
+      <ul class="tip-list">
+        <li><strong>Frame：</strong>主要透過 <strong>mpv GUI 視窗</strong>左上角的 OSD 疊字觀察。</li>
+        <li><strong>ms / Time：</strong>可搭配 <strong>CLI 終端機視窗</strong>一起看目前時間與播放狀態，作為毫秒判讀輔助。</li>
+        <li><strong>用途：</strong>先用 frame 找到事件點，再依需要換算成 <span class="mono">ms</span>，或和 CLI 顯示互相核對。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--purple)">▎基礎操作</h4>
+    <ul class="tip-list">
+      <li><span class="kbd">Space</span> 暫停 / 繼續播放，方便停在關鍵區間。</li>
+      <li><span class="kbd">,</span> 往前一格，適合回頭確認筆尖是否已碰到基準線。</li>
+      <li><span class="kbd">.</span> 往後一格，適合逐步找出墨水首次出現的 frame。</li>
+      <li>實務上建議先按 <span class="kbd">Space</span> 停住，再用 <span class="kbd">,</span> 與 <span class="kbd">.</span> 逐格來回比對。</li>
+    </ul>
+
+    <div class="mpv-shot">
+      <a href="https://drive.google.com/file/d/1h91x_r8M2w9S15_q7MRLFTeA4WrjuWYS/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+        <img src="https://drive.google.com/thumbnail?id=1h91x_r8M2w9S15_q7MRLFTeA4WrjuWYS&amp;sz=w1600" alt="mpv 量測工具畫面">
+      </a>
+      <div class="hint">點圖片可放大檢視</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎建議量測流程</h4>
+    <div class="steps">
+      <div class="step">
+        <h5>Step 1. 用 mpv 開啟影片並停在目標區段</h5>
+        <p>先播放到基準線附近，再按 <span class="mono">Space</span> 暫停。</p>
+      </div>
+      <div class="step">
+        <h5>Step 2. 用逗號與句號逐格找事件點</h5>
+        <p>先找出筆尖碰到基準線的 frame，再找出墨水首次出現在基準線的 frame。</p>
+      </div>
+      <div class="step">
+        <h5>Step 3. 記下 frame 差值</h5>
+        <p>兩個事件點相減後，即可得到量測影格數。若素材為 <span class="mono">960 fps</span>，再用 <span class="mono">格數 ÷ 960 × 1000</span> 換算成毫秒。</p>
+      </div>
+    </div>
   </div>
 </div>
 
