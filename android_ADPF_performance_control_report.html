@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Android 效能控制整理報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:960px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:28px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+  .hdr .links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .hdr .link-chip{display:inline-flex;align-items:center;gap:6px;background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--tx);text-decoration:none;transition:.18s ease}
+  .hdr .link-chip:hover{border-color:var(--blue);background:var(--s2)}
+  .hdr .link-chip span{color:var(--dim)}
+  .sec{margin-bottom:40px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:12px;min-width:0}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:9px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:10px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+  .tb tr:last-child td{border-bottom:none}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .grid{display:grid;gap:12px}
+  .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px}
+  .mini{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
+  .mini .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .mini .v{font-size:15px;font-weight:700}
+  .mini .d{font-size:11px;color:var(--dim);margin-top:4px}
+  .mini.green{border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.08)}
+  .mini.cyan{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.08)}
+  .mini.amber{border-color:var(--amber);box-shadow:0 0 12px rgba(251,191,36,.08)}
+  .mini.red{border-color:var(--red);box-shadow:0 0 12px rgba(248,113,113,.08)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .code{background:#0c0e14;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--tx);white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+  .steps{position:relative;padding-left:28px}
+  .steps::before{content:'';position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--bd)}
+  .step{position:relative;margin-bottom:14px}
+  .step::before{content:'';position:absolute;left:-22px;top:7px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--bg)}
+  .step:last-child{margin-bottom:0}
+  .step h5{font-size:13px;margin-bottom:2px}
+  .step p{font-size:13px;color:var(--dim)}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+  .figure-card{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px}
+  .figure-card img{display:block;width:100%;height:auto;border-radius:8px;border:1px solid var(--bd);background:#111;cursor:zoom-in}
+  .figure-card .cap{font-size:12px;color:var(--dim);margin-top:8px}
+  .warn{background:var(--amber-d);border:1px solid rgba(251,191,36,.35);color:var(--tx)}
+  .tip{background:var(--cyan-d);border:1px solid rgba(34,211,238,.35);color:var(--tx)}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:28px;z-index:9999}
+  .lightbox.open{display:flex}
+  .lightbox-inner{max-width:min(96vw,1400px);max-height:92vh;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .lightbox img{max-width:100%;max-height:calc(92vh - 44px);width:auto;height:auto;border-radius:10px;border:1px solid var(--bd);box-shadow:0 20px 60px rgba(0,0,0,.45);background:#111}
+  .lightbox-cap{font-size:12px;color:#c9ceda;text-align:center}
+  .lightbox-close{position:absolute;top:14px;right:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer}
+  @media(max-width:760px){
+    .grid-2,.grid-3,.summary-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>Android 效能控制整理報告</h1>
+  <div class="sub">依據《Android 效能控制.pdf》重整為可閱讀 HTML，沿用既有報告版型並整理成對應段落與截圖。</div>
+  <div class="meta">
+    <div class="chip">來源：<b>Android 效能控制.pdf</b></div>
+    <div class="chip">頁數：<b>13 Pages</b></div>
+    <div class="chip">主題：<b>ADPF / Game Mode / AGDK</b></div>
+  </div>
+  <div class="links">
+    <a class="link-chip" href="https://github.com/android/games-samples" target="_blank" rel="noopener noreferrer"><span>GitHub</span> games-samples</a>
+    <a class="link-chip" href="https://chatgpt.com/s/t_69ccf85d061081918e4b3e2d731f8b3a" target="_blank" rel="noopener noreferrer"><span>ChatGPT</span> ADPF</a>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 文件摘要</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> AGDK sample 評估</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> ADPF 實測結果</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Game Mode 測試結果</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> 實測截圖整理</div>
+  </div>
+
+  <div class="grid summary-grid">
+    <div class="mini cyan">
+      <div class="k">核心結論</div>
+      <div class="v">ADPF 對持續高負載有效</div>
+      <div class="d">能延後裝置進入熱限制並維持較長時間的高 FPS。</div>
+    </div>
+    <div class="mini green">
+      <div class="k">ADPF 實測</div>
+      <div class="v">60 FPS 可維持到 6:22</div>
+      <div class="d">未開啟 ADPF 時於 2:44 進入 MODERATE 並降到 30 FPS。</div>
+    </div>
+    <div class="mini amber">
+      <div class="k">Game Mode</div>
+      <div class="v">模式切換驗證成功</div>
+      <div class="d">STANDARD / PERFORMANCE / BATTERY 均能正確反映在 FPS 與解析度策略。</div>
+    </div>
+    <div class="mini red">
+      <div class="k">產品判讀</div>
+      <div class="v">不適合單次「開書」動作</div>
+      <div class="d">較適合持續運算、持續渲染、長時間高 CPU/GPU 工作場景。</div>
+    </div>
+  </div>
+
+  <div class="card tip">
+    <h4>▎整理方式</h4>
+    <p>本 HTML 依 PDF 文字內容重建表格與段落，並將 7 張截圖依主題分別配置到 ADPF、Game Mode 與 AGDK 區塊，讓圖文一一對應。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> Github games-samples</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>項目</th><th>是不是 app/sample</th><th>要不要測</th><th>原因</th></tr>
+      <tr><td><span class="mono">adpf</span></td><td>是</td><td>已測，保留</td><td>驗證 ADPF 對持續 workload 的效果。</td></tr>
+      <tr><td><span class="mono">game_mode</span></td><td>是</td><td>已測，保留</td><td>驗證 Game Mode 切換後 FPS / 解析度策略。</td></tr>
+      <tr><td><span class="mono">game_controller</span></td><td>是</td><td>視需求</td><td>只有產品要支援手把 / 控制器時才有意義。</td></tr>
+      <tr><td><span class="mono">agdktunnel</span></td><td>是</td><td>可選</td><td>綜合型 sample，偏整合示範，不是單一 API 驗證。</td></tr>
+      <tr><td><span class="mono">agde/*</span></td><td>算 sample</td><td>不建議現在測</td><td>偏 AGDE / Visual Studio 專案，與目前 Android Studio 驗證主題不同。</td></tr>
+      <tr><td><span class="mono">common</span></td><td>不是 app</td><td>不用測</td><td>共用程式碼。</td></tr>
+      <tr><td><span class="mono">third_party</span></td><td>不是 app</td><td>不用測</td><td>第三方函式庫。</td></tr>
+      <tr><td><span class="mono">util</span></td><td>不是 app</td><td>不用測</td><td>工具與輔助內容。</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> Android 效能控制方案總覽</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>序號</th><th>方案名稱</th><th>核心技術 / API</th><th>控制層級</th><th>「開書」場景可能應用</th></tr>
+      <tr><td>1</td><td>ADPF (動態效能架構)</td><td><span class="mono">PerformanceHintManager</span></td><td>微秒級 (執行緒)</td><td>點擊瞬間引導 CPU 垂直升頻，縮短解析時間。</td></tr>
+      <tr><td>2</td><td>Game Mode API</td><td><span class="mono">GameManager</span></td><td>應用級 (全局)</td><td>設定成 PERFORMANCE 模式，讓系統放寬溫控與排程門檻。</td></tr>
+      <tr><td>3</td><td>Thread Priority</td><td><span class="mono">Process.setThreadPriority</span></td><td>核心調度層</td><td>避免背景工作搶走「開書」執行緒 CPU 時間。</td></tr>
+      <tr><td>4</td><td>Power Manager</td><td><span class="mono">setSustainedPerformanceMode</span></td><td>硬體穩定層</td><td>避免長時間解析大檔時突然斷崖降速。</td></tr>
+      <tr><td>5</td><td>WakeLock</td><td><span class="mono">PowerManager.WakeLock</span></td><td>電源狀態層</td><td>防止 CPU 在高負載運算中進入省電休眠。</td></tr>
+    </table>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎ADPF</h4>
+      <p>Android 13+ 提供的雙向溝通機制。App 告訴系統預期工作時間，系統則回饋熱狀態與調度協助，是目前唯一能主動引導 CPU 頻率爬升的現代 API。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎Game Mode API</h4>
+      <p>雖然名稱帶有 Game，但本質上是效能偏好查詢機制。系統可依 PERFORMANCE / STANDARD / BATTERY 切換不同 PowerHAL 配置。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎Thread Priority</h4>
+      <p>底層 Linux 調度優先權。它不直接升頻，但能在 CPU 資源不足時優先處理關鍵工作執行緒。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎Sustained Performance / WakeLock</h4>
+      <p>前者維持較穩定但不極端的頻率曲線，後者確保背景解析時 CPU 不進入休眠；兩者都偏系統穩定性而非瞬時爆發。</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> ADPF 測試報告</div>
+
+  <div class="grid summary-grid">
+    <div class="mini green">
+      <div class="k">3 分鐘 ADPF ON</div>
+      <div class="v">60 FPS / LIGHT / 220759</div>
+      <div class="d">3 分鐘內未升到 MODERATE。</div>
+    </div>
+    <div class="mini red">
+      <div class="k">3 分鐘 ADPF OFF</div>
+      <div class="v">2:44 → 30 FPS / MODERATE / 228094</div>
+      <div class="d">2 分 44 秒進入 MODERATE。</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4>▎測試目的</h4>
+      <p>驗證 <span class="mono">use ADPF</span> 開啟與關閉時，ADPF Sample 在相同執行時間下的熱狀態、FPS 目標與平均耗電差異。</p>
+      <p style="margin-top:8px">PDF 內對 <span class="mono">workload</span> 的簡化定義是：裝置在一段時間內持續要處理的工作量，例如持續運算、渲染畫面、物理模擬、吃 CPU/GPU 的任務。</p>
+    </div>
+    <div class="card">
+      <h4>▎測試方法</h4>
+      <ul>
+        <li>測試 App：ADPF Sample</li>
+        <li>測試方式：比較 <span class="mono">use ADPF = ON</span> 與 <span class="mono">OFF</span></li>
+        <li>操作方式：每次切換模式後按 <span class="mono">Reset</span> 重新統計</li>
+        <li>主要觀察值：<span class="mono">FPS target</span>、<span class="mono">Thermal State</span>、平均耗電</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>▎測試步驟</h4>
+    <div class="steps">
+      <div class="step"><h5>Step 1</h5><p>開啟 ADPF Sample。</p></div>
+      <div class="step"><h5>Step 2</h5><p>確認兩輪測試條件一致，使用相同裝置、相同執行場景與相同觀察時間。</p></div>
+      <div class="step"><h5>Step 3</h5><p>第一輪勾選 <span class="mono">use ADPF</span>，按下 <span class="mono">Reset</span>，開始計時 3 分鐘。</p></div>
+      <div class="step"><h5>Step 4</h5><p>記錄 <span class="mono">FPS target</span>、<span class="mono">Thermal State</span>、平均耗電值。</p></div>
+      <div class="step"><h5>Step 5</h5><p>第二輪取消勾選 <span class="mono">use ADPF</span>，再按一次 <span class="mono">Reset</span>，同樣觀察 3 分鐘。</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>測試模式</th><th>觀察時間</th><th>FPS target</th><th>Thermal State</th><th>狀態變化時間</th><th>平均耗電</th></tr>
+      <tr><td>ADPF 開啟</td><td>3 分鐘</td><td>60 FPS</td><td>LIGHT</td><td>3 分鐘內未升到 MODERATE</td><td>220759</td></tr>
+      <tr><td>ADPF 關閉</td><td>3 分鐘</td><td>2:44 後降為 30 FPS</td><td>MODERATE</td><td>2 分 44 秒進入 MODERATE</td><td>228094</td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>比較項目</th><th>ADPF 開啟</th><th>ADPF 關閉</th><th>判讀</th></tr>
+      <tr><td>維持 60 FPS 的時間</td><td>6:22</td><td>2:44</td><td>ADPF 較佳</td></tr>
+      <tr><td>進入 MODERATE 的時間</td><td>6:22</td><td>2:44</td><td>ADPF 較佳</td></tr>
+      <tr><td>平均耗電</td><td>220759</td><td>228094</td><td>ADPF 較低，約下降 3.2%</td></tr>
+      <tr><td>熱壓力控制</td><td>較晚升高</td><td>較早升高</td><td>ADPF 較佳</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4>▎重點結論</h4>
+    <ul>
+      <li>ADPF 可有效延後裝置進入較高熱狀態，從 2:44 延後到 6:22 才出現相同行為。</li>
+      <li>ADPF 可延長高效能維持時間，在相同持續工作量下維持 60 FPS 更久。</li>
+      <li>平均耗電從 228094 降到 220759，約改善 3.2%。</li>
+    </ul>
+  </div>
+
+  <div class="card warn">
+    <h4>▎適用情境判讀</h4>
+    <p>PDF 明確指出：ADPF 不太適合拿來當單次「開書」動作的主要方案。它更適合遊戲、長時間渲染、持續運算、長時間高 CPU/GPU 任務等持續負載場景。</p>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-000.png" alt="ADPF 截圖 1">
+      <div class="cap">ADPF 截圖 1</div>
+    </div>
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-001.png" alt="ADPF 截圖 2">
+      <div class="cap">ADPF 截圖 2</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> Game Mode API 測試報告</div>
+
+  <div class="card">
+    <h4>▎控制指令</h4>
+    <div class="code">adb shell cmd game mode standard com.android.example.games.game_mode_sample
+adb shell am force-stop com.android.example.games.game_mode_sample
+
+adb shell cmd game mode performance com.android.example.games.game_mode_sample
+adb shell am force-stop com.android.example.games.game_mode_sample
+
+adb shell cmd game mode battery com.android.example.games.game_mode_sample
+adb shell am force-stop com.android.example.games.game_mode_sample</div>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>模式 (Game Mode)</th><th>測試 1</th><th>測試 2</th><th>測試 3</th><th>測試 4</th><th>測試 5</th><th>平均值 (Avg)</th></tr>
+      <tr><td>Performance</td><td>6.05s</td><td>5.90s</td><td>6.16s</td><td>5.86s</td><td>6.03s</td><td>6.00s</td></tr>
+      <tr><td>Standard</td><td>5.61s</td><td>6.01s</td><td>6.06s</td><td>5.71s</td><td>5.83s</td><td>5.84s</td></tr>
+      <tr><td>Battery</td><td>5.96s</td><td>6.05s</td><td>5.90s</td><td>5.78s</td><td>5.95s</td><td>5.93s</td></tr>
+    </table>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <h4>▎測試目的</h4>
+      <p>驗證 Game Mode Sample 是否能正確接收系統設定的 <span class="mono">Game Mode</span>，並依不同模式調整 App 執行策略。</p>
+      <p style="margin-top:8px">重點不是量測 ADPF，而是確認模式切換後，App 是否正確改變 <span class="mono">FPS target</span> 與 <span class="mono">Preferred size</span>。</p>
+    </div>
+    <div class="card">
+      <h4>▎測試方式</h4>
+      <ul>
+        <li>測試模式：STANDARD / PERFORMANCE / BATTERY</li>
+        <li>切換方式：<span class="mono">adb shell cmd game mode ...</span></li>
+        <li>執行方式：每次切換模式後重新開啟 App，讀取最新設定</li>
+        <li>主要觀察值：Game Mode、FPS target、Surface size、Preferred size</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>測試模式</th><th>Thermal State</th><th>Physics Steps</th><th>Array Size</th><th>FPS target</th><th>Surface size</th><th>Preferred size</th></tr>
+      <tr><td>STANDARD</td><td>MODERATE</td><td>8</td><td>4</td><td>30 FPS</td><td>930 x 697</td><td>930 x 697</td></tr>
+      <tr><td>PERFORMANCE</td><td>MODERATE</td><td>8</td><td>4</td><td>60 FPS</td><td>1860 x 1395</td><td>1860 x 1395</td></tr>
+      <tr><td>BATTERY</td><td>LIGHT</td><td>12</td><td>6</td><td>30 FPS</td><td>465 x 348</td><td>465 x 348</td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>比較項目</th><th>STANDARD</th><th>PERFORMANCE</th><th>BATTERY</th><th>判讀</th></tr>
+      <tr><td>Game Mode 是否正確切換</td><td>是</td><td>是</td><td>是</td><td>App 有正確收到系統模式</td></tr>
+      <tr><td>FPS target</td><td>30 FPS</td><td>60 FPS</td><td>30 FPS</td><td>符合模式預期</td></tr>
+      <tr><td>Preferred size</td><td>930 x 697</td><td>1860 x 1395</td><td>465 x 348</td><td>符合模式預期</td></tr>
+      <tr><td>執行策略</td><td>平衡模式</td><td>高效能模式</td><td>省電模式</td><td>模式差異明確</td></tr>
+    </table>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card"><h4>STANDARD</h4><p>30 FPS、解析度中等，屬於預設平衡模式。</p></div>
+    <div class="card"><h4>PERFORMANCE</h4><p>60 FPS、解析度最大，以效能優先。</p></div>
+    <div class="card"><h4>BATTERY</h4><p>30 FPS、解析度最小，以省電優先。</p></div>
+  </div>
+
+  <div class="card">
+    <h4>▎結論與適用情境</h4>
+    <ul>
+      <li>Game Mode Sample 可正確接收系統設定的遊戲模式。</li>
+      <li>App 會依不同模式調整 FPS 與解析度策略。</li>
+      <li>適合遊戲、即時渲染、模擬類 App、長時間持續運算的互動式內容。</li>
+      <li>不適合一次性短操作，例如單次開頁、單次載入、短暫查詢等流程。</li>
+    </ul>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-002.png" alt="Game Mode 截圖 1">
+      <div class="cap">Game Mode 截圖 1</div>
+    </div>
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-003.png" alt="Game Mode 截圖 2">
+      <div class="cap">Game Mode 截圖 2</div>
+    </div>
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-004.png" alt="Game Mode 截圖 3">
+      <div class="cap">Game Mode 截圖 3</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> AGDK 補充截圖</div>
+
+  <div class="card">
+    <p>這兩張為額外整理的 AGDK 補充畫面，保留在本報告中作為整合示範參考。</p>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-005.png" alt="AGDK 截圖 1">
+      <div class="cap">AGDK 截圖 1</div>
+    </div>
+    <div class="figure-card">
+      <img src="android_perf_assets/android_perf_img-006.png" alt="AGDK 截圖 2">
+      <div class="cap">AGDK 截圖 2</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">7</span> Game Mode 與 ADPF 適用情境比較總結</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>比較項目</th><th>Game Mode (遊戲模式)</th><th>ADPF (動態效能架構)</th></tr>
+      <tr>
+        <td>核心適用產品 / 場景</td>
+        <td>遊戲、即時渲染、模擬類 App、需要讓使用者切換「效能 vs 省電」偏好的場景。</td>
+        <td>遊戲、長時間渲染、需要穩定 CPU/GPU 輸出的持續性高負載任務。</td>
+      </tr>
+      <tr>
+        <td>主要控制 / 調節目標</td>
+        <td>宏觀策略：降解析度、鎖 FPS、減少特效、降低背景更新。</td>
+        <td>微觀調度：回報實際運算時間，讓系統動態調節頻率以維持長時間穩定。</td>
+      </tr>
+      <tr>
+        <td>對於「單次開書」的適用性</td>
+        <td>❌ 不適合</td>
+        <td>❌ 不太適合當主要方案</td>
+      </tr>
+      <tr>
+        <td>不適合「開書」的核心原因</td>
+        <td>開書是「一次性、單一步驟」的短操作。Game Mode 是給「持續運行的策略」用的。</td>
+        <td>開書是「短時間的爆發運算」。ADPF 擅長處理「持續性的高工作量」，對突發任務反應不及。</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="note">此 HTML 依 PDF 文字與圖片重新編排，並將 7 張截圖依 ADPF、Game Mode、AGDK 主題分流配置。</div>
+
+</div>
+
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button class="lightbox-close" id="lightboxClose" type="button">關閉</button>
+  <div class="lightbox-inner">
+    <img id="lightboxImg" alt="">
+    <div class="lightbox-cap" id="lightboxCap"></div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCap = document.getElementById('lightboxCap');
+    const closeBtn = document.getElementById('lightboxClose');
+    const images = document.querySelectorAll('.figure-card img');
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      lightboxImg.removeAttribute('src');
+      lightboxImg.alt = '';
+      lightboxCap.textContent = '';
+    }
+
+    images.forEach((img) => {
+      img.addEventListener('click', () => {
+        const cap = img.closest('.figure-card')?.querySelector('.cap')?.textContent || '';
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt || cap;
+        lightboxCap.textContent = cap;
+        lightbox.classList.add('open');
+        lightbox.setAttribute('aria-hidden', 'false');
+      });
+    });
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (event) => {
+      if (event.target === lightbox) closeLightbox();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && lightbox.classList.contains('open')) {
+        closeLightbox();
+      }
+    });
+  })();
+</script>
+</body>
+</html>
