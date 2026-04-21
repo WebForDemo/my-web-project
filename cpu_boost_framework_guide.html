@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPU Boost Broadcast 架構講解</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e2e4eb;
+    --text-dim: #8b90a0;
+    --accent: #6c8cff;
+    --accent-dim: rgba(108,140,255,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .header .path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    word-break: break-all;
+  }
+
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .card p, .card li {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .card ul {
+    padding-left: 18px;
+  }
+  .card li {
+    margin-bottom: 4px;
+  }
+
+  .kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .kv-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .kv-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .kv-table tr:last-child td { border-bottom: none; }
+  .kv-table .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+  .kv-table .type {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+    font-size: 12px;
+  }
+
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-top: 12px;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .code-block .comment { color: #555c70; }
+  .code-block .keyword { color: var(--accent); }
+  .code-block .string { color: var(--green); }
+  .code-block .number { color: var(--amber); }
+  .code-block .highlight { color: var(--text); font-weight: 500; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .flow-node.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.15);
+  }
+  .flow-arrow {
+    font-size: 18px;
+    color: var(--text-dim);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  .lifecycle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .lifecycle .pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .pill .dot-green { background: var(--green); }
+  .pill .dot-red { background: var(--red); }
+  .pill .dot-amber { background: var(--amber); }
+
+  .sync-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin: 16px 0;
+  }
+  .sync-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    text-align: center;
+  }
+  .sync-box .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .sync-box .name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .sync-center {
+    text-align: center;
+  }
+  .sync-center .db-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+  .sync-center .db-label {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 14px;
+  }
+  .arch-flow {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .arch-step {
+    position: relative;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 0;
+  }
+  .arch-step.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.12);
+  }
+  .arch-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .arch-index {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .arch-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .arch-layer {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .arch-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .arch-meta {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .arch-meta code {
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+  }
+  .arch-arrow {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 20px;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 32px 0;
+  }
+
+  .video-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    margin-top: 12px;
+  }
+  .video-wrap iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 840px) {
+    .arch-flow {
+      max-width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>CPU Boost Broadcast 架構講解</h1>
+    <div class="subtitle">App / ADB 廣播觸發 Framework，再由 init.rc 切換 CPU governor</div>
+    <div class="path">frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> 目標與定位</div>
+    <div class="card">
+      <p>這次改法的核心目標，是把原本只能靠 <code>adb shell</code> 手動操作的 CPU governor 切換，做成一條可由 <strong>任意 app</strong> 或 <strong>adb am broadcast</strong> 直接觸發的系統流程。</p>
+      <ul style="margin-top:8px">
+        <li>輸入端：App 或 ADB 發送 broadcast</li>
+        <li>Framework 入口：<code>PowerManagerService</code> 內新增 <code>CpuBoostReceiver</code></li>
+        <li>中介狀態：寫入 <code>sys.ntx.book.cpu_boost</code></li>
+        <li>執行端：vendor <code>init.mt8171.rc</code> 監聽 property 並寫入 governor</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> 整體架構示意圖</div>
+    <div class="card">
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-layer">Input</div>
+            <div class="arch-top">
+              <div class="arch-index">1</div>
+              <div class="arch-title">App / ADB 發送 Broadcast</div>
+            </div>
+            <div class="arch-desc">外部輸入端送出 CPU boost 指令，Framework 不需要輪詢，也不需要 app 直接碰 sysfs。</div>
+            <div class="arch-meta">Action: <code>ntx.book.action.SET_CPU_BOOST</code><br>Extra: <code>enabled=true / false</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Framework</div>
+            <div class="arch-top">
+              <div class="arch-index">2</div>
+              <div class="arch-title">PowerManagerService 收到事件</div>
+            </div>
+            <div class="arch-desc">在 <code>systemReady()</code> 註冊的 <code>CpuBoostReceiver</code> 接住廣播，統一在 system_server 內處理。</div>
+            <div class="arch-meta">位置: <code>PowerManagerService.java</code> line 1765~1768</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Framework Logic</div>
+            <div class="arch-top">
+              <div class="arch-index">3</div>
+              <div class="arch-title">轉成系統狀態值</div>
+            </div>
+            <div class="arch-desc">Receiver 解析 <code>enabled</code>，並轉成字串值 <code>1</code> 或 <code>0</code>。</div>
+            <div class="arch-meta">true → <code>"1"</code><br>false → <code>"0"</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">System Property</div>
+            <div class="arch-top">
+              <div class="arch-index">4</div>
+              <div class="arch-title">寫入 sys.ntx.book.cpu_boost</div>
+            </div>
+            <div class="arch-desc">Framework 不直接寫 governor，而是只寫 property，讓真正改 sysfs 的責任留在 init。</div>
+            <div class="arch-meta">Property: <code>sys.ntx.book.cpu_boost</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Vendor Init</div>
+            <div class="arch-top">
+              <div class="arch-index">5</div>
+              <div class="arch-title">init.rc 監聽 Trigger</div>
+            </div>
+            <div class="arch-desc">vendor <code>init.mt8171.rc</code> 監聽 property 變化，決定要切到 boost 還是恢復預設 governor。</div>
+            <div class="arch-meta"><code>on property:sys.ntx.book.cpu_boost=1</code><br><code>on property:sys.ntx.book.cpu_boost=0</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Kernel Sysfs</div>
+            <div class="arch-top">
+              <div class="arch-index">6</div>
+              <div class="arch-title">切換 CPU Governor</div>
+            </div>
+            <div class="arch-desc">最後由 init 寫入對應 policy 的 <code>scaling_governor</code>，讓 CPU 進入指定模式。</div>
+            <div class="arch-meta"><code>policy0 / policy6 → performance</code><br><code>policy0 / policy6 → schedutil</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> 為什麼走 Property + init.rc</div>
+    <div class="card">
+      <p>一開始如果直接讓 framework 去寫 <code>/sys/devices/system/cpu/.../scaling_governor</code>，會碰到 SELinux 與分層問題。這次最後採用的是：</p>
+      <div class="flow">
+        <div class="flow-node">Framework 只負責決策</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">System Property 傳遞狀態</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">init 以 root 寫 sysfs</div>
+      </div>
+      <p>這樣做的好處是：</p>
+      <ul style="margin-top:8px">
+        <li>framework 不直接碰 sysfs</li>
+        <li>真正寫 governor 的仍然是 <code>init</code></li>
+        <li>vendor 端可以自由調整 <code>policy0</code> / <code>policy6</code> 或之後改成其他策略</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>補充：什麼是 sysfs？什麼是 SELinux？</h4>
+      <p><strong>sysfs</strong> 可以把它理解成 Linux kernel 對外暴露的一組虛擬檔案介面。像這次用到的 <code>/sys/devices/system/cpu/cpufreq/policy0/scaling_governor</code>，本質上不是一般設定檔，而是 kernel 提供的控制入口；對它做 <code>write</code>，就等於在改 CPU governor 行為。</p>
+      <p style="margin-top:10px"><strong>SELinux</strong> 則是 Android 上的強制存取控制機制。就算某個 process 有能力呼叫 Java API 或 shell 指令，也不代表它一定能寫 <code>/sys</code> 或某個 property。這次之所以不讓 framework 直接寫 sysfs，就是因為 <code>system_server</code> 直接碰 vendor / kernel 控制點，很容易被 SELinux 的 <code>neverallow</code> 擋住。改成 <code>Framework → sys property → init.rc → sysfs</code>，就是把權限邊界分清楚。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> Framework 端修改點</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="kv-table">
+        <tr>
+          <th>檔案</th>
+          <th>位置</th>
+          <th>用途</th>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+          <td class="type">line 310</td>
+          <td>新增 property 名稱 <code>sys.ntx.book.cpu_boost</code></td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+          <td class="type">line 312~313</td>
+          <td>新增 broadcast action 與 extra 常數</td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+          <td class="type">line 1765~1768</td>
+          <td>在 <code>systemReady()</code> 註冊 <code>CpuBoostReceiver</code></td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td>
+          <td class="type">line 5893~5909</td>
+          <td>收到廣播後轉成 property 值 <code>1/0</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>Framework 端核心片段</h4>
+      <div class="code-block">
+<span class="comment">// 常數定義</span>
+<span class="keyword">private static final String</span> SYSTEM_PROPERTY_NTX_CPU_BOOST = <span class="string">"sys.ntx.book.cpu_boost"</span>;
+<span class="keyword">private static final String</span> ACTION_NTX_SET_CPU_BOOST = <span class="string">"ntx.book.action.SET_CPU_BOOST"</span>;
+<span class="keyword">private static final String</span> EXTRA_NTX_CPU_BOOST_ENABLED = <span class="string">"enabled"</span>;
+
+<span class="comment">// 註冊 receiver</span>
+mContext.registerReceiver(<span class="keyword">new</span> CpuBoostReceiver(), filter, <span class="keyword">null</span>, mHandler,
+        Context.RECEIVER_EXPORTED);
+
+<span class="comment">// 收到後寫 property</span>
+<span class="keyword">final boolean</span> enabled = intent.getBooleanExtra(EXTRA_NTX_CPU_BOOST_ENABLED, ...);
+SystemProperties.set(SYSTEM_PROPERTY_NTX_CPU_BOOST, enabled ? <span class="string">"1"</span> : <span class="string">"0"</span>);
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> Vendor init.rc 修改點</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="kv-table">
+        <tr>
+          <th>檔案</th>
+          <th>位置</th>
+          <th>用途</th>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/device/mediatek/mt8171/init.mt8171.rc</td>
+          <td class="type">line 825</td>
+          <td>開機先初始化 <code>sys.ntx.book.cpu_boost=0</code></td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/device/mediatek/mt8171/init.mt8171.rc</td>
+          <td class="type">line 1044~1046</td>
+          <td>property = 1 時切成 <code>performance</code></td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/device/mediatek/mt8171/init.mt8171.rc</td>
+          <td class="type">line 1049~1051</td>
+          <td>property = 0 時恢復 <code>schedutil</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>Vendor 端核心片段</h4>
+      <div class="code-block">
+<span class="comment"># 開機預設關閉 boost</span>
+setprop <span class="string">sys.ntx.book.cpu_boost</span> <span class="number">0</span>
+
+<span class="comment"># 啟用 boost</span>
+<span class="keyword">on property:</span><span class="string">sys.ntx.book.cpu_boost=1</span>
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_governor <span class="string">performance</span>
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_governor <span class="string">performance</span>
+
+<span class="comment"># 關閉 boost</span>
+<span class="keyword">on property:</span><span class="string">sys.ntx.book.cpu_boost=0</span>
+    write /sys/devices/system/cpu/cpufreq/policy0/scaling_governor <span class="string">schedutil</span>
+    write /sys/devices/system/cpu/cpufreq/policy6/scaling_governor <span class="string">schedutil</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> Broadcast 測試</div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="kv-table">
+        <tr>
+          <th>測試項目</th>
+          <th>內容</th>
+          <th>說明</th>
+        </tr>
+        <tr>
+          <td class="key">Action</td>
+          <td class="type">ntx.book.action.SET_CPU_BOOST</td>
+          <td>Framework 監聽的廣播名稱</td>
+        </tr>
+        <tr>
+          <td class="key">Extra</td>
+          <td class="type">enabled</td>
+          <td><code>true</code> 表示開啟，<code>false</code> 表示關閉</td>
+        </tr>
+        <tr>
+          <td class="key">Exported</td>
+          <td class="type">yes</td>
+          <td>目前先開放任意 app 與 ADB 測試</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>測試方式</h4>
+      <div class="code-block">
+<span class="comment"># 開啟 CPU boost</span>
+adb shell am broadcast -a <span class="string">ntx.book.action.SET_CPU_BOOST</span> --ez <span class="string">enabled</span> <span class="string">true</span>
+
+<span class="comment"># 關閉 CPU boost</span>
+adb shell am broadcast -a <span class="string">ntx.book.action.SET_CPU_BOOST</span> --ez <span class="string">enabled</span> <span class="string">false</span>
+
+<span class="comment"># 驗證 property</span>
+adb shell getprop <span class="string">sys.ntx.book.cpu_boost</span>
+
+<span class="comment"># 驗證 governor</span>
+adb shell cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+adb shell cat /sys/devices/system/cpu/cpufreq/policy6/scaling_governor
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> 為什麼從 vendor.* 改成 sys.*</div>
+    <div class="card">
+      <p>中途有一個重要修正：原本一度想用 <code>vendor.ntx.book.cpu_boost</code>，但 build 時被 sepolicy 的 <code>neverallow</code> 擋下來，原因是 <code>system_server</code> 不能直接 set vendor property。</p>
+      <div class="flow">
+        <div class="flow-node" style="border-color:var(--red)">vendor.ntx.book.cpu_boost</div>
+        <div class="flow-arrow">✕</div>
+        <div class="flow-node active">sys.ntx.book.cpu_boost</div>
+      </div>
+      <p>所以最終方案改為讓 framework 寫 <code>sys.*</code>，再由 vendor <code>init.rc</code> 去監聽這個 system property。這是這次能通過 build 的關鍵點。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">8</span> 這次卡住的來龍去脈</div>
+    <div class="card">
+      <p>這次中間之所以會失敗，不是因為 Java 寫法錯，而是因為 property 的分層碰到 SELinux 規則。簡單講：</p>
+      <div class="flow">
+        <div class="flow-node">想讓 system_server 寫<br><code>vendor.ntx.book.cpu_boost</code></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node" style="border-color:var(--red)">被 neverallow 規則判定不合法</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">改成寫<br><code>sys.ntx.book.cpu_boost</code></div>
+      </div>
+      <p><code>neverallow</code> 的意思不是「現在沒開權限」，而是「政策上禁止你這樣設計」。所以就算另外補 <code>allow</code>，編譯 policy 時還是會被打掉。</p>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="kv-table">
+        <tr>
+          <th>檔案</th>
+          <th>它在管什麼</th>
+          <th>這次跟它的關係</th>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/system/sepolicy/private/property.te</td>
+          <td>定義 property 類型與 property 相關的 <code>neverallow</code> 規則</td>
+          <td>這次真正卡住 build 的核心規則就在這裡，限制 coredomain 亂設 vendor property。</td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/system/sepolicy/private/property_contexts</td>
+          <td>把 property 名稱前綴對應到 SELinux type</td>
+          <td><code>vendor.*</code> 預設會被歸到 vendor property 類型，所以一開始才會踩線。</td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/system/sepolicy/private/system_server.te</td>
+          <td>定義 <code>system_server</code> 可以做哪些事</td>
+          <td>如果真的有某個合法 property type 要給 framework 寫，通常會在這裡補 <code>set_prop(system_server, ...)</code>。</td>
+        </tr>
+        <tr>
+          <td class="key" style="white-space:normal;word-break:break-all">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/system/sepolicy/private/shell.te</td>
+          <td>定義 <code>adb shell</code> 可以做哪些事</td>
+          <td>如果想靠 <code>adb shell setprop</code> 直接測 property，要看這裡有沒有放行。</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h4>示意圖：四個檔案怎麼一起影響結果</h4>
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-layer">Step 1</div>
+            <div class="arch-top">
+              <div class="arch-index">1</div>
+              <div class="arch-title">property_contexts 先分類</div>
+            </div>
+            <div class="arch-desc"><code>vendor.ntx.book.cpu_boost</code> 會先被當成 vendor property。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Step 2</div>
+            <div class="arch-top">
+              <div class="arch-index">2</div>
+              <div class="arch-title">property.te 檢查大規則</div>
+            </div>
+            <div class="arch-desc">這裡的 <code>neverallow</code> 說 <code>system_server</code> 這類 coredomain 不應直接 set vendor property。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Step 3</div>
+            <div class="arch-top">
+              <div class="arch-index">3</div>
+              <div class="arch-title">system_server.te / shell.te 是細項權限</div>
+            </div>
+            <div class="arch-desc">它們可以補允許項，但不能推翻 <code>neverallow</code> 這種上層禁止規則。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Step 4</div>
+            <div class="arch-top">
+              <div class="arch-index">4</div>
+              <div class="arch-title">所以最終改成 sys.*</div>
+            </div>
+            <div class="arch-desc">改走 <code>sys.ntx.book.cpu_boost</code>，讓 framework 寫 system property，vendor <code>init.rc</code> 再接手寫 sysfs。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">9</span> 優缺點與後續建議</div>
+    <div class="card">
+      <div class="lifecycle">
+        <div class="pill"><span class="dot dot-green"></span> <strong>優點</strong> ─ 對接快速、ADB 好測、邏輯集中</div>
+        <div class="pill"><span class="dot dot-amber"></span> <strong>目前狀態</strong> ─ 偏驗證版，不是最終量產安全策略</div>
+        <div class="pill"><span class="dot dot-red"></span> <strong>風險</strong> ─ 任意 app 都可送 broadcast</div>
+      </div>
+      <ul style="margin-top:14px">
+        <li>如果只是 bring-up 或內部驗證，這版已經足夠直接。</li>
+        <li>如果要量產，建議把 receiver 改回受保護的 permission，避免第三方 app 任意切 governor。</li>
+        <li>未來若要更 Android 正規，可再收斂成受保護 system API 或 vendor service。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">10</span> Demo 影片</div>
+    <div class="card">
+      <p>下面直接嵌入 Google Drive 預覽，可在文件中直接播放 CPU boost demo。</p>
+      <div class="video-wrap">
+        <iframe
+          src="https://drive.google.com/file/d/1TqGdrx23HCDa5X1bNyIhQ3EVDyu9LXad/preview"
+          allow="autoplay">
+        </iframe>
+      </div>
+      <p style="margin-top:12px">原始連結：<a href="https://drive.google.com/file/d/1TqGdrx23HCDa5X1bNyIhQ3EVDyu9LXad/view?usp=sharing" target="_blank" rel="noopener noreferrer" style="color:#6c8cff">https://drive.google.com/file/d/1TqGdrx23HCDa5X1bNyIhQ3EVDyu9LXad/view?usp=sharing</a></p>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="note">CPU Boost Framework Guide · 最後更新 2026-04-21</div>
+
+</div>
+</body>
+</html>
