@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linux Kernel / Driver / sysfs / kobject 協作報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e2e4eb;
+    --text-dim: #8b90a0;
+    --accent: #6c8cff;
+    --accent-dim: rgba(108,140,255,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .header .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .header .path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    word-break: break-all;
+  }
+
+  .section {
+    margin-bottom: 36px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+
+  .card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .card p, .card li {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .card ul {
+    padding-left: 18px;
+  }
+
+  .card li {
+    margin-bottom: 4px;
+  }
+
+  .kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+
+  .kv-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .kv-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .kv-table tr:last-child td { border-bottom: none; }
+
+  .kv-table .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .kv-table .type {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--amber);
+    font-size: 12px;
+  }
+
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-top: 12px;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .code-block .comment { color: #555c70; }
+  .code-block .keyword { color: var(--accent); }
+  .code-block .string { color: var(--green); }
+  .code-block .number { color: var(--amber); }
+  .code-block .highlight { color: var(--text); font-weight: 500; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+  }
+
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .flow-node.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.15);
+  }
+
+  .flow-arrow {
+    font-size: 18px;
+    color: var(--text-dim);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  .diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 14px;
+  }
+
+  .arch-flow {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .arch-step {
+    position: relative;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 0;
+  }
+
+  .arch-step.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.12);
+  }
+
+  .arch-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .arch-index {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .arch-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .arch-layer {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .arch-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .arch-meta {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .arch-meta code, code {
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+  }
+
+  .arch-arrow {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 20px;
+  }
+
+  .lifecycle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .lifecycle .pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .pill .dot-green { background: var(--green); }
+  .pill .dot-red { background: var(--red); }
+  .pill .dot-amber { background: var(--amber); }
+
+  .note {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 840px) {
+    .arch-flow {
+      max-width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Linux Kernel / Driver / sysfs / kobject 協作報告</h1>
+    <div class="subtitle">從 Android / AOSP 開發者視角理解核心物件模型、驅動註冊流程與 sysfs 對外介面</div>
+    <div class="path">Kernel Object Model / Driver Core / sysfs / kobject</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> 目標與定位</div>
+    <div class="card">
+      <p>這份報告要回答的不是單一 API 怎麼寫，而是 <strong>Linux Kernel、Driver 與 sysfs 如何協作</strong>。對 Android/AOSP 開發者來說，很多看似「只是寫一個節點」的行為，背後其實牽涉到 <code>kobject</code>、<code>device model</code> 與 <code>sysfs</code> 的整體結構。</p>
+      <ul style="margin-top:8px">
+        <li>Kernel 內部負責維護物件、生命週期、層級與 reference counting</li>
+        <li>Driver 透過 bus / device / driver model 掛入核心框架</li>
+        <li>sysfs 將核心物件以檔案與目錄形式暴露到使用者空間</li>
+        <li><code>kobject</code> 是三者之間最重要的黏合層</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>為什麼 AOSP 開發者需要懂這個？</h4>
+      <p>因為在 Android 平台上，很多 HAL、init、SELinux、debug script、factory tool 最後都會碰到像 <code>/sys/class</code>、<code>/sys/devices</code>、<code>/sys/bus</code> 這類節點。你要 debug「節點為什麼不見」、「權限為什麼不對」、「driver 為什麼沒有 bind 上去」，本質上都在處理同一套 object model。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> 先用 CPU 當實際例子</div>
+    <div class="card">
+      <p>如果你是 Android 開發者，最容易建立直覺的例子就是 <strong>CPU 頻率與 governor</strong>。因為它同時會碰到實體硬體、kernel 管理、sysfs 節點、framework policy，以及 app 端觸發。</p>
+      <div class="flow">
+        <div class="flow-node">CPU 硬體</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Kernel / cpufreq driver</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">sysfs</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">HAL / native service</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Framework</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">App</div>
+      </div>
+    </div>
+    <div class="card">
+      <h4>這條鏈每一層在做什麼</h4>
+      <table class="kv-table">
+        <tr>
+          <th>層級</th>
+          <th>在 CPU 例子中的角色</th>
+          <th>你通常會看到什麼</th>
+        </tr>
+        <tr>
+          <td class="key">實體硬體</td>
+          <td>真正的 CPU core、cluster、DVFS 能力與時脈控制器</td>
+          <td>big/little cluster、freq table、電源域</td>
+        </tr>
+        <tr>
+          <td class="key">Linux Kernel</td>
+          <td>cpufreq / scheduler / thermal framework 管理 CPU 狀態</td>
+          <td><code>policy0</code>、<code>scaling_governor</code>、<code>scaling_cur_freq</code></td>
+        </tr>
+        <tr>
+          <td class="key">Driver</td>
+          <td>SoC 專屬 cpufreq driver 負責把硬體能力掛進 kernel framework</td>
+          <td>probe、freq table、set_target、opp 對應</td>
+        </tr>
+        <tr>
+          <td class="key">sysfs</td>
+          <td>把 CPU policy / governor / min-max freq 對外暴露</td>
+          <td><code>/sys/devices/system/cpu/cpufreq/policy0/...</code></td>
+        </tr>
+        <tr>
+          <td class="key">HAL / native</td>
+          <td>有些平台會由 native daemon 或 vendor service 封裝 sysfs 操作</td>
+          <td>vendor service、power HAL、thermal HAL</td>
+        </tr>
+        <tr>
+          <td class="key">Framework</td>
+          <td>根據 power mode、interaction、thermal policy 做決策</td>
+          <td>PowerManager、PerformanceHint、Power HAL 調用</td>
+        </tr>
+        <tr>
+          <td class="key">App</td>
+          <td>不直接碰 CPU driver，而是透過 framework API 觸發策略</td>
+          <td>遊戲模式、相機啟動、bench app、測試工具</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h4>重點理解</h4>
+      <p>App 幾乎不會直接控制 CPU。App 只能表達「我要高效能」、「我要低延遲」；真正把這個需求轉成 governor 或頻率限制的，是 framework 與 kernel 之間的那條鏈。當你在 debug CPU 表現時，不能只看 app，必須一路追到 sysfs 節點與 driver callback。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> CPU 是怎麼被掛成 sysfs 的</div>
+    <div class="card">
+      <p>把 CPU 掛成 sysfs，不是「順手輸出一個檔案」那麼簡單。它通常是下面這條流程：</p>
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-layer">Hardware Description</div>
+            <div class="arch-top">
+              <div class="arch-index">1</div>
+              <div class="arch-title">SoC / DT 描述 CPU 與 OPP 能力</div>
+            </div>
+            <div class="arch-desc">device tree 或平台資料先描述有哪些 CPU、支援哪些頻率、電壓與 policy。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Driver Probe</div>
+            <div class="arch-top">
+              <div class="arch-index">2</div>
+              <div class="arch-title">cpufreq driver probe</div>
+            </div>
+            <div class="arch-desc">平台 cpufreq driver 註冊到 kernel cpufreq framework，建立 policy 與可支援頻率表。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Kernel Object Model</div>
+            <div class="arch-top">
+              <div class="arch-index">3</div>
+              <div class="arch-title">建立 device / kobject / attribute</div>
+            </div>
+            <div class="arch-desc">這一步會把 policy、governor、cur_freq、max_freq 等狀態對應成 sysfs 可見節點。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">sysfs Export</div>
+            <div class="arch-top">
+              <div class="arch-index">4</div>
+              <div class="arch-title">形成 /sys 路徑</div>
+            </div>
+            <div class="arch-desc">例如 <code>/sys/devices/system/cpu/cpufreq/policy0/scaling_governor</code> 這種節點，背後就是 kernel 物件模型加上 attribute callback 的結果。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Userspace Access</div>
+            <div class="arch-top">
+              <div class="arch-index">5</div>
+              <div class="arch-title">HAL / init / debug tool 讀寫</div>
+            </div>
+            <div class="arch-desc">當 userspace 寫入 governor 時，最終還是回到 cpufreq driver 的 callback 去實際改變 CPU 行為。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h4>以常見節點為例</h4>
+      <div class="code-block">/sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq
+/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq
+/sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq</div>
+      <p style="margin-top:10px">這些節點不是獨立存在的；它們依賴前面幾步都成功。也就是說，如果 driver 沒 probe、policy 沒建起來、kobject/attribute 沒 export，這些檔案根本不會出現。</p>
+    </div>
+    <div class="card">
+      <h4>你可以怎麼 debug</h4>
+      <ul>
+        <li>看 <code>dmesg</code> 確認 cpufreq driver probe 成功沒有</li>
+        <li>看 <code>/sys/devices/system/cpu/</code> 下 CPU 與 cpufreq policy 是否存在</li>
+        <li>如果節點有出來但寫入無效，就回頭追對應 framework 與 driver callback</li>
+        <li>如果 framework 說已經切模式，但 sysfs 沒變，代表中間層轉換有問題</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> 整體架構示意圖</div>
+    <div class="card">
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-layer">Kernel Core</div>
+            <div class="arch-top">
+              <div class="arch-index">1</div>
+              <div class="arch-title">kobject 建立核心物件</div>
+            </div>
+            <div class="arch-desc">每個可管理的核心物件都可以有一個 <code>kobject</code>，它負責名稱、parent-child 關係、sysfs 掛載點與 refcount。</div>
+            <div class="arch-meta">核心概念：<code>name</code> / <code>parent</code> / <code>kset</code> / <code>ktype</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Driver Core</div>
+            <div class="arch-top">
+              <div class="arch-index">2</div>
+              <div class="arch-title">bus / device / driver 掛入模型</div>
+            </div>
+            <div class="arch-desc">驅動不是單獨存在；它通常會註冊成某個 bus 上的 device 與 driver，並由 driver core 負責 match、probe、remove。</div>
+            <div class="arch-meta">常見物件：<code>struct device</code> / <code>struct device_driver</code> / <code>struct bus_type</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">sysfs Export</div>
+            <div class="arch-top">
+              <div class="arch-index">3</div>
+              <div class="arch-title">sysfs 對外暴露目錄與屬性</div>
+            </div>
+            <div class="arch-desc">核心物件掛上來後，可以透過 attribute group 或 device attribute，形成 <code>/sys</code> 下可讀寫節點，提供 userspace 檢視或控制。</div>
+            <div class="arch-meta">路徑例：<code>/sys/devices</code> / <code>/sys/class</code> / <code>/sys/bus</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Userspace</div>
+            <div class="arch-top">
+              <div class="arch-index">4</div>
+              <div class="arch-title">init / HAL / app_debug 讀寫節點</div>
+            </div>
+            <div class="arch-desc">Android userspace 不直接理解 kernel object；它只會看到 sysfs 檔案。但這些檔案其實就是後端 driver callback 的入口。</div>
+            <div class="arch-meta">使用方式：<code>cat</code> / <code>echo</code> / property-trigger script / native service</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> kobject 是什麼</div>
+    <div class="card">
+      <p><code>kobject</code> 可以把它理解成 Linux kernel 裡「可被管理、可被掛到 sysfs、可被追蹤生命週期」的基本外殼。它不是某個功能驅動本身，而是一個共通的 object infrastructure。</p>
+      <table class="kv-table">
+        <tr>
+          <th>欄位 / 概念</th>
+          <th>作用</th>
+          <th>Debug 觀點</th>
+        </tr>
+        <tr>
+          <td class="key">name</td>
+          <td>決定 sysfs 目錄名稱</td>
+          <td>節點名稱怪異或重複時先看這裡</td>
+        </tr>
+        <tr>
+          <td class="key">parent</td>
+          <td>決定在 sysfs 中掛在哪個父目錄下</td>
+          <td>路徑不在預期位置時先查 parent 關係</td>
+        </tr>
+        <tr>
+          <td class="key">kset</td>
+          <td>把同類型物件集合管理</td>
+          <td>class / bus 組織常由 kset 串起</td>
+        </tr>
+        <tr>
+          <td class="key">ktype</td>
+          <td>定義 release 與 default attrs</td>
+          <td>memory leak 或 attrs 缺失時常要追它</td>
+        </tr>
+        <tr>
+          <td class="key">refcount</td>
+          <td>控制生命週期，避免過早釋放</td>
+          <td><code>release()</code> 沒被叫或被重複叫都很危險</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h4>重要觀念</h4>
+      <p>很多核心結構內部都「內嵌」一個 <code>kobject</code>，例如 <code>struct device</code>。這表示你表面上在操作 device，底下其實同時在使用 kobject 的 reference / sysfs / hierarchy 能力。</p>
+      <div class="code-block"><span class="keyword">struct</span> device {
+    ...
+    <span class="highlight">struct kobject kobj;</span>
+    ...
+};</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> Driver 如何接進 Kernel Model</div>
+    <div class="card">
+      <p>一個 driver 真正「活起來」通常不是只靠 module load，而是經過 driver core 的註冊與匹配流程。簡化後你可以理解為：</p>
+      <div class="flow">
+        <div class="flow-node">driver register</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">device register</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">match</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">probe</div>
+      </div>
+      <ul style="margin-top:8px">
+        <li><code>bus</code> 提供 match 規則，例如 platform、i2c、spi、pci</li>
+        <li><code>device</code> 代表硬體實體或邏輯裝置</li>
+        <li><code>driver</code> 提供 probe/remove 與 attribute</li>
+        <li>一旦 probe 成功，sysfs 路徑、uevent、power management 狀態才會完整建立</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>對 AOSP 的實際意義</h4>
+      <p>如果你在 Android 看到某個 <code>/sys/class/foo/foo0</code> 節點缺失，不一定是 sysfs 壞了；很可能是 device 根本沒有成功 register，或者 driver 沒有 probe 成功。這時候要先回頭檢查 dmesg、match table、compatible、modalias。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> sysfs 怎麼來的</div>
+    <div class="card">
+      <p><code>sysfs</code> 是 kernel object model 的檔案化呈現。它不是單純把記憶體 dump 成檔案，而是把 object、attribute 與 callback 映射成目錄與節點。</p>
+      <table class="kv-table">
+        <tr>
+          <th>sysfs 路徑</th>
+          <th>典型來源</th>
+          <th>常見用途</th>
+        </tr>
+        <tr>
+          <td class="key">/sys/devices</td>
+          <td>實際 device tree / topology</td>
+          <td>追真正的父子階層與實體裝置</td>
+        </tr>
+        <tr>
+          <td class="key">/sys/class</td>
+          <td>class 抽象層</td>
+          <td>給 userspace 比較穩定的功能路徑</td>
+        </tr>
+        <tr>
+          <td class="key">/sys/bus</td>
+          <td>bus framework</td>
+          <td>看 driver 與 device 是否 bind</td>
+        </tr>
+        <tr>
+          <td class="key">/sys/module</td>
+          <td>module 狀態</td>
+          <td>查參數、refcount、載入情況</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h4>attribute 的本質</h4>
+      <p>每個 sysfs 檔案背後通常對應一組 <code>show()</code> / <code>store()</code> callback。使用者執行 <code>cat</code> 時，其實是呼叫 driver 的 show；執行 <code>echo 1 &gt; node</code> 時，其實是呼叫 store。</p>
+      <div class="code-block"><span class="keyword">static</span> ssize_t enable_show(<span class="keyword">struct</span> device *dev,
+                           <span class="keyword">struct</span> device_attribute *attr,
+                           <span class="keyword">char</span> *buf);
+
+<span class="keyword">static</span> ssize_t enable_store(<span class="keyword">struct</span> device *dev,
+                            <span class="keyword">struct</span> device_attribute *attr,
+                            <span class="keyword">const char</span> *buf,
+                            size_t count);
+
+<span class="comment">// DEVICE_ATTR_RW(enable) 之後會在 sysfs 形成 enable 節點</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">8</span> 三者如何透過 kobject 串起來</div>
+    <div class="card">
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-layer">Object</div>
+            <div class="arch-top">
+              <div class="arch-index">1</div>
+              <div class="arch-title">driver / device 內含 kobject</div>
+            </div>
+            <div class="arch-desc">kernel 先有可管理的物件，再談掛點與對外介面。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Hierarchy</div>
+            <div class="arch-top">
+              <div class="arch-index">2</div>
+              <div class="arch-title">設定 parent 與 kset</div>
+            </div>
+            <div class="arch-desc">這一步決定你在 sysfs 最後會出現在什麼位置。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Export</div>
+            <div class="arch-top">
+              <div class="arch-index">3</div>
+              <div class="arch-title">sysfs_create_* / attribute_group</div>
+            </div>
+            <div class="arch-desc">把 object 屬性轉成對外節點；這裡失敗就會看到「driver 在、節點不在」的現象。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Userspace I/O</div>
+            <div class="arch-top">
+              <div class="arch-index">4</div>
+              <div class="arch-title">show/store callback 執行</div>
+            </div>
+            <div class="arch-desc">userspace 看起來像檔案操作，實際上是 kernel callback。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h4>一句話總結</h4>
+      <p><span class="badge badge-accent">kobject</span> 提供物件骨架，<span class="badge badge-cyan">driver core</span> 提供註冊與匹配流程，<span class="badge badge-green">sysfs</span> 提供對外介面。這三個不是平行關係，而是上下疊加的同一條鏈。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">9</span> 常見生命週期與 release 問題</div>
+    <div class="card">
+      <p>理解 <code>kobject_put()</code> 與 <code>release()</code> 很重要，因為很多 bug 不會直接爆在功能點，而是晚一點才在 remove 或 suspend/resume 階段炸掉。</p>
+      <div class="lifecycle">
+        <div class="pill"><span class="dot dot-green"></span> init / register</div>
+        <div class="pill"><span class="dot dot-amber"></span> create sysfs attrs</div>
+        <div class="pill"><span class="dot dot-amber"></span> userspace read/write</div>
+        <div class="pill"><span class="dot dot-red"></span> unregister / put / release</div>
+      </div>
+      <ul style="margin-top:10px">
+        <li>忘記 <code>put</code> 會造成物件不釋放，sysfs 殘留或記憶體 leak</li>
+        <li><code>release</code> 沒寫或寫錯，常見 warning 是 object leaked</li>
+        <li>先刪 attr 再 unregister，順序錯了可能導致 use-after-free</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">10</span> Android / AOSP Debug 思路</div>
+    <div class="card">
+      <h4>你看到 sysfs 節點不見時</h4>
+      <ul>
+        <li>先查 driver 有沒有 load、probe 有沒有成功</li>
+        <li>再查 device 是否真的 register 到對應 bus / class</li>
+        <li>最後才看 sysfs attribute 建立有沒有失敗</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>你看到節點存在但寫入沒反應時</h4>
+      <ul>
+        <li>檢查 <code>store()</code> 是否有被呼叫</li>
+        <li>確認輸入格式是否被 parser 拒絕</li>
+        <li>確認是否有權限、SELinux、ro/rw 限制</li>
+        <li>確認寫入後是否真的改動 driver state，而不是只改到快取變數</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>你看到 bind / unbind 問題時</h4>
+      <p>直接看：</p>
+      <div class="code-block">/sys/bus/&lt;bus&gt;/devices/
+/sys/bus/&lt;bus&gt;/drivers/
+/sys/class/
+/sys/devices/</div>
+      <p style="margin-top:10px">如果 <code>/sys/class</code> 有節點但 <code>/sys/devices</code> 路徑異常，通常代表 abstraction layer 有建立，但底層 topology 或 symlink 需要再追。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">11</span> 實務範例：一個 enable 節點是怎麼形成的</div>
+    <div class="card">
+      <p>以下是最常見的心智模型：</p>
+      <div class="flow">
+        <div class="flow-node">driver probe()</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">device_create_file()</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">/sys/class/foo/foo0/enable</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">show/store callback</div>
+      </div>
+      <div class="code-block"><span class="keyword">static</span> DEVICE_ATTR_RW(enable);
+
+<span class="keyword">static int</span> foo_probe(<span class="keyword">struct</span> platform_device *pdev)
+{
+    <span class="keyword">int</span> ret;
+
+    ret = device_create_file(&pdev-&gt;dev, &dev_attr_enable);
+    <span class="keyword">if</span> (ret)
+        <span class="keyword">return</span> ret;
+
+    <span class="keyword">return</span> <span class="number">0</span>;
+}</div>
+      <p style="margin-top:10px">userspace 寫 <code>echo 1 &gt; enable</code>，最後會進到 <code>enable_store()</code>，真正的硬體控制通常就在那裡或它再往下呼叫的函式裡。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">12</span> 最後總結</div>
+    <div class="card">
+      <p>如果只記住一句話：</p>
+      <div class="code-block"><span class="highlight">driver 負責功能，kobject 負責被管理，sysfs 負責被看到。</span></div>
+      <ul style="margin-top:10px">
+        <li>Kernel object model 決定物件怎麼存在</li>
+        <li>Driver core 決定裝置怎麼被註冊、匹配與回收</li>
+        <li>sysfs 決定 userspace 怎麼觀察與控制這些物件</li>
+        <li>除錯時不要只看節點，要回頭追 object lifecycle 與 driver registration</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note">For Android / AOSP integration and debug: always trace from sysfs path back to device model, not the other way around.</div>
+
+</div>
+</body>
+</html>
