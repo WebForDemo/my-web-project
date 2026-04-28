@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acer Ring 登入 / Session 問題講解</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232733;
+    --border: #2e3345;
+    --text: #e2e4eb;
+    --text-dim: #8b90a0;
+    --accent: #6c8cff;
+    --accent-dim: rgba(108,140,255,0.12);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34,211,238,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans TC', 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .header .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .header .path {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    margin-top: 12px;
+    word-break: break-all;
+  }
+
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .num {
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .card p, .card li {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .card ul {
+    padding-left: 18px;
+  }
+  .card li {
+    margin-bottom: 4px;
+  }
+  .card strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .card code {
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .kv-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .kv-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .kv-table tr:last-child td { border-bottom: none; }
+  .kv-table .key {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-accent { background: var(--accent-dim); color: var(--accent); }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .flow-node.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.15);
+  }
+  .flow-arrow {
+    font-size: 18px;
+    color: var(--text-dim);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  .diagram {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 14px;
+  }
+  .arch-flow {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .arch-step {
+    position: relative;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 0;
+  }
+  .arch-step.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,140,255,0.12);
+  }
+  .arch-step.error {
+    border-color: var(--red);
+    box-shadow: 0 0 12px rgba(248,113,113,0.1);
+  }
+  .arch-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .arch-index {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .arch-step.error .arch-index {
+    background: var(--red);
+  }
+  .arch-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .arch-layer {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .arch-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .arch-meta {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .arch-meta code {
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+  }
+  .arch-arrow {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 20px;
+  }
+
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-top: 12px;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 32px;
+  }
+
+  @media (max-width: 840px) {
+    .arch-flow {
+      max-width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Acer Ring 登入 / Session 問題講解</h1>
+    <div class="subtitle">用白話說明 Cognito、Backend Token、Session、HTTPS 憑證，並針對這次問題畫出實際架構圖</div>
+    <div class="path">app/src/main/java/com/hukuibio/afsring/data/repository/AuthRepository.java / app/src/main/java/com/hukuibio/afsring/api/RetrofitClient.java</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">1</span> 先講結論</div>
+    <div class="card">
+      <p>這次登入原本會失敗，<strong>不是 API Key 錯，也不是 route 錯，也不是 body 格式錯</strong>。真正的主問題是：</p>
+      <ul style="margin-top:8px">
+        <li>App 先向 <strong>Cognito</strong> 取 <strong>Backend Token</strong>，這一段本來就能通。</li>
+        <li>接著 App 再向 <strong>Ring Backend</strong> 建立 <strong>Session</strong>，這一段原本因為 <strong>HTTPS 憑證不被 Android 信任</strong>，所以失敗。</li>
+        <li>你用 <code>curl -k</code> 可以成功，是因為 <code>-k</code> 代表「忽略憑證驗證」。</li>
+        <li>我後來把流程拆成兩條 client：<strong>Cognito 繼續走原本安全方式</strong>，<strong>只有 Ring Backend 的 Session 先走暫時測試方式</strong>，所以最後才通。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>一句話版本</h4>
+      <p><strong>Cognito 沒問題，Ring Backend 的 HTTPS 才是問題點。</strong> App 之所以後來成功，是因為只有去拿 Session 的那條連線被改成暫時放寬憑證檢查。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">2</span> 名詞先翻白話</div>
+    <div class="card">
+      <table class="kv-table">
+        <thead>
+          <tr>
+            <th>名詞</th>
+            <th>白話解釋</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="key">Acer SSO</td>
+            <td>Acer 的登入入口。使用者在瀏覽器輸入帳密後，最後會把結果導回 App。</td>
+          </tr>
+          <tr>
+            <td class="key">Cognito</td>
+            <td>Amazon 提供的身分驗證服務。這個專案用它來拿某些登入相關 Token。</td>
+          </tr>
+          <tr>
+            <td class="key">Backend Token</td>
+            <td>後端系統自己要用的 Token。不是給使用者看的，而是 App 先去幫後端拿的一把鑰匙。</td>
+          </tr>
+          <tr>
+            <td class="key">User Access Token</td>
+            <td>代表使用者身分的 Token。現在這個專案暫時是把 deep link 回來的 <code>code</code> 直接當成它來用。</td>
+          </tr>
+          <tr>
+            <td class="key">Session</td>
+            <td>後端核對完身份之後，發一個短期可用的工作證給 App。之後很多 Ring API 都靠這個 <code>sessionId</code> 存取。</td>
+          </tr>
+          <tr>
+            <td class="key">HTTPS 憑證</td>
+            <td>可以理解成網站的「身分證」。App 連線時，會先檢查對方是不是它聲稱的那台伺服器。</td>
+          </tr>
+          <tr>
+            <td class="key">Trust Anchor</td>
+            <td>Android 信任的憑證根。當 log 出現 <code>Trust anchor for certification path not found</code>，意思是 Android 不相信這張憑證鏈。</td>
+          </tr>
+          <tr>
+            <td class="key">TLS Handshake</td>
+            <td>HTTPS 真正開始傳資料前，雙方先做的安全握手。握手沒過，HTTP request 就算印在 log，也不代表 server 真正處理到了。</td>
+          </tr>
+          <tr>
+            <td class="key">curl -k</td>
+            <td><code>-k</code> 代表忽略憑證檢查，所以常用來測「API 本身是否活著」，但不代表 App 的正式 HTTPS 一定也能過。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">3</span> 這次正常成功的架構圖</div>
+    <div class="card">
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step">
+            <div class="arch-layer">Step 1</div>
+            <div class="arch-top">
+              <div class="arch-index">1</div>
+              <div class="arch-title">使用者在瀏覽器登入 Acer SSO</div>
+            </div>
+            <div class="arch-desc">登入完成後，瀏覽器把結果導回 App 的 deep link，例如 <code>acer://ring.acer.com/callback?code=...</code>。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Step 2</div>
+            <div class="arch-top">
+              <div class="arch-index">2</div>
+              <div class="arch-title">LoginActivity 收到 deep link</div>
+            </div>
+            <div class="arch-desc">App 解析出 deep link 裡面的 <code>code</code>，目前專案暫時把它直接當成 <code>userAccessToken</code> 使用。</div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Step 3</div>
+            <div class="arch-top">
+              <div class="arch-index">3</div>
+              <div class="arch-title">App 向 Cognito 取得 Backend Token</div>
+            </div>
+            <div class="arch-desc">這一步是打 <code>https://acer-id.auth.eu-central-1.amazoncognito.com/oauth2/token</code>。這條線走的是原本的安全 client，沒有被我放寬。</div>
+            <div class="arch-meta">程式位置：<code>AuthRepository.login()</code> → <code>authService.getBackendToken(...)</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step active">
+            <div class="arch-layer">Step 4</div>
+            <div class="arch-top">
+              <div class="arch-index">4</div>
+              <div class="arch-title">App 向 Ring Backend 建立 Session</div>
+            </div>
+            <div class="arch-desc">這一步是打 <code>https://123.51.250.96:1500/api/v1/iot/session</code>。這條線原本會卡憑證，現在改成先用暫時測試 client，所以成功拿到 <code>sessionId</code>。</div>
+            <div class="arch-meta">程式位置：<code>AuthRepository.createSession()</code> → <code>ringAuthService.createSession(...)</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step">
+            <div class="arch-layer">Step 5</div>
+            <div class="arch-top">
+              <div class="arch-index">5</div>
+              <div class="arch-title">後續 Ring API 都帶著 Session</div>
+            </div>
+            <div class="arch-desc">後面查資料、拿裝置資訊、抓健康資料時，會把 <code>sessionId</code> 放在 header 裡一起送出去。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">4</span> 原本為什麼失敗</div>
+    <div class="card">
+      <h4>失敗點其實在第 4 步</h4>
+      <div class="flow">
+        <div class="flow-node">Acer SSO</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">Cognito 拿 Backend Token</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node active">Ring Backend 建 Session</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">後續 API</div>
+      </div>
+      <p>原本 log 裡一直出現 <code>Trust anchor for certification path not found</code>，這句話的白話是：</p>
+      <ul style="margin-top:8px">
+        <li>Android 嘗試連到 <code>https://123.51.250.96:1500</code></li>
+        <li>Server 回給 Android 一張 HTTPS 憑證</li>
+        <li>Android 檢查後發現「我不信這張憑證鏈」</li>
+        <li>所以直接中止連線，根本還沒進到真正的 API 邏輯</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>為什麼 curl 看起來能過</h4>
+      <p>你用的指令是 <code>curl -k ...</code>。這個 <code>-k</code> 的意思是：<strong>不要驗證對方憑證</strong>。</p>
+      <p>所以它只能證明：</p>
+      <ul style="margin-top:8px">
+        <li>這個 IP 上的 API server 有活著</li>
+        <li>Route / Header / Body 沒有寫錯</li>
+      </ul>
+      <p>它<strong>不能證明</strong> Android 用標準 HTTPS 驗證也一定能過。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">5</span> 這次曾經出現過的兩種錯誤</div>
+    <div class="card">
+      <div class="diagram">
+        <div class="arch-flow">
+          <div class="arch-step error">
+            <div class="arch-layer">錯誤 A</div>
+            <div class="arch-top">
+              <div class="arch-index">A</div>
+              <div class="arch-title">Trust Anchor Not Found</div>
+            </div>
+            <div class="arch-desc">代表 Android 不信任 Ring Backend 的 HTTPS 憑證。這是「憑證驗證失敗」。</div>
+            <div class="arch-meta">典型 log：<code>SSLHandshakeException</code><br><code>CertPathValidatorException</code><br><code>Trust anchor for certification path not found</code></div>
+          </div>
+
+          <div class="arch-arrow">↓</div>
+
+          <div class="arch-step error">
+            <div class="arch-layer">錯誤 B</div>
+            <div class="arch-top">
+              <div class="arch-index">B</div>
+              <div class="arch-title">UnknownHostException</div>
+            </div>
+            <div class="arch-desc">代表手機當下無法把網域名稱解析成 IP。這是「DNS 解析失敗」，不是同一種問題。</div>
+            <div class="arch-meta">典型 log：<code>Unable to resolve host "acer-id.auth.eu-central-1.amazoncognito.com"</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">6</span> 這次程式怎麼改才通</div>
+    <div class="card">
+      <p>這次不是把所有登入流程都改成不安全，而是<strong>只拆出 Ring Backend 這條</strong>：</p>
+      <table class="kv-table">
+        <thead>
+          <tr>
+            <th>連線用途</th>
+            <th>現在走哪條 client</th>
+            <th>目的</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="key">Cognito Backend Token</td>
+            <td>標準 client</td>
+            <td>保持原本安全驗證，不碰 Acer SSO / Cognito 這段</td>
+          </tr>
+          <tr>
+            <td class="key">Ring Session</td>
+            <td>暫時測試 client</td>
+            <td>讓目前這個 <code>https://123.51.250.96:1500</code> 能先測通</td>
+          </tr>
+          <tr>
+            <td class="key">Ring Data API</td>
+            <td>暫時測試 client</td>
+            <td>之後後續 Ring API 也能延續同樣的測試方式</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h4>實際程式對應</h4>
+      <ul>
+        <li><code>AuthRepository.login()</code> 內的 <code>authService.getBackendToken(...)</code>：還是原本方式</li>
+        <li><code>AuthRepository.createSession()</code> 內的 <code>ringAuthService.createSession(...)</code>：改成新的 Ring backend client</li>
+        <li><code>RetrofitClient.getAuthService()</code>：標準 client</li>
+        <li><code>RetrofitClient.getRingAuthService()</code>：暫時測試 client</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">7</span> 這次成功 log 代表什麼</div>
+    <div class="card">
+      <p>你最後貼的成功 log，可以翻成下面這段白話流程：</p>
+      <ul style="margin-top:8px">
+        <li><strong>11:34:21</strong> App 開始向 Cognito 要 Backend Token</li>
+        <li><strong>11:34:25</strong> Cognito 回 <code>200</code>，代表這段成功</li>
+        <li><strong>11:34:25</strong> App 接著向 Ring Backend 建 Session</li>
+        <li><strong>11:34:29</strong> Ring Backend 回 <code>200 OK</code>，並給你 <code>sessionId</code></li>
+        <li><strong>11:34:29</strong> App log 顯示 <code>Session Created. ID: ...</code></li>
+        <li><strong>11:34:29</strong> Login 成功，導到 Main</li>
+      </ul>
+      <p>這代表目前調整後的登入流程，至少在你現在這個測試環境下，已經完整走通。</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">8</span> 現在的風險與之後正規作法</div>
+    <div class="card">
+      <h4>現在的風險</h4>
+      <p>現在能通，是因為 Ring Backend 這條先放寬了憑證檢查。這適合測試，但不適合正式版。</p>
+      <ul style="margin-top:8px">
+        <li>正式版不該長期忽略憑證驗證</li>
+        <li>現在打的是 IP，不是正式 HTTPS domain</li>
+        <li>之後後端給正式 domain 和完整憑證後，要把這段測試寫法撤掉</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>正規作法</h4>
+      <ul>
+        <li>後端提供正式的 HTTPS domain</li>
+        <li>憑證鏈完整，Android 可以正常信任</li>
+        <li>App 改回統一標準 HTTPS 驗證</li>
+        <li>不再需要暫時測試 client</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="num">9</span> 你可以怎麼用這份說明</div>
+    <div class="card">
+      <p>這份說明適合拿來做三件事：</p>
+      <ul style="margin-top:8px">
+        <li>自己回頭理解這次到底卡在哪一層</li>
+        <li>跟後端說明「現在不是 API 邏輯錯，而是 HTTPS 憑證 / IP 入口問題」</li>
+        <li>之後正式上線時，提醒團隊把暫時測試 client 撤掉</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note">
+    這份頁面描述的是「目前測試環境如何先打通」的實際狀態，不代表最終正式版安全方案。
+  </div>
+
+</div>
+</body>
+</html>
