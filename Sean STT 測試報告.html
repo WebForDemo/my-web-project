@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyberon STT 測試分析報告</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #232733;
+            --border: #2e3345;
+            --text: #e2e4eb;
+            --text-dim: #8b90a0;
+            --accent: #6c8cff;
+            --accent-dim: rgba(108, 140, 255, 0.12);
+            --green: #4ade80;
+            --green-dim: rgba(74, 222, 128, 0.12);
+            --amber: #fbbf24;
+            --amber-dim: rgba(251, 191, 36, 0.12);
+            --red: #f87171;
+            --red-dim: rgba(248, 113, 113, 0.12);
+            --cyan: #22d3ee;
+            --cyan-dim: rgba(34, 211, 238, 0.12);
+            --purple: #e879f9;
+            --purple-dim: rgba(232, 121, 249, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Inter', sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(108, 140, 255, 0.16), transparent 24%),
+                radial-gradient(circle at bottom left, rgba(34, 211, 238, 0.10), transparent 20%),
+                var(--bg);
+            color: var(--text);
+            line-height: 1.72;
+            padding: 42px 20px 56px;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 38px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            max-width: 900px;
+            margin: 0 auto 14px;
+            color: var(--text-dim);
+            font-size: 15px;
+        }
+
+        .header-meta {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            border: 1px solid transparent;
+        }
+
+        .badge-accent {
+            color: var(--accent);
+            background: var(--accent-dim);
+            border-color: rgba(108, 140, 255, 0.18);
+        }
+
+        .badge-green {
+            color: var(--green);
+            background: var(--green-dim);
+            border-color: rgba(74, 222, 128, 0.18);
+        }
+
+        .badge-cyan {
+            color: var(--cyan);
+            background: var(--cyan-dim);
+            border-color: rgba(34, 211, 238, 0.18);
+        }
+
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            font-size: 19px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            padding-left: 12px;
+            border-left: 3px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+            gap: 18px;
+        }
+
+        .hero-card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .hero-main h2 {
+            font-size: 30px;
+            font-weight: 900;
+            line-height: 1.28;
+            margin-bottom: 12px;
+        }
+
+        .hero-main p {
+            color: var(--text-dim);
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+
+        .hero-points {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .point-box {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 14px 12px;
+        }
+
+        .point-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+        }
+
+        .point-value {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .point-note {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .hero-summary {
+            position: relative;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top right, rgba(34, 211, 238, 0.14), transparent 30%),
+                linear-gradient(180deg, rgba(108, 140, 255, 0.08), rgba(34, 211, 238, 0.03)),
+                var(--surface);
+        }
+
+        .hero-summary::after {
+            content: "";
+            position: absolute;
+            inset: auto -40px -40px auto;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: rgba(108, 140, 255, 0.08);
+            filter: blur(10px);
+        }
+
+        .hero-summary .summary-title {
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.10em;
+            color: var(--cyan);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .hero-summary .verdict {
+            font-size: 28px;
+            font-weight: 900;
+            line-height: 1.22;
+            margin-bottom: 12px;
+        }
+
+        .hero-summary .verdict span {
+            color: var(--green);
+        }
+
+        .hero-summary .summary-copy {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        .summary-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .summary-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .summary-item strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 3px;
+            color: var(--text);
+        }
+
+        .summary-item span {
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+        }
+
+        .kpi-card .kpi-label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .kpi-card .kpi-value {
+            font-size: 30px;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 7px;
+        }
+
+        .kpi-card .kpi-note {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .kpi-card.highlight {
+            border-color: rgba(108, 140, 255, 0.25);
+            box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.10);
+        }
+
+        .overview-card {
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: var(--surface2);
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            color: var(--text-dim);
+            font-weight: 700;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 15px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .miss {
+            color: var(--red);
+            font-weight: 800;
+        }
+
+        .recognize {
+            color: var(--cyan);
+            font-weight: 800;
+        }
+
+        .repeat {
+            color: var(--purple);
+            font-weight: 800;
+        }
+
+        .rate-high {
+            color: var(--amber);
+            font-weight: 800;
+        }
+
+        .rate-zero {
+            color: var(--green);
+            font-weight: 800;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .detail-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 22px 20px;
+        }
+
+        .detail-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .detail-head h3 {
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .chip {
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            background: var(--accent-dim);
+            border: 1px solid rgba(108, 140, 255, 0.18);
+            border-radius: 999px;
+            padding: 6px 10px;
+        }
+
+        .detail-block-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+
+        .content-box,
+        .result-box,
+        .mini-box {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .content-box,
+        .result-box {
+            padding: 14px 16px;
+            font-size: 14px;
+        }
+
+        .content-box {
+            color: var(--text);
+            line-height: 1.9;
+            margin-bottom: 14px;
+        }
+
+        .legend-line {
+            color: var(--text-dim);
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .counts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .mini-box {
+            padding: 12px 12px 10px;
+        }
+
+        .mini-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+
+        .mini-value {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .result-box {
+            color: var(--text);
+            line-height: 1.95;
+            white-space: pre-wrap;
+        }
+
+        .mark-miss {
+            color: var(--red);
+            font-weight: 800;
+        }
+
+        .mark-recognize {
+            color: var(--cyan);
+            font-weight: 800;
+        }
+
+        .mark-repeat {
+            color: var(--purple);
+            font-weight: 800;
+        }
+
+        .conclusion-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 18px;
+        }
+
+        .decision-card {
+            background:
+                linear-gradient(180deg, rgba(74, 222, 128, 0.08), rgba(74, 222, 128, 0.03)),
+                var(--surface);
+            border-color: rgba(74, 222, 128, 0.22);
+        }
+
+        .decision-card .decision-label {
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.10em;
+            margin-bottom: 10px;
+        }
+
+        .decision-card .decision-title {
+            font-size: 30px;
+            font-weight: 900;
+            line-height: 1.24;
+            margin-bottom: 12px;
+        }
+
+        .decision-card .decision-copy {
+            color: var(--text-dim);
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+
+        .decision-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .decision-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .focus-card {
+            background:
+                linear-gradient(180deg, rgba(251, 191, 36, 0.08), rgba(251, 191, 36, 0.03)),
+                var(--surface);
+            border-color: rgba(251, 191, 36, 0.22);
+        }
+
+        .focus-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .focus-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .focus-item strong {
+            display: block;
+            color: var(--amber);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .focus-item span {
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .note-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+        }
+
+        .note-box ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
+        .note-box li {
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 1024px) {
+            .hero,
+            .conclusion-grid,
+            .detail-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .hero-points {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 24px 14px 40px;
+            }
+
+            .header h1,
+            .hero-main h2,
+            .decision-card .decision-title {
+                font-size: 26px;
+            }
+
+            .kpi-grid,
+            .counts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            th,
+            td {
+                padding: 12px 10px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Cyberon STT 測試分析報告</h1>
+            <div class="subtitle">依據四組中英文語音測試樣本整理，呈現辨識品質、錯誤分布與主管決策重點。版型與色系參考 `cpu_boost_framework_guide.html`，重點結論已前置。</div>
+            <div class="header-meta">
+                <div class="badge badge-accent">4 組測試樣本</div>
+                <div class="badge badge-green">Miss Error 全數為 0</div>
+                <div class="badge badge-cyan">Repeat Data 全數為 0</div>
+            </div>
+        </div>
+
+        <section class="section">
+            <div class="hero">
+                <div class="card hero-card hero-main">
+                    <div class="hero-kicker">Executive Summary</div>
+                    <h2>本次 STT 測試整體表現穩定，主要風險集中在中文長句的辨識替換錯誤。</h2>
+                    <p>從四組樣本來看，系統沒有遺漏字與重複資料問題，代表串流穩定度本身沒有明顯失控；現階段需要優先改善的，是中文內容在長句與專有語意附近的替換型辨識誤差。</p>
+                    <div class="hero-points">
+                        <div class="point-box">
+                            <div class="point-label">Overall Error</div>
+                            <div class="point-value recognize">13</div>
+                            <div class="point-note">總 Recognize Error 數</div>
+                        </div>
+                        <div class="point-box">
+                            <div class="point-label">Stable Signal</div>
+                            <div class="point-value" style="color: var(--green);">0 / 0</div>
+                            <div class="point-note">Miss / Repeat 全為 0</div>
+                        </div>
+                        <div class="point-box">
+                            <div class="point-label">Highest Risk</div>
+                            <div class="point-value" style="color: var(--amber);">6.72%</div>
+                            <div class="point-note">中文長句辨識錯誤率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card hero-summary">
+                    <div class="summary-title">Management Verdict</div>
+                    <div class="verdict">可進入展示，但 <span>中文長句模型仍需優化</span></div>
+                    <div class="summary-copy">如果這份報告是給決策層，最應該看的不是單點 typo，而是錯誤型態是否可控。這次答案是可控，但中文語意替換仍會影響正式展示觀感。</div>
+                    <div class="summary-list">
+                        <div class="summary-item">
+                            <strong>最佳表現</strong>
+                            <span>英文短句 0 錯誤，顯示簡短英文語句辨識成熟。</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>主要風險</strong>
+                            <span>中文短句與中文長句分別出現 3、8 個替換錯誤，且多為詞義偏移。</span>
+                        </div>
+                        <div class="summary-item">
+                            <strong>商務影響</strong>
+                            <span>若面向客戶 Demo，建議優先選用英文短句或控制中文腳本長度。</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title"><span class="num">1</span> 核心指標</div>
+            <div class="kpi-grid">
+                <div class="kpi-card highlight">
+                    <div class="kpi-label">Total Samples</div>
+                    <div class="kpi-value">4</div>
+                    <div class="kpi-note">中文短 / 中文長 / 英文短 / 英文長</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Recognize Error</div>
+                    <div class="kpi-value recognize">13</div>
+                    <div class="kpi-note">全部錯誤均屬於辨識替換型</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Missing Error</div>
+                    <div class="kpi-value miss">0</div>
+                    <div class="kpi-note">未出現漏字情況</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Repeat Data</div>
+                    <div class="kpi-value repeat">0</div>
+                    <div class="kpi-note">未出現重複輸出</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title"><span class="num">2</span> 測試總覽</div>
+            <div class="card overview-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>測試項目</th>
+                            <th>長度</th>
+                            <th><span class="miss">Miss</span></th>
+                            <th><span class="recognize">Recognize</span></th>
+                            <th><span class="repeat">Repeat</span></th>
+                            <th>辨識錯誤率</th>
+                            <th>主管判讀</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>測試中文短</td>
+                            <td class="mono">44</td>
+                            <td class="miss">0</td>
+                            <td class="recognize">3</td>
+                            <td class="repeat">0</td>
+                            <td class="rate-high">6.82%</td>
+                            <td>可接受，但關鍵詞替換需修正</td>
+                        </tr>
+                        <tr>
+                            <td>測試中文長</td>
+                            <td class="mono">119</td>
+                            <td class="miss">0</td>
+                            <td class="recognize">8</td>
+                            <td class="repeat">0</td>
+                            <td class="rate-high">6.72%</td>
+                            <td>風險最高，長句穩定性不足</td>
+                        </tr>
+                        <tr>
+                            <td>測試英文短</td>
+                            <td class="mono">19</td>
+                            <td class="miss">0</td>
+                            <td class="recognize">0</td>
+                            <td class="repeat">0</td>
+                            <td class="rate-zero">0.00%</td>
+                            <td>最佳，可作為展示樣本</td>
+                        </tr>
+                        <tr>
+                            <td>測試英文長</td>
+                            <td class="mono">93</td>
+                            <td class="miss">0</td>
+                            <td class="recognize">2</td>
+                            <td class="repeat">0</td>
+                            <td class="recognize">2.15%</td>
+                            <td>表現良好，僅尾句語序偏差</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title"><span class="num">3</span> 細部測試內容</div>
+            <div class="detail-grid">
+                <article class="detail-card">
+                    <div class="detail-head">
+                        <h3>測試中文短</h3>
+                        <div class="chip">44 字</div>
+                    </div>
+                    <div class="detail-block-title">測試內容</div>
+                    <div class="content-box">「這台設備搭載了聯發科的硬體加速器，透過深度學習演算法，可以大幅提升人工智慧運算的速度與精準度。」</div>
+                    <div class="detail-block-title">測試結果</div>
+                    <div class="legend-line">標記規則：<span class="miss">紅字 Miss Error</span>、<span class="recognize">藍字 Recognize Error</span>、<span class="repeat">紫色 Repeat Data</span></div>
+                    <div class="counts-grid">
+                        <div class="mini-box">
+                            <div class="mini-label">Miss</div>
+                            <div class="mini-value miss">0</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Recognize</div>
+                            <div class="mini-value recognize">3</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Repeat</div>
+                            <div class="mini-value repeat">0</div>
+                        </div>
+                    </div>
+                    <div class="result-box">"這台設備搭載了聯發科的硬體加速器
+透過深度學習演算法
+可以大幅<span class="mark-recognize">體深</span>人工智<span class="mark-recognize">會</span>運算的速度與精準度
+"</div>
+                </article>
+
+                <article class="detail-card">
+                    <div class="detail-head">
+                        <h3>測試中文長</h3>
+                        <div class="chip">119 字</div>
+                    </div>
+                    <div class="detail-block-title">測試內容</div>
+                    <div class="content-box">「在數位科技飛速發展的今天，人工智慧已經走進我們的日常生活。不論是透過語音指令控制家電，或是利用即時翻譯與世界溝通，技術的進步讓一切變得更便利。今天這場測試，除了檢查辨識的精準度，也要看看系統能否正確處理語氣的起伏。希望這次的實驗能夠順利完成，達到預期的效果。」</div>
+                    <div class="detail-block-title">測試結果</div>
+                    <div class="legend-line">標記規則：<span class="miss">紅字 Miss Error</span>、<span class="recognize">藍字 Recognize Error</span>、<span class="repeat">紫色 Repeat Data</span></div>
+                    <div class="counts-grid">
+                        <div class="mini-box">
+                            <div class="mini-label">Miss</div>
+                            <div class="mini-value miss">0</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Recognize</div>
+                            <div class="mini-value recognize">8</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Repeat</div>
+                            <div class="mini-value repeat">0</div>
+                        </div>
+                    </div>
+                    <div class="result-box">"在數位科技飛速發展的今天, 人工智慧已經走進我們的日常生活
+不論是透過<span class="mark-recognize">與因</span>指令控制<span class="mark-recognize">加電</span>, 或是利用即時翻譯與世界溝通, 技術的進步讓一切變得更便利
+今天這場測試, 除了檢查<span class="mark-recognize">便宜</span>的精準度, 也要看看系統能否正確處理<span class="mark-recognize">與企</span>的起伏
+希望這次的實驗能夠順利完成, 達到預期的效果
+"</div>
+                </article>
+
+                <article class="detail-card">
+                    <div class="detail-head">
+                        <h3>測試英文短</h3>
+                        <div class="chip">19 字</div>
+                    </div>
+                    <div class="detail-block-title">測試內容</div>
+                    <div class="content-box">"Today is a sunny day in the city. Can you record my voice and convert it into text correctly?"</div>
+                    <div class="detail-block-title">測試結果</div>
+                    <div class="legend-line">標記規則：<span class="miss">紅字 Miss Error</span>、<span class="recognize">藍字 Recognize Error</span>、<span class="repeat">紫色 Repeat Data</span></div>
+                    <div class="counts-grid">
+                        <div class="mini-box">
+                            <div class="mini-label">Miss</div>
+                            <div class="mini-value miss">0</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Recognize</div>
+                            <div class="mini-value recognize">0</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Repeat</div>
+                            <div class="mini-value repeat">0</div>
+                        </div>
+                    </div>
+                    <div class="result-box">"Today is a sunny day in the city.
+Can you record my voice and convert it into text correctly?
+"</div>
+                </article>
+
+                <article class="detail-card">
+                    <div class="detail-head">
+                        <h3>測試英文長</h3>
+                        <div class="chip">93 字</div>
+                    </div>
+                    <div class="detail-block-title">測試內容</div>
+                    <div class="content-box">"Thank you for joining our technical demonstration today. We are currently evaluating the performance of the speech-to-text application on this mobile device. It is important to verify if the MDLA hardware acceleration can reduce latency while maintaining high accuracy. Please listen carefully: the project ID is five-eight-zero-two, and the estimated processing time should be under fifty milliseconds. Does the system capture every word correctly, even when I speak at a natural pace?"</div>
+                    <div class="detail-block-title">測試結果</div>
+                    <div class="legend-line">標記規則：<span class="miss">紅字 Miss Error</span>、<span class="recognize">藍字 Recognize Error</span>、<span class="repeat">紫色 Repeat Data</span></div>
+                    <div class="counts-grid">
+                        <div class="mini-box">
+                            <div class="mini-label">Miss</div>
+                            <div class="mini-value miss">0</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Recognize</div>
+                            <div class="mini-value recognize">2</div>
+                        </div>
+                        <div class="mini-box">
+                            <div class="mini-label">Repeat</div>
+                            <div class="mini-value repeat">0</div>
+                        </div>
+                    </div>
+                    <div class="result-box">"Thank you for joining our technical demonstration today.
+We are currently evaluating the performance of the speech-to-text application on this mobile device.
+It is important to verify if the MDLA hardware acceleration can reduce latency while maintaining high accuracy.
+Please listen carefully. The project ID is 5802, and the estimated processing time should be under 50 milliseconds.
+Does the system capture every word correctly, even when I speak <span class="mark-recognize">it</span> <span class="mark-recognize">in</span> natural pace?
+"</div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title"><span class="num">4</span> 決策結論</div>
+            <div class="conclusion-grid">
+                <div class="card decision-card">
+                    <div class="decision-label">Recommendation</div>
+                    <div class="decision-title">建議對外展示可採用，但正式客戶場合應避免使用中文長句作為核心 Demo。</div>
+                    <div class="decision-copy">系統在串流穩定性面已過關，因為漏字與重複資料皆未出現；現階段真正會拉低專業感的，是中文內容中的語意替換錯誤。若要給大老闆或客戶看，建議先以英文短句、英文長句與受控長度中文腳本進行展示。</div>
+                    <div class="decision-pills">
+                        <div class="decision-pill">展示可用性: 中高</div>
+                        <div class="decision-pill">中文長句風險: 高</div>
+                        <div class="decision-pill">英文展示成熟度: 高</div>
+                    </div>
+                </div>
+
+                <div class="card focus-card">
+                    <div class="decision-label" style="color: var(--amber);">Immediate Focus</div>
+                    <div class="focus-list">
+                        <div class="focus-item">
+                            <strong>優先修正中文詞替換</strong>
+                            <span>`語音`→`與因`、`家電`→`加電` 這類錯誤最影響理解與觀感。</span>
+                        </div>
+                        <div class="focus-item">
+                            <strong>展示腳本分級</strong>
+                            <span>Demo 場景先使用低風險英文樣本與短中文句，避免長中文段落。</span>
+                        </div>
+                        <div class="focus-item">
+                            <strong>下一輪驗證方向</strong>
+                            <span>增加中文專有名詞、口語停頓與連續長句測試，確認模型邊界。</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="note-box">
+                <div class="section-title" style="margin-bottom: 12px;"><span class="num">5</span> 備註</div>
+                <ul>
+                    <li>本頁標色位置依照提供截圖放入，錯誤字樣直接標示於辨識結果內文。</li>
+                    <li>英文長句依 `0,2,0` 統計，只將尾句 `it`、`in` 視為辨識錯誤，因此 `5802` 與 `50` 未另外上色。</li>
+                    <li>本報告的百分比係依提供的測試長度與錯誤數直接換算，目的是提供高層判讀基準。</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</body>
+</html>
