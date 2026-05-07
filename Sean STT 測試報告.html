@@ -590,6 +590,241 @@
             font-size: 13px;
         }
 
+        .method-stack {
+            display: grid;
+            gap: 18px;
+        }
+
+        .method-hero {
+            background:
+                radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 28%),
+                linear-gradient(180deg, rgba(108, 140, 255, 0.07), rgba(34, 211, 238, 0.02)),
+                var(--surface);
+        }
+
+        .method-hero-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .method-title {
+            font-size: 28px;
+            font-weight: 900;
+            line-height: 1.24;
+            margin-bottom: 12px;
+        }
+
+        .method-copy {
+            color: var(--text-dim);
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+
+        .method-flow {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .flow-title {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 12px;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .flow-node {
+            min-width: 140px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            text-align: center;
+        }
+
+        .flow-node.active {
+            border-color: rgba(34, 211, 238, 0.28);
+            box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.10) inset;
+        }
+
+        .flow-node .node-step {
+            font-size: 11px;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 3px;
+        }
+
+        .flow-node .node-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .flow-node .node-desc {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .flow-arrow {
+            color: var(--accent);
+            font-size: 20px;
+            font-weight: 800;
+            padding: 0 2px;
+        }
+
+        .method-callout {
+            background: linear-gradient(180deg, rgba(251, 191, 36, 0.10), rgba(251, 191, 36, 0.03));
+            border: 1px solid rgba(251, 191, 36, 0.18);
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .method-callout .callout-label {
+            font-size: 12px;
+            color: var(--amber);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .method-callout .callout-title {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1.28;
+            margin-bottom: 10px;
+        }
+
+        .method-callout .callout-copy {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .compare-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+        }
+
+        .compare-card.primary {
+            border-color: rgba(108, 140, 255, 0.22);
+        }
+
+        .compare-card.warning {
+            border-color: rgba(251, 191, 36, 0.20);
+        }
+
+        .compare-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .compare-header h4 {
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .compare-badge {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .compare-badge.primary {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .compare-badge.warning {
+            background: var(--amber-dim);
+            color: var(--amber);
+        }
+
+        .compare-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .compare-item {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .compare-item strong {
+            display: block;
+            color: var(--text);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .compare-item span {
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .method-summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .method-summary-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .method-summary-card .summary-k {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 5px;
+        }
+
+        .method-summary-card .summary-v {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .method-summary-card .summary-d {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
         .note-box {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -615,11 +850,17 @@
                 grid-template-columns: 1fr;
             }
 
+            .method-hero-grid,
+            .compare-grid,
             .kpi-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .hero-points {
+                grid-template-columns: 1fr;
+            }
+
+            .method-summary {
                 grid-template-columns: 1fr;
             }
         }
@@ -636,7 +877,10 @@
             }
 
             .kpi-grid,
-            .counts-grid {
+            .counts-grid,
+            .compare-grid,
+            .method-hero-grid,
+            .method-summary {
                 grid-template-columns: 1fr;
             }
 
@@ -948,12 +1192,124 @@ Does the system capture every word correctly, even when I speak <span class="mar
         </section>
 
         <section class="section">
+            <div class="section-title"><span class="num">5</span> 測試方法與限制</div>
+            <div class="method-stack">
+                <div class="card method-hero">
+                    <div class="method-hero-grid">
+                        <div>
+                            <div class="decision-label" style="color: var(--cyan);">Test Method</div>
+                            <div class="method-title">本次結果是「檔案回放辨識」基線測試，不是最終 Real Mic In 使用體驗。</div>
+                            <div class="method-copy">測試流程為先將文字轉成 MP3，將 MP3 放置到設備端，再透過 `curl` 呼叫 STT 辨識介面。這種方法的價值在於可穩定比較不同版本模型，但因為沒有經過真實現場收音條件，所以結果通常會比實際使用情境更理想。</div>
+                            <div class="method-summary">
+                                <div class="method-summary-card">
+                                    <div class="summary-k">Purpose</div>
+                                    <div class="summary-v">基線驗證</div>
+                                    <div class="summary-d">適合比較模型版本與固定語料辨識能力。</div>
+                                </div>
+                                <div class="method-summary-card">
+                                    <div class="summary-k">Input Type</div>
+                                    <div class="summary-v">MP3 檔案輸入</div>
+                                    <div class="summary-d">不是現場麥克風收音，因此少了聲學鏈路變數。</div>
+                                </div>
+                                <div class="method-summary-card">
+                                    <div class="summary-k">Executive Take</div>
+                                    <div class="summary-v">結果偏保守參考</div>
+                                    <div class="summary-d">可作為技術基準，不宜直接代表最終產品 UX。</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="method-flow">
+                            <div class="flow-title">Test Flow</div>
+                            <div class="flow-row">
+                                <div class="flow-node">
+                                    <div class="node-step">Step 1</div>
+                                    <div class="node-name">Text</div>
+                                    <div class="node-desc">準備測試語料</div>
+                                </div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-node">
+                                    <div class="node-step">Step 2</div>
+                                    <div class="node-name">Convert MP3</div>
+                                    <div class="node-desc">文字轉音檔</div>
+                                </div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-node">
+                                    <div class="node-step">Step 3</div>
+                                    <div class="node-name">Push Device</div>
+                                    <div class="node-desc">音檔放入設備端</div>
+                                </div>
+                                <div class="flow-arrow">→</div>
+                                <div class="flow-node active">
+                                    <div class="node-step">Step 4</div>
+                                    <div class="node-name">curl STT</div>
+                                    <div class="node-desc">呼叫辨識介面</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="method-callout">
+                    <div class="callout-label">Key Message For Management</div>
+                    <div class="callout-title">這份報告可以用來判斷模型基線水準，但不能直接宣告「真實麥克風收音表現已達相同品質」。</div>
+                    <div class="callout-copy">如果要對外做產品等級承諾，仍需補做 `Real Mic In` 實機驗證，並把檔案回放結果與真實收音結果分開呈現。</div>
+                </div>
+
+                <div class="compare-grid">
+                    <div class="compare-card primary">
+                        <div class="compare-header">
+                            <h4>本次方法: 檔案回放辨識</h4>
+                            <div class="compare-badge primary">Current Scope</div>
+                        </div>
+                        <div class="compare-list">
+                            <div class="compare-item">
+                                <strong>輸入來源固定</strong>
+                                <span>使用已知文字轉出的 MP3，輸入可重複、可控，利於版本比較。</span>
+                            </div>
+                            <div class="compare-item">
+                                <strong>結果較穩定</strong>
+                                <span>少了現場人聲與環境干擾，較容易反映模型在理想條件下的辨識能力。</span>
+                            </div>
+                            <div class="compare-item">
+                                <strong>適用目的明確</strong>
+                                <span>適合作為技術基線、回歸測試與不同版本的橫向比較。</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="compare-card warning">
+                        <div class="compare-header">
+                            <h4>未覆蓋: Real Mic In 情境</h4>
+                            <div class="compare-badge warning">Gap To Product</div>
+                        </div>
+                        <div class="compare-list">
+                            <div class="compare-item">
+                                <strong>麥克風與聲學環境差異</strong>
+                                <span>真實收音會受到麥克風頻響、距離、方向性、環境噪音、回音與殘響影響。</span>
+                            </div>
+                            <div class="compare-item">
+                                <strong>前處理鏈路可能不同</strong>
+                                <span>AGC、AEC、NS、VAD、音量飽和與底噪抑制等處理，未必與檔案輸入路徑完全一致。</span>
+                            </div>
+                            <div class="compare-item">
+                                <strong>真人說話變數尚未驗證</strong>
+                                <span>語速、停頓、口音、咬字、情緒與臨場語調，都可能讓實際結果低於本次報告。</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
             <div class="note-box">
-                <div class="section-title" style="margin-bottom: 12px;"><span class="num">5</span> 備註</div>
+                <div class="section-title" style="margin-bottom: 12px;"><span class="num">6</span> 備註</div>
                 <ul>
                     <li>本頁標色位置依照提供截圖放入，錯誤字樣直接標示於辨識結果內文。</li>
                     <li>英文長句依 `0,2,0` 統計，只將尾句 `it`、`in` 視為辨識錯誤，因此 `5802` 與 `50` 未另外上色。</li>
                     <li>本報告的百分比係依提供的測試長度與錯誤數直接換算，目的是提供高層判讀基準。</li>
+                    <li>若要做產品等級結論，建議後續補上 Real Mic In 實機測試，並與本次檔案回放結果分開呈現。</li>
                 </ul>
             </div>
         </section>
