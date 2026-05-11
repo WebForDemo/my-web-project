@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sttDemo 離線語音辨識 App 最終說明報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root{
+    --bg:#0f1117;--s1:#171b24;--s2:#202532;--s3:#2a3040;--bd:#2e3548;
+    --tx:#e4e7ef;--dim:#8f96aa;--blue:#6c8cff;--cyan:#22d3ee;--green:#4ade80;
+    --amber:#fbbf24;--red:#f87171;--purple:#a78bfa;
+    --blue-d:rgba(108,140,255,.12);--cyan-d:rgba(34,211,238,.12);--green-d:rgba(74,222,128,.12);
+    --amber-d:rgba(251,191,36,.12);--red-d:rgba(248,113,113,.12);--purple-d:rgba(167,139,250,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.72;padding:40px 20px}
+  .c{max-width:1020px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:44px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:28px;font-weight:800;letter-spacing:.2px;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+  .sub{font-size:13px;color:var(--dim)}
+  .meta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:16px}
+  .chip{background:var(--s1);border:1px solid var(--bd);border-radius:7px;padding:5px 14px;font-size:12px;color:var(--dim)}
+  .chip b{color:var(--tx)}
+  .sec{margin-bottom:38px}
+  .sec-t{font-size:18px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px 22px;margin-bottom:12px}
+  .card h4{font-size:14px;font-weight:700;margin-bottom:7px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .hero-img{width:100%;display:block;border-radius:12px;border:1px solid var(--bd);background:var(--s2)}
+  .caption{font-size:12px;color:var(--dim);margin-top:10px}
+  .tb{width:100%;border-collapse:collapse;font-size:13px}
+  .tb th{text-align:left;padding:9px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:9px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+  .tb tr:last-child td{border-bottom:none}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .b{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:4px;letter-spacing:.3px;vertical-align:middle}
+  .b-ui{background:var(--purple-d);color:var(--purple)}
+  .b-java{background:var(--blue-d);color:var(--blue)}
+  .b-jni{background:var(--cyan-d);color:var(--cyan)}
+  .b-native{background:var(--green-d);color:var(--green)}
+  .b-demo{background:var(--amber-d);color:var(--amber)}
+  .b-risk{background:var(--red-d);color:var(--red)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .flow{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px}
+  .flow-row{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+  .node{flex:1 1 170px;min-width:170px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px}
+  .node h5{font-size:13px;margin-bottom:4px}
+  .node p{font-size:12px;color:var(--dim);line-height:1.55}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:20px;min-width:28px}
+  .highlight{font-size:14px;color:var(--tx)}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:28px}
+  .code{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx);overflow:auto}
+  @media(max-width:860px){.grid3{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.flow-row{flex-direction:column}.arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>sttDemo 離線語音辨識 App 最終說明報告</h1>
+  <div class="sub">Executive overview for on-device speech-to-text integration using Android App + JNI + Native Whisper Runtime</div>
+  <div class="meta">
+    <div class="chip">專案：<b>sttDemo</b></div>
+    <div class="chip">定位：<b>Offline On-Device STT Demo App</b></div>
+    <div class="chip">核心：<b>sean_stt / whisper.cpp</b></div>
+    <div class="chip">平台：<b>Android + JNI + Native Runtime</b></div>
+    <div class="chip">日期：<b>2026-05-11</b></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 專案摘要</div>
+  <div class="grid2">
+    <div class="card">
+      <h4>▎這個 App 解決什麼問題</h4>
+      <p>把既有的 native 語音辨識能力整合進 Android App，讓裝置可以在<strong>無網路</strong>情況下完成本地語音轉文字，並同時支援：</p>
+      <ul>
+        <li>麥克風即時辨識</li>
+        <li>音訊檔辨識（WAV / MP3 / Android 可解碼格式）</li>
+        <li>Debug 對照驗證（Recorded WAV Result）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>▎目前可向主管呈現的結論</h4>
+      <ul>
+        <li>native STT engine 已成功整合到 Android App</li>
+        <li>檔案辨識路徑已可穩定運作</li>
+        <li>Mic realtime 路徑已打通，並能輸出 Live Result 與 Transcript</li>
+        <li>系統可明確區分「模型能力」與「realtime pipeline 問題」</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 商業價值</div>
+  <div class="grid3">
+    <div class="card">
+      <h4>▎離線能力</h4>
+      <p>不依賴雲端服務，不需要網路連線，適合內網、車載、工控、敏感資料場景。</p>
+    </div>
+    <div class="card">
+      <h4>▎可展示性</h4>
+      <p>App 直接提供即時畫面、全文結果與 debug 對照，適合對內展示 PoC 與效能驗證。</p>
+    </div>
+    <div class="card">
+      <h4>▎可延伸性</h4>
+      <p>目前先走 App + JNI，未來若要往 Framework / Service 化發展，可保留 native 核心，只替換上層介面。</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 系統架構圖</div>
+  <div class="card">
+    <img class="hero-img" src="./sttdemo_architecture.png" alt="sttDemo architecture">
+    <div class="caption">這張圖是管理層版本的系統架構圖。重點是：UI 層、Java 控制層、JNI Bridge、Native Runtime、硬體加速路徑的責任劃分，以及 Mic / File / Debug 三條資料流。</div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> 架構重點</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> UI 與互動</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Java 控制與資料流</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> JNI 橋接</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Native 推論</div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="b b-ui">UI Layer</span> 使用者可見層</h4>
+      <p>包含開始錄音、選取音訊檔、語言選擇，以及畫面上的 <span class="mono">Live Result</span>、<span class="mono">Transcript</span>、<span class="mono">Recorded WAV Result</span>。這一層只負責操作與展示，不直接碰 native 細節。</p>
+    </div>
+    <div class="card">
+      <h4><span class="b b-java">Java Control Layer</span> 控制核心</h4>
+      <p><span class="mono">RealtimeSttController</span> 負責 AudioRecord、utterance buffer、停頓判斷、realtime 推論節奏、全文累積，以及停止錄音後的 debug WAV compare。</p>
+    </div>
+    <div class="card">
+      <h4><span class="b b-jni">JNI Bridge Layer</span> 邊界封裝</h4>
+      <p><span class="mono">NativeWhisper.java</span> 與 <span class="mono">stt_jni.cpp</span> 承接 Java 到 native 的資料傳輸，負責把 <span class="mono">float[]</span> 音訊送入引擎，並把結果字串回傳。</p>
+    </div>
+    <div class="card">
+      <h4><span class="b b-native">Native Runtime Layer</span> 推論引擎</h4>
+      <p>由 <span class="mono">libwhisper / sean_stt</span> 執行實際推論，目前裝置上的路徑是 <span class="mono">APU Encoder + CPU Decoder Fallback</span>，並處理 UTF-8 字串安全與 stream prompt token 狀態。</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 端到端流程</div>
+  <div class="flow">
+    <div class="flow-row">
+      <div class="node">
+        <h5>Mic 路徑</h5>
+        <p>AudioRecord 收進 16kHz / mono / PCM16，Java 控制層轉成 float、累積本句音訊，再觸發 native 轉寫。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <h5>JNI / Native</h5>
+        <p>Java 將音訊送進 JNI，native 執行 <span class="mono">whisper_full()</span>，把結果回傳給 App。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <h5>畫面更新</h5>
+        <p>App 依穩定度分別更新 <span class="mono">Live Result</span> 與 <span class="mono">Transcript</span>。</p>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="flow-row">
+      <div class="node">
+        <h5>File 路徑</h5>
+        <p>使用者選 WAV / MP3，先由 Java 層解碼成 mono 16k float[]。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <h5>完整轉寫</h5>
+        <p>直接以 non-streaming 方式做完整推論，這條路目前準確度最高。</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <h5>Debug Compare</h5>
+        <p>Mic 停止後，會把 PCM 另存成 WAV，再走一次檔案辨識，作為品質對照基準。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> 主要模組與職責</div>
+  <div class="card">
+    <table class="tb">
+      <thead>
+        <tr>
+          <th>檔案 / 模組</th>
+          <th>層級</th>
+          <th>責任</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">SttDemoActivity.java</td>
+          <td><span class="b b-ui">UI</span></td>
+          <td>畫面控制、按鈕事件、權限、語言選擇、結果顯示。</td>
+        </tr>
+        <tr>
+          <td class="mono">RealtimeSttController.java</td>
+          <td><span class="b b-java">Control</span></td>
+          <td>錄音、buffer、停頓切句、realtime 推論節奏、全文累積與 WAV compare。</td>
+        </tr>
+        <tr>
+          <td class="mono">NativeWhisper.java</td>
+          <td><span class="b b-jni">Bridge</span></td>
+          <td>Java 對 native 的封裝 API。</td>
+        </tr>
+        <tr>
+          <td class="mono">NativeWhisperLoader.java</td>
+          <td><span class="b b-java">Loader</span></td>
+          <td>抽出並依序載入 RD 交付的 native libraries。</td>
+        </tr>
+        <tr>
+          <td class="mono">stt_jni.cpp</td>
+          <td><span class="b b-jni">JNI</span></td>
+          <td>建立 whisper context、設定 decoding params、UTF-8 sanitize、stream prompt token state。</td>
+        </tr>
+        <tr>
+          <td class="mono">AudioFileDecoder.java / WavFileDecoder.java</td>
+          <td><span class="b b-java">Decode</span></td>
+          <td>處理 WAV / MP3 / 壓縮格式解碼並轉成 mono 16k float[]。</td>
+        </tr>
+        <tr>
+          <td class="mono">WavFileWriter.java</td>
+          <td><span class="b b-demo">Debug</span></td>
+          <td>把 Mic PCM16 寫成 <span class="mono">last_mic_recording.wav</span>，方便重跑檔案辨識。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">7</span> 畫面與使用者語意</div>
+  <div class="grid2">
+    <div class="card">
+      <h4>▎Live Result</h4>
+      <p>顯示目前正在生成中的即時文字。它的目標是讓使用者看到「當下系統正在組合的內容」，不一定等於最終全文。</p>
+    </div>
+    <div class="card">
+      <h4>▎Transcript</h4>
+      <p>顯示穩定累積下來的全文。當系統判斷某一段已較穩定，或一句話已告一段落，才會正式累積進 Transcript。</p>
+    </div>
+    <div class="card">
+      <h4>▎Recorded WAV Result</h4>
+      <p>這是停止錄音後，把相同 Mic 內容存成 WAV 再做一次完整檔案辨識的結果，用來區分問題是在模型本身，還是在 realtime pipeline。</p>
+    </div>
+    <div class="card">
+      <h4>▎Language Selection</h4>
+      <p>目前支援 <span class="mono">Chinese / English / Auto</span>。設定會同時套用到 Mic、File、以及 debug compare 三條路徑。</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">8</span> 目前成果與判讀</div>
+  <div class="grid2">
+    <div class="card">
+      <h4><span class="b b-demo">已驗證</span></h4>
+      <ul>
+        <li>模型、.so、JNI、App UI 已完整串通</li>
+        <li>WAV / MP3 檔案辨識可運作</li>
+        <li>Mic 內容可被另存為 WAV 並重跑辨識</li>
+        <li>可利用對照結果分離「模型問題」與「realtime pipeline 問題」</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="b b-risk">目前限制</span></h4>
+      <ul>
+        <li>realtime mic 品質仍弱於 Recorded WAV Result</li>
+        <li>目前採用較保守的整句增量重跑策略，延遲會高於真正 streaming STT</li>
+        <li><span class="mono">Auto</span> 對音訊檔通常可用，但對短句 realtime 不一定最穩</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">9</span> 為什麼這個 PoC 有價值</div>
+  <div class="card">
+    <p class="highlight">這個 PoC 已經證明兩件重要的事：</p>
+    <ul>
+      <li>既有 native STT runtime 能成功被 App 使用，不是只能跑 CLI 或單獨部署。</li>
+      <li>裝置上的辨識品質主要瓶頸已可被定位到 realtime pipeline，而不是整個方案不可行。</li>
+    </ul>
+    <p style="margin-top:10px">換句話說，現在不是在驗證「能不能做」，而是在收斂「怎麼做得更即時、更穩」。</p>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">10</span> 建議後續方向</div>
+  <div class="grid3">
+    <div class="card">
+      <h4>▎短期</h4>
+      <p>繼續優化 realtime 顯示語意與推論節奏，讓 Live Result 更直覺、Transcript 更穩定。</p>
+    </div>
+    <div class="card">
+      <h4>▎中期</h4>
+      <p>評估更貼近 <span class="mono">whisper-stream</span> 的 streaming 策略，縮小與檔案辨識結果之間的差距。</p>
+    </div>
+    <div class="card">
+      <h4>▎長期</h4>
+      <p>若產品需要，可往 Service / Framework 方向擴展，但保留現有 native 核心與模型資產。</p>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-t"><span class="n">11</span> 主管講解摘要</div>
+  <div class="card">
+    <p>這個 App 已經成功把 native Whisper / sean_stt 整合到 Android 端，具備離線麥克風辨識、音訊檔辨識，以及 debug 對照能力。從目前結果來看，模型本身是可用的，系統也具備可展示性。現階段主要工作已從「能否整合」進入「如何把 realtime 體驗做得更好」。</p>
+  </div>
+</div>
+
+<div class="note">
+  最終報告檔：<span class="mono">sttdemo_executive_report.html</span><br>
+  架構圖：<span class="mono">sttdemo_architecture.png</span>
+</div>
+
+</div>
+</body>
+</html>
