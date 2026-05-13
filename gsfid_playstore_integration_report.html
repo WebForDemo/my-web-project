@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Store GSFID 串接報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#0f1117;
+    --s1:#1a1d27;
+    --s2:#232733;
+    --s3:#2a2f3e;
+    --bd:#2e3345;
+    --tx:#e2e4eb;
+    --dim:#8b90a0;
+    --blue:#6c8cff;
+    --blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;
+    --cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;
+    --green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;
+    --amber-d:rgba(251,191,36,.12);
+    --red:#f87171;
+    --red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;
+    --purple-d:rgba(167,139,250,.12);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:'Noto Sans TC','Inter',sans-serif;
+    background:var(--bg);
+    color:var(--tx);
+    line-height:1.75;
+    padding:40px 20px;
+  }
+  .c{max-width:980px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{
+    font-size:28px;
+    font-weight:800;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:8px;
+  }
+  .hdr .sub{font-size:14px;color:var(--dim)}
+  .meta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .chip{
+    background:var(--s1);
+    border:1px solid var(--bd);
+    border-radius:6px;
+    padding:4px 12px;
+    font-size:12px;
+    color:var(--dim);
+  }
+  .chip b{color:var(--tx)}
+
+  .sec{margin-bottom:40px}
+  .sec-t{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:14px;
+    padding-left:12px;
+    border-left:3px solid var(--blue);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .sec-t .n{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--blue);color:#fff;font-size:12px;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+
+  .card{
+    background:var(--s1);
+    border:1px solid var(--bd);
+    border-radius:10px;
+    padding:18px 22px;
+    margin-bottom:12px;
+  }
+  .card h4{font-size:14px;font-weight:700;margin-bottom:8px}
+  .card p,.card li{font-size:14px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+
+  .b{
+    display:inline-block;
+    font-size:10.5px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:4px;
+    letter-spacing:.3px;
+    vertical-align:middle;
+  }
+  .b-system{background:var(--blue-d);color:var(--blue)}
+  .b-vendor{background:var(--purple-d);color:var(--purple)}
+  .b-ui{background:var(--cyan-d);color:var(--cyan)}
+  .b-script{background:var(--green-d);color:var(--green)}
+  .b-risk{background:var(--amber-d);color:var(--amber)}
+  .b-fix{background:var(--red-d);color:var(--red)}
+
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .path{
+    display:block;
+    margin-top:8px;
+    padding:10px 12px;
+    border:1px solid var(--bd);
+    border-radius:8px;
+    background:var(--s2);
+    color:var(--tx);
+    word-break:break-all;
+  }
+
+  .tb{width:100%;border-collapse:collapse;font-size:13px}
+  .tb th{
+    text-align:left;
+    padding:10px 12px;
+    background:var(--s2);
+    color:var(--dim);
+    border-bottom:1px solid var(--bd);
+    font-weight:700;
+  }
+  .tb td{
+    padding:10px 12px;
+    border-bottom:1px solid var(--bd);
+    vertical-align:top;
+  }
+  .tb tr:last-child td{border-bottom:none}
+
+  .arch{
+    display:grid;
+    grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr) auto minmax(150px,1fr) auto minmax(150px,1fr);
+    gap:12px;
+    align-items:center;
+    margin:16px 0;
+  }
+  .arch-box{
+    background:var(--s2);
+    border:1px solid var(--bd);
+    border-radius:10px;
+    padding:16px 14px;
+    text-align:center;
+    min-height:148px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .arch-box .lbl{
+    font-size:10px;
+    color:var(--dim);
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    margin-bottom:5px;
+  }
+  .arch-box .name{
+    font-size:13px;
+    font-weight:700;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+  .arch-box .desc{
+    font-size:11px;
+    color:var(--dim);
+    margin-top:6px;
+    line-height:1.6;
+  }
+  .arch-arrow{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--dim);
+    font-size:20px;
+    min-width:24px;
+  }
+  .highlight-blue{border-color:var(--blue);box-shadow:0 0 12px rgba(108,140,255,.12)}
+  .highlight-purple{border-color:var(--purple);box-shadow:0 0 12px rgba(167,139,250,.12)}
+  .highlight-cyan{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.12)}
+  .highlight-green{border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.12)}
+
+  .flow-col{
+    display:grid;
+    gap:10px;
+    margin-top:14px;
+  }
+  .flow-step{
+    background:var(--s2);
+    border:1px solid var(--bd);
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .flow-step .idx{
+    display:inline-flex;
+    width:22px;height:22px;border-radius:50%;
+    background:var(--blue);color:#fff;
+    align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;margin-right:8px;
+  }
+  .flow-step p{display:inline;color:var(--tx);font-size:13px}
+
+  .compare{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:12px;
+  }
+  .compare .box{
+    background:var(--s2);
+    border:1px solid var(--bd);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .compare .box ul{
+    padding-left:20px;
+    margin-top:6px;
+  }
+  .compare .box li{
+    padding-left:2px;
+  }
+  .compare .box.before{border-color:var(--red)}
+  .compare .box.after{border-color:var(--green)}
+  .compare .title{font-size:13px;font-weight:700;margin-bottom:8px}
+  .compare .box.before .title{color:var(--red)}
+  .compare .box.after .title{color:var(--green)}
+
+  .note{
+    font-size:12px;
+    color:var(--dim);
+    text-align:center;
+    margin-top:30px;
+  }
+
+  @media (max-width:760px){
+    .arch{grid-template-columns:1fr}
+    .arch-arrow{transform:rotate(90deg)}
+    .compare{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="c">
+
+  <div class="hdr">
+    <h1>Play Store GSFID 串接報告</h1>
+    <div class="sub">Android 16 MtkSettings 與 Vendor init/script 的整合設計、問題定位與最終修正</div>
+    <div class="meta">
+      <div class="chip">System Tree：<b>android16_mtk_system_b0mp5_aiv</b></div>
+      <div class="chip">Vendor Tree：<b>android16_mtk_vendor_v0mp5_aiv</b></div>
+      <div class="chip">核心重點：<b>Settings 發 request，Vendor 高權限查 DB，結果再回推 UI</b></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">1</span> 問題背景</div>
+    <div class="card">
+      <h4 style="color:var(--amber)">▎原始需求</h4>
+      <p>將 Android 12 的 <span class="mono">EnablePlayStoreFragment</span> / GSFID 顯示流程移植到 Android 16，並確保當裝置已經產生 GSFID 時，Play Store 頁面會顯示 GSF ID、Step 2 與註冊導引畫面。</p>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--red)">▎遇到的真實問題</h4>
+      <ul>
+        <li>Android 16 上，原本的 provider 查詢 <span class="mono">content://com.google.android.gsf.gservices</span> 不可靠。</li>
+        <li>實機驗證發現真正有值的是 <span class="mono">/data/data/com.google.android.gms/databases/gservices.db</span> 的 <span class="mono">android_id</span>。</li>
+        <li>只有手動執行 script 時，GSFID 才會被抓出來並讓畫面切換；正常使用設備時，service 沒有成功以正確權限跑起來。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">2</span> 最終架構圖</div>
+    <div class="card">
+      <p>系統最終分成兩棵 tree，各自負責不同角色：</p>
+      <div class="arch">
+        <div class="arch-box highlight-blue">
+          <div class="lbl">System Tree</div>
+          <div class="name">MtkSettings UI</div>
+          <div class="desc">進入 Play Store 頁面後送出 request，並接收結果更新畫面</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box highlight-purple">
+          <div class="lbl">Property Trigger</div>
+          <div class="name">debug.gsf_fetch_requested</div>
+          <div class="desc">Settings 或 adb 設定此 property，通知 init 啟動抓取流程</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box highlight-cyan">
+          <div class="lbl">Vendor Tree</div>
+          <div class="name">init + fetch_gsf_id.sh</div>
+          <div class="desc">以高權限查詢 sqlite3，取得真正的 GSFID</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box highlight-green">
+          <div class="lbl">Result</div>
+          <div class="name">debug.gsf_id + Broadcast</div>
+          <div class="desc">寫入 property、cache，並透過 broadcast 回推給 Settings UI</div>
+        </div>
+      </div>
+
+      <div class="flow-col">
+        <div class="flow-step"><span class="idx">1</span><p>使用者進入 <span class="mono">EnablePlayStoreFragment</span>。</p></div>
+        <div class="flow-step"><span class="idx">2</span><p>Settings 呼叫 <span class="mono">requestGsfIdFetch()</span>，設定 <span class="mono">debug.gsf_fetch_requested</span>。</p></div>
+        <div class="flow-step"><span class="idx">3</span><p>Vendor init 監聽該 property，啟動 <span class="mono">fetch_gsf_id</span> service。</p></div>
+        <div class="flow-step"><span class="idx">4</span><p>script 先查 cache，查不到再用 <span class="mono">sqlite3</span> 查 <span class="mono">com.google.android.gms</span> DB 的 <span class="mono">android_id</span>。</p></div>
+        <div class="flow-step"><span class="idx">5</span><p>查到後寫入 <span class="mono">debug.gsf_id</span> 與 <span class="mono">/data/vendor/gsf/gsf_id</span>，再發 <span class="mono">GSF_ID_UPDATED</span> broadcast。</p></div>
+        <div class="flow-step"><span class="idx">6</span><p>Settings 收到 broadcast 後切換成顯示 GSF ID 的畫面。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">3</span> 問題根因與修正</div>
+    <div class="compare">
+      <div class="box before">
+        <div class="title">Before</div>
+        <ul>
+          <li>Settings 端曾嘗試直接使用 <span class="mono">vendor.debug.*</span> property，造成權限錯誤。</li>
+          <li>正常流程雖然有設到 request property，但 init service 沒有以正確權限上下文執行 script。</li>
+          <li>結果是：手動 <span class="mono">su 0 sh /vendor/etc/fetch_gsf_id.sh</span> 有效，正常 UI 流程無效。</li>
+        </ul>
+      </div>
+      <div class="box after">
+        <div class="title">After</div>
+        <ul>
+          <li>Settings 改成只使用 <span class="mono">debug.gsf_fetch_requested</span> / <span class="mono">debug.gsf_id</span>。</li>
+          <li>Vendor service 最終明確使用 <span class="mono">seclabel u:r:su:s0</span>，與手動成功路徑一致。</li>
+          <li>正常進頁面時就能啟動抓取流程，抓到 GSFID 後自動切換畫面。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">4</span> 修改檔案總表</div>
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table class="tb">
+        <tr>
+          <th>Tree</th>
+          <th>檔案位置</th>
+          <th>修改用意</th>
+        </tr>
+        <tr>
+          <td><span class="b b-system">android16_mtk_system</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/vendor/mediatek/proprietary/packages/apps/MtkSettings/src/com/android/settings/EnablePlayStoreFragment.java</td>
+          <td>進入頁面時註冊 <span class="mono">GSF_ID_UPDATED</span> receiver，並主動觸發 <span class="mono">requestGsfIdFetch()</span>，讓每次回到 Play Store 頁面都會重新發起抓取流程。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-system">android16_mtk_system</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/vendor/mediatek/proprietary/packages/apps/MtkSettings/src/com/android/settings/NtxPlayStorePreferenceController.java</td>
+          <td>將 GSFID 邏輯改成只讀 <span class="mono">debug.gsf_id</span>、只送 request，不再自行查 provider；同時補上 UI 狀態還原與 broadcast 更新邏輯。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-system">android16_mtk_system</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/vendor/mediatek/proprietary/packages/apps/MtkSettings/src/com/android/settings/GsfIdFetchRequestReceiver.java</td>
+          <td>提供外部 request 入口，讓 adb 或第三方 app 可透過 <span class="mono">REQUEST_GSF_ID_FETCH</span> 觸發同一套抓取流程。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-system">android16_mtk_system</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/vendor/mediatek/proprietary/packages/apps/MtkSettings/AndroidManifest.xml</td>
+          <td>註冊 <span class="mono">GsfIdFetchRequestReceiver</span>，並宣告 <span class="mono">com.android.settings.action.GSF_ID_UPDATED</span> protected-broadcast。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-vendor">android16_mtk_vendor</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/device/mediatek/mt8171/init.mt8171.rc</td>
+          <td>新增 <span class="mono">fetch_gsf_id</span> service 與 <span class="mono">on property:debug.gsf_fetch_requested=*</span> trigger，並最終改為 <span class="mono">seclabel u:r:su:s0</span>，使正常流程與手動成功權限一致。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-vendor">android16_mtk_vendor</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/device/mediatek/mt8171/fetch_gsf_id.sh</td>
+          <td>實作真正的高權限抓取流程：先查 cache，再查 sqlite3；查到後寫入 cache、設定 <span class="mono">debug.gsf_id</span>、並發送更新 broadcast。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-vendor">android16_mtk_vendor</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/device/mediatek/mt8171/device-vext.mk</td>
+          <td>將 <span class="mono">fetch_gsf_id.sh</span> 打包進 vendor image，確保實機上會存在 <span class="mono">/vendor/etc/fetch_gsf_id.sh</span>。</td>
+        </tr>
+        <tr>
+          <td><span class="b b-system">android16_mtk_system</span></td>
+          <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/services/core/jni/com_android_server_input_InputManagerService.cpp</td>
+          <td>這是編譯期間遇到的獨立修正，與 GSFID 功能無直接關聯；只是用來排除 framework/input 版本不一致造成的 build error。</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">5</span> 實際資料來源與指令</div>
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎實機最終確認</h4>
+      <p>Android 16 這台裝置上，<span class="mono">GSFID</span> 實際是從以下 DB 查到：</p>
+      <span class="path mono">/data/data/com.google.android.gms/databases/gservices.db</span>
+      <p style="margin-top:12px">實際查詢指令：</p>
+      <span class="path mono">sqlite3 /data/data/com.google.android.gms/databases/gservices.db "select value from main where name='android_id';"</span>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--green)">▎腳本成功後的輸出</h4>
+      <ul>
+        <li>Property：<span class="mono">debug.gsf_id</span></li>
+        <li>Cache：<span class="mono">/data/vendor/gsf/gsf_id</span></li>
+        <li>Broadcast：<span class="mono">com.android.settings.action.GSF_ID_UPDATED</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">6</span> 使用情境說明</div>
+    <div class="card">
+      <h4 style="color:var(--amber)">▎正常使用設備</h4>
+      <ul>
+        <li>使用者進入 Play Store 設定頁。</li>
+        <li>若裝置當下已有 GSFID，UI 會顯示 GSF ID 畫面。</li>
+        <li>若當下沒有，使用者去開 Play Store、登入或初始化後，再回來頁面，<span class="mono">onResume()</span> 會再觸發抓取流程。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4 style="color:var(--cyan)">▎手動測試 / CMD 測試</h4>
+      <ul>
+        <li>送 request broadcast：<span class="mono">adb shell am broadcast -a com.android.settings.action.REQUEST_GSF_ID_FETCH</span></li>
+        <li>直接設 trigger property：<span class="mono">adb shell setprop debug.gsf_fetch_requested test1</span></li>
+        <li>直接執行 script：<span class="mono">adb shell su 0 sh -x /vendor/etc/fetch_gsf_id.sh</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t"><span class="n">7</span> 結論</div>
+    <div class="card">
+      <p>這次整合的核心不是單純把 Android 12 的 UI 邏輯搬過來，而是重新拆清楚權責：</p>
+      <ul style="margin-top:8px">
+        <li><span class="b b-ui">Settings</span> 只負責發 request、收結果、更新畫面。</li>
+        <li><span class="b b-script">Vendor init/script</span> 才負責高權限讀取 SQLite DB。</li>
+        <li><span class="b b-fix">關鍵修正</span> 是讓 init service 以 <span class="mono">u:r:su:s0</span> 執行，與手動成功路徑一致。</li>
+      </ul>
+      <p style="margin-top:12px">最終結果是：正常進入 Play Store 設定頁時，不需要手動跑 script，也能自動抓到 GSFID 並切換成正確畫面。</p>
+    </div>
+  </div>
+
+  <div class="note">Report file generated for internal technical review and manager briefing.</div>
+</div>
+</body>
+</html>
