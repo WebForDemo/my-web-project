@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>兒童閱讀學習平台功能規劃</title>
+<style>
+  :root {
+    --ink: #f4f7fb;
+    --muted: #a7b4c6;
+    --soft: #101827;
+    --line: rgba(255, 255, 255, .12);
+    --note: #f3c75f;
+    --viewer: #4fc3de;
+    --learn: #a58bff;
+    --focus: #ff8d70;
+    --other: #8acb88;
+    --white: #151f31;
+    --shadow: 0 30px 90px rgba(0, 0, 0, .42);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+    color: var(--ink);
+    background:
+      linear-gradient(120deg, rgba(255,255,255,.04) 0 1px, transparent 1px 76px),
+      radial-gradient(circle at 12% 14%, rgba(243, 199, 95, .18), transparent 28%),
+      radial-gradient(circle at 86% 12%, rgba(79, 195, 222, .18), transparent 32%),
+      radial-gradient(circle at 48% 92%, rgba(165, 139, 255, .14), transparent 32%),
+      linear-gradient(135deg, #070b13 0%, #111827 48%, #0b1d28 100%);
+    padding: 28px;
+  }
+
+  .page {
+    width: min(1180px, 100%);
+    margin: 0 auto;
+    background: rgba(13, 20, 33, .88);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 30px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 28px;
+    padding: 46px 50px 38px;
+    background:
+      linear-gradient(120deg, rgba(20,29,46,.95), rgba(12,18,30,.76)),
+      radial-gradient(circle at 80% 20%, rgba(79,195,222,.16), transparent 32%),
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(255,255,255,.035) 32px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 24px;
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    width: fit-content;
+    padding: 8px 13px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 999px;
+    color: #d8edf4;
+    background: rgba(255, 255, 255, .08);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .18);
+  }
+
+  h1 {
+    margin: 18px 0 12px;
+    font-size: clamp(34px, 5vw, 62px);
+    line-height: 1.05;
+    letter-spacing: 0;
+    color: #f8fbff;
+  }
+
+  .subtitle {
+    max-width: 640px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1.75;
+  }
+
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .metric {
+    min-height: 86px;
+    padding: 17px 16px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .075);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .18);
+  }
+
+  .metric b {
+    display: block;
+    font-size: 28px;
+    line-height: 1;
+    color: #ffffff;
+  }
+
+  .metric span {
+    display: block;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .book-stack {
+    position: relative;
+    min-height: 324px;
+    border-radius: 26px;
+    background:
+      linear-gradient(150deg, rgba(5,10,19,.96), rgba(26,38,61,.88)),
+      radial-gradient(circle at 72% 18%, rgba(79,195,222,.23), transparent 34%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 22px 45px rgba(24,33,48,.16);
+    overflow: hidden;
+  }
+
+  .book-stack::before {
+    content: "KP Demo";
+    position: absolute;
+    left: 24px;
+    top: 22px;
+    color: rgba(255,255,255,.86);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+
+  .book-stack::after {
+    content: "";
+    position: absolute;
+    left: 34px;
+    bottom: 28px;
+    width: 150px;
+    height: 100px;
+    border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(79,195,222,.16), rgba(165,139,255,.14)),
+      rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 28px rgba(0,0,0,.22);
+  }
+
+  .book {
+    position: absolute;
+    right: 22px;
+    width: 330px;
+    height: 82px;
+    border-radius: 14px 22px 22px 14px;
+    border: 1px solid rgba(255, 255, 255, .28);
+    box-shadow: 0 16px 28px rgba(0, 0, 0, .2);
+    transform: rotate(var(--r));
+    background: var(--c);
+  }
+
+  .book::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    top: 12px;
+    bottom: 12px;
+    width: 7px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, .58);
+  }
+
+  .book::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 44px;
+    top: 25px;
+    color: rgba(255,255,255,.94);
+    font-size: 22px;
+    font-weight: 900;
+  }
+
+  .b1 { --c: linear-gradient(135deg, #7056aa, #b59bd7); --r: -7deg; top: 52px; }
+  .b2 { --c: linear-gradient(135deg, #318ca2, #83c8d5); --r: 4deg; top: 118px; right: 62px; }
+  .b3 { --c: linear-gradient(135deg, #db6d50, #f0b387); --r: -3deg; top: 184px; right: 14px; }
+  .b4 { --c: linear-gradient(135deg, #486f52, #86a771); --r: 6deg; top: 248px; right: 82px; }
+
+  .content {
+    padding: 34px 50px 46px;
+    background:
+      linear-gradient(180deg, rgba(14,22,36,.9), rgba(9,15,26,.94)),
+      linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 80px);
+  }
+
+  .section-title {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .section-title h2 {
+    margin: 0;
+    font-size: 26px;
+    line-height: 1.2;
+  }
+
+  .section-title p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .modules {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .module {
+    position: relative;
+    min-height: 310px;
+    padding: 20px 18px 18px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, #151f31), #111a2b 46%);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, .24);
+    overflow: hidden;
+  }
+
+  .module::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 6px;
+    background: var(--accent);
+  }
+
+  .module::after {
+    content: attr(data-no);
+    position: absolute;
+    right: 14px;
+    top: 12px;
+    color: color-mix(in srgb, var(--accent) 68%, transparent);
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1;
+    z-index: 0;
+  }
+
+  .module .top {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .icon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    color: #fff;
+    font-weight: 900;
+    font-size: 18px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 82%, #000), var(--accent));
+    box-shadow: 0 12px 20px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+
+  .module h3 {
+    margin: 0;
+    font-size: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tagline {
+    min-height: 64px;
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.65;
+    position: relative;
+    z-index: 1;
+  }
+
+  .module ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .module li,
+  .module a.video-link {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 38px;
+    margin-top: 8px;
+    padding: 8px 10px 8px 32px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.065);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, rgba(255,255,255,.09));
+    color: #edf4fb;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: none;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
+  }
+
+  .module a.video-link {
+    cursor: pointer;
+    transition: transform .18s ease, border-color .18s ease, background .18s ease;
+  }
+
+  .module a.video-link:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--accent) 58%, rgba(255,255,255,.16));
+    background: color-mix(in srgb, var(--accent) 18%, rgba(255,255,255,.06));
+  }
+
+  .module a.video-link::after {
+    content: "▶";
+    margin-left: auto;
+    color: var(--accent);
+    font-size: 11px;
+  }
+
+  .module li::before,
+  .module a.video-link::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    background: var(--accent);
+    transform: rotate(45deg);
+  }
+
+  .module li.action-item {
+    display: block;
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .module li.action-item::before {
+    display: none;
+  }
+
+  .note { --accent: var(--note); }
+  .viewer { --accent: var(--viewer); }
+  .learn { --accent: var(--learn); }
+  .focus { --accent: var(--focus); }
+  .other { --accent: var(--other); }
+
+  @media (max-width: 1080px) {
+    .hero { grid-template-columns: 1fr; }
+    .book-stack { display: none; }
+    .modules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .module { min-height: auto; }
+  }
+
+  @media (max-width: 760px) {
+    body { padding: 14px; }
+    .hero, .content { padding: 28px 20px; }
+    .hero-metrics, .modules { grid-template-columns: 1fr; }
+    .section-title { align-items: flex-start; flex-direction: column; }
+  }
+
+  @media print {
+    body { padding: 0; background: #fff; }
+    .page { width: 100%; border: 0; border-radius: 0; box-shadow: none; }
+    .hero { padding: 28px 34px 24px; }
+    .content { padding: 24px 34px 28px; }
+    .module { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">PRODUCT ROADMAP / ONE PAGE BRIEF</div>
+        <h1>兒童閱讀與學習工具平台</h1>
+        <p class="subtitle">
+          以「閱讀、書寫、練習、專注、影音」為核心，把電子書 Viewer 從單純閱讀器升級成可持續學習、可產出作品、可延伸內容服務的教育型 App。
+        </p>
+        <div class="hero-metrics">
+          <div class="metric"><b>5</b><span>功能模組</span></div>
+          <div class="metric"><b>17+</b><span>可落地功能</span></div>
+          <div class="metric"><b>1</b><span>完整學習閉環</span></div>
+        </div>
+      </div>
+      <div class="book-stack" aria-hidden="true">
+        <div class="book b1" data-label="Learn Tool"></div>
+        <div class="book b2" data-label="Viewer"></div>
+        <div class="book b3" data-label="Focus"></div>
+        <div class="book b4" data-label="Note"></div>
+      </div>
+    </section>
+
+    <section class="content">
+      <div class="section-title">
+        <h2>核心功能架構</h2>
+        <p>從內容消費到學習沉澱，形成可反覆使用的產品主軸。</p>
+      </div>
+
+      <div class="modules">
+        <article class="module note" data-no="01">
+          <div class="top">
+            <div class="icon">N</div>
+            <h3>Note</h3>
+          </div>
+          <p class="tagline">讓孩子在閱讀後可以產出內容，建立個人作品與學習紀錄。</p>
+          <ul>
+            <li>日記範本</li>
+            <li>作文範本</li>
+            <li>著色本範本</li>
+            <li>習字帖範本</li>
+            <li class="action-item"><a class="video-link" href="https://www.youtube.com/watch?v=_RfUorh-MKA" target="_blank" rel="noopener">Template OTA</a></li>
+          </ul>
+        </article>
+
+        <article class="module viewer" data-no="02">
+          <div class="top">
+            <div class="icon">V</div>
+            <h3>Viewer</h3>
+          </div>
+          <p class="tagline">把閱讀器做成學習入口，閱讀過程可查、可記、可累積。</p>
+          <ul>
+            <li>書籍簡介</li>
+            <li>閱讀心得</li>
+            <li class="action-item"><a class="video-link" href="https://www.youtube.com/shorts/Tv3ypCCZ74Y" target="_blank" rel="noopener">圈詞翻譯 / 註釋</a></li>
+            <li>生字簿</li>
+          </ul>
+        </article>
+
+        <article class="module learn" data-no="03">
+          <div class="top">
+            <div class="icon">L</div>
+            <h3>LearnTool</h3>
+          </div>
+          <p class="tagline">提供低門檻、高頻率的練習工具，提升日常使用率。</p>
+          <ul>
+            <li>成語接龍</li>
+            <li>九九乘法</li>
+            <li>1200 單字</li>
+          </ul>
+        </article>
+
+        <article class="module focus" data-no="04">
+          <div class="top">
+            <div class="icon">F</div>
+            <h3>蕃茄鐘</h3>
+          </div>
+          <p class="tagline">協助孩子建立專注節奏，也能作為閱讀與練習時間統計依據。</p>
+          <ul>
+            <li>閱讀專注計時</li>
+            <li>休息提醒</li>
+            <li>學習時長紀錄</li>
+          </ul>
+        </article>
+
+        <article class="module other" data-no="05">
+          <div class="top">
+            <div class="icon">O</div>
+            <h3>Other</h3>
+          </div>
+          <p class="tagline">補齊影音內容支援，讓閱讀產品可以延伸到聽書與多媒體教材。</p>
+          <ul>
+            <li>MediaPlayer</li>
+            <li>內嵌音檔</li>
+            <li>有聲書</li>
+          </ul>
+        </article>
+      </div>
+
+    </section>
+  </main>
+
+</body>
+</html>
