@@ -18,6 +18,9 @@
       --warn-soft: #fff4df;
       --ok: #15803d;
       --ok-soft: #e8f6ee;
+      --video: #2563eb;
+      --video-dark: #1e3a8a;
+      --video-soft: #eff6ff;
       --code-bg: #111827;
       --code-ink: #f8fafc;
       --shadow: 0 18px 45px rgba(31, 41, 51, 0.08);
@@ -227,6 +230,81 @@
       padding-left: 4px;
     }
 
+    .video-panel {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 18px;
+      align-items: center;
+      margin-top: 16px;
+      padding: 22px;
+      color: #0f172a;
+      background:
+        linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(230, 244, 241, 0.95)),
+        var(--video-soft);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+    }
+
+    .video-icon {
+      position: relative;
+      width: 62px;
+      height: 62px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--video), var(--video-dark));
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+    }
+
+    .video-icon::after {
+      position: absolute;
+      top: 50%;
+      left: 52%;
+      width: 0;
+      height: 0;
+      content: "";
+      border-top: 12px solid transparent;
+      border-bottom: 12px solid transparent;
+      border-left: 18px solid #ffffff;
+      transform: translate(-50%, -50%);
+    }
+
+    .video-copy h3 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .video-copy p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .video-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      color: #ffffff;
+      background: var(--video);
+      border-radius: 8px;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+      transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .video-action:hover {
+      background: var(--video-dark);
+      box-shadow: 0 12px 26px rgba(30, 58, 138, 0.24);
+      transform: translateY(-1px);
+    }
+
+    .video-action:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, 0.32);
+      outline-offset: 3px;
+    }
+
     code {
       padding: 2px 6px;
       color: #0f172a;
@@ -278,8 +356,13 @@
       }
 
       .grid,
-      .compare {
+      .compare,
+      .video-panel {
         grid-template-columns: 1fr;
+      }
+
+      .video-action {
+        width: 100%;
       }
 
       .kv {
@@ -358,6 +441,23 @@
               <dd><code>Stored 0%</code></dd>
             </dl>
           </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>實機影片</h2>
+        <p>
+          以下影片可用來比對開機動畫在實機上的顯示狀態，確認修正後是否符合螢幕滿版需求。
+        </p>
+        <div class="video-panel">
+          <div class="video-icon" aria-hidden="true"></div>
+          <div class="video-copy">
+            <h3>Bootanimation 顯示狀態影片</h3>
+            <p>Google Drive 影片連結，點擊後會在新分頁開啟。</p>
+          </div>
+          <a class="video-action" href="https://drive.google.com/file/d/12v90YaeBE8oo5w2AfQekZg11DQTLcyPV/view?usp=sharing" target="_blank" rel="noopener noreferrer">
+            開啟影片
+          </a>
         </div>
       </section>
 
