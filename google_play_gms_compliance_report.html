@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Play / GMS 預載合規風險報告</title>
+<style>
+  :root {
+    --bg: #0b111a;
+    --panel: #111a27;
+    --panel2: #162232;
+    --ink: #eef3f8;
+    --muted: #a8b3c2;
+    --subtle: #758295;
+    --line: rgba(211, 224, 241, .14);
+    --red: #f07178;
+    --amber: #d7a84f;
+    --green: #74c69d;
+    --blue: #74a7d7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    padding: 24px;
+  }
+  .page {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0f1723;
+    box-shadow: 0 22px 60px rgba(0,0,0,.38);
+  }
+  .hero {
+    padding: 34px 38px 30px;
+    border-bottom: 1px solid var(--line);
+    background: #121c2b;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0 10px;
+    color: var(--subtle);
+    border: 0;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+  }
+  h1 {
+    margin: 0 0 12px;
+    max-width: 1040px;
+    font-size: clamp(30px, 3.4vw, 40px);
+    line-height: 1.16;
+    letter-spacing: 0;
+  }
+  .lead {
+    max-width: 940px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.72;
+  }
+  .lead span {
+    display: block;
+  }
+  .lead span + span {
+    margin-top: 3px;
+  }
+  .verdict {
+    display: grid;
+    grid-template-columns: 1.25fr .75fr;
+    gap: 14px;
+    margin-top: 24px;
+  }
+  .verdict-card {
+    padding: 18px 20px;
+    border: 1px solid rgba(240,113,120,.32);
+    border-left: 4px solid var(--red);
+    border-radius: 10px;
+    background: rgba(240,113,120,.08);
+  }
+  .verdict-card strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #ffd4d6;
+    font-size: 20px;
+  }
+  .verdict-card p, .mini p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.68;
+    font-size: 14px;
+  }
+  .mini {
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(255,255,255,.035);
+  }
+  .mini strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--blue);
+    font-size: 17px;
+  }
+  .content { padding: 28px 38px 38px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .card {
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #121d2b;
+  }
+  .card h2, .wide h2 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    line-height: 1.35;
+  }
+  .card p, .wide p, .card li, .wide li {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.72;
+  }
+  .card ul, .wide ul { margin: 10px 0 0; padding-left: 20px; }
+  .badge {
+    display: inline-flex;
+    margin-bottom: 10px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .risk { color: #ffd4d6; background: rgba(240,113,120,.14); }
+  .warn { color: #f4db9a; background: rgba(215,168,79,.14); }
+  .ok { color: #c7efd8; background: rgba(116,198,157,.13); }
+  .wide {
+    margin-top: 14px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+  .highlight {
+    border-color: rgba(116,167,215,.28);
+    background: linear-gradient(180deg, rgba(116,167,215,.075), rgba(17,26,39,1) 34%);
+  }
+  .reference-link {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin: 12px 0 4px;
+    padding: 10px 12px;
+    border: 1px solid rgba(116,167,215,.34);
+    border-radius: 8px;
+    color: #dcecff;
+    background: rgba(116,167,215,.1);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .reference-link::after {
+    content: "↗";
+    margin-left: 8px;
+    color: var(--blue);
+  }
+  .capture-card {
+    margin-top: 12px;
+    padding: 16px 18px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px;
+    color: #18202a;
+    background: #f7f8fb;
+  }
+  .capture-card h3 {
+    margin: 0 0 8px;
+    color: #101722;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  .capture-card p {
+    margin: 0;
+    color: #1f2937;
+    font-size: 14px;
+    line-height: 1.72;
+  }
+  .capture-card .em {
+    color: #e26b20;
+    font-weight: 700;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  th, td {
+    padding: 11px 13px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    font-size: 14px;
+  }
+  th {
+    color: #d8e3f0;
+    background: #172335;
+    font-weight: 700;
+  }
+  td { color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  .yes { color: var(--green); font-weight: 800; }
+  .no { color: var(--red); font-weight: 800; }
+  .maybe { color: var(--amber); font-weight: 800; }
+  .quote {
+    margin-top: 12px;
+    padding: 13px 15px;
+    border-left: 3px solid var(--blue);
+    border-radius: 8px;
+    background: rgba(116,167,215,.08);
+    color: #d8e6f6;
+    font-size: 14px;
+    line-height: 1.68;
+  }
+  .sources {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .source {
+    display: block;
+    padding: 12px 13px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: #dcecff;
+    background: #121d2b;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .source span {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer {
+    margin-top: 16px;
+    padding: 15px 16px;
+    border-radius: 10px;
+    background: rgba(215,168,79,.1);
+    border: 1px solid rgba(215,168,79,.24);
+    color: #f4db9a;
+    line-height: 1.68;
+    font-size: 14px;
+  }
+  @media (max-width: 920px) {
+    .verdict, .grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    body { padding: 14px; }
+    .hero, .content { padding: 28px 20px; }
+    table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">GMS / GOOGLE PLAY COMPLIANCE REVIEW</div>
+      <h1>未認證設備預載 Google Play APK 的合規判斷</h1>
+      <p class="lead">
+        <span>本報告釐清兩個容易混淆的問題：</span>
+        <span>第一，APKMirror 上的 APK 是否可能是原廠真檔。</span>
+        <span>第二，公司是否因此取得商業預載與分發權。</span>
+        <span>結論以 Google 官方公開說明為基礎，供管理層決策與風險控管使用。</span>
+      </p>
+      <div class="verdict">
+        <div class="verdict-card">
+          <strong>結論：真 APK 不等於可商用預載</strong>
+          <p>APKMirror 上的 Google Play APK 即使是原廠簽章真檔，也只代表檔案未被竄改；不代表 Google 授權公司把該 APK 放進產品、系統映像檔或出貨設備。GSF ID 註冊也不是 GMS 預載授權。</p>
+        </div>
+        <div class="mini">
+          <strong>要分兩層判斷</strong>
+          <p>第一層：APK 檔案是否真實、安全。第二層：我們是否有權重製、預載、散布。商業出貨看的是第二層。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="content">
+      <div class="grid">
+        <article class="card">
+          <span class="badge warn">第一層</span>
+          <h2>從 APKMirror 抓 Google Play APK</h2>
+          <p>APKMirror 透過簽章比對降低檔案被二改的風險。因此它上面的 APK 可能是原廠簽章真檔，適合工程測試與版本比對。</p>
+        </article>
+        <article class="card">
+          <span class="badge risk">第二層</span>
+          <h2>真檔不等於分發授權</h2>
+          <p>公司把 APK 放入產品，就是重製、預載、散布。這需要權利人授權。APKMirror 不是 Google 的 OEM 授權管道。</p>
+        </article>
+        <article class="card">
+          <span class="badge ok">正規路線</span>
+          <h2>CTS / CDD / GMS 授權</h2>
+          <p>若產品要正式預載 Google Play、YouTube、Maps、Gmail 等 Google apps，應走 Android compatibility 與 Google GMS 授權流程。</p>
+        </article>
+      </div>
+
+      <section class="wide">
+        <h2>APKMirror 檔案可信度與公司商用權利</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>問題</th>
+              <th>答案</th>
+              <th>重點</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>APKMirror 上的 APK 是不是可能是真的？</td>
+              <td class="yes">是，可能是真的原廠簽章 APK</td>
+              <td>簽章比對可以證明「檔案來源/完整性」較可信。</td>
+            </tr>
+            <tr>
+              <td>APKMirror 上的 APK 對工程測試能不能用？</td>
+              <td class="maybe">可作內部測試</td>
+              <td>可用於 debug、版本比對、相容性驗證，不代表可對外出貨。</td>
+            </tr>
+            <tr>
+              <td>APKMirror 是否授權我們商業預載 Google Play？</td>
+              <td class="no">否</td>
+              <td>APKMirror 不是 Google，不可能替 Google 授權 OEM 預載 Google apps。</td>
+            </tr>
+            <tr>
+              <td>Google Play APK 是免費的，是否代表可放進產品？</td>
+              <td class="no">否</td>
+              <td>免費下載/使用與商業重製/預載/散布是不同權利。</td>
+            </tr>
+            <tr>
+              <td>GSF ID 註冊後，是否代表設備取得 GMS 授權？</td>
+              <td class="no">否</td>
+              <td>它是單台裝置例外或開發/custom ROM 用途，不是量產授權文件。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="wide">
+        <h2>關於 Samsung 等 OEM 授權版本的疑慮</h2>
+        <p>一般情況下，從 APKMirror 下載的 Google Play Store APK，不應理解成「Samsung 花錢過 CTS 後取得的 Samsung 版本」。Google Play Store 的 package 通常是 <b>Google 自己簽章</b>，權利主體主要是 Google，而不是 Samsung、Sony、小米或其他已認證 OEM。</p>
+        <table>
+          <thead>
+            <tr>
+              <th>問題</th>
+              <th>判斷</th>
+              <th>原因</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Google Play APK 會不會是 Samsung 擁有的版本？</td>
+              <td class="no">通常不是</td>
+              <td>Google Play Store 是 Google app。若 APK 是 Google 簽章，代表它是 Google 發行的應用，不會因為曾出現在 Samsung 裝置上就變成 Samsung 的著作或授權物。</td>
+            </tr>
+            <tr>
+              <td>Samsung 會不會因為我們用了它已認證設備上的 Google Play APK 來告我們？</td>
+              <td class="maybe">風險較低，但非零</td>
+              <td>若只是 Google-signed Google Play APK，主要權利與授權問題在 Google。除非我們拿的是 Samsung firmware、Samsung 私有 app、設定檔、framework、或含 Samsung proprietary component 的映像內容。</td>
+            </tr>
+            <tr>
+              <td>CTS/GMS 認證是不是 Samsung 買到一份「專屬 Google Play APK」？</td>
+              <td class="no">不是這樣理解</td>
+              <td>CTS/GMS 是設備與廠商的相容性/授權流程，不是讓 OEM 擁有 Google Play APK 的著作權。OEM 取得的是依合約預載 Google apps 的權利。</td>
+            </tr>
+            <tr>
+              <td>我們真正的主要風險對象是誰？</td>
+              <td class="risk">Google / 客戶稽核</td>
+              <td>Google apps 的預載與分發權要看 Google 授權；客戶則會看我們是否能提出 Play Protect certified / GMS license / 合規證明。</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="quote">
+          精準說法：不是「我們可能偷用了 Samsung 花錢取得的 APK」，而是「我們沒有取得 Google 授權，卻把 Google Play 這個 Google app 預載進自己的商業設備」。
+        </div>
+      </section>
+
+      <section class="wide highlight">
+        <h2>APKMirror 多簽章 FAQ 對本案的意義</h2>
+        <p>APKMirror FAQ 說明，部分 App 可能存在多個有效簽章，包含 Google Play Store、Google Play services、Files by Google 等 Google app。使用者下載時必須選擇與目前設備上已安裝版本相同簽章的 APK，否則 Android 會因 signature mismatch 擋下更新。</p>
+        <a class="reference-link" href="https://www.apkmirror.com/faq/#Why_do_some_apps_have_multiple_signatures_Which_one_do_I_pick" target="_blank" rel="noopener">
+          查看 APKMirror FAQ：Why do some apps have multiple signatures?
+        </a>
+        <table>
+          <thead>
+            <tr>
+              <th>FAQ 重點</th>
+              <th>對我們的判斷</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>同一個 App 可能有多個有效簽章。</td>
+              <td>Google Play APK 可能存在不同有效簽章版本，這是技術與分發歷史問題，不應直接解讀成 Samsung 擁有該 APK。</td>
+            </tr>
+            <tr>
+              <td>下載時要選與設備既有安裝版本相同的簽章。</td>
+              <td>簽章主要影響能否更新或覆蓋安裝。選錯簽章會造成 signature mismatch。</td>
+            </tr>
+            <tr>
+              <td>APKMirror 顯示 SHA-1 簽章資訊協助判斷。</td>
+              <td>這提高工程測試時的可追溯性，但仍只解決檔案真偽與相容性，不等於取得商業分發權。</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="quote">
+          補充結論：APKMirror 的多簽章說明支持「Google Play 可能有多個有效簽章版本」這件事；但簽章問題屬於安裝與更新相容性，不是商業預載授權。公司出貨仍需看 Google GMS / Google Play 授權。
+        </div>
+      </section>
+
+      <section class="wide">
+        <h2>APKMirror 對付費與盜版 APK 的政策</h2>
+        <p>截圖中的 FAQ 重點是：APKMirror.com 自稱採取零盜版政策，不提供付費應用程式下載。這能降低「從 APKMirror 下載到明顯盜版付費 App」的風險，但仍不會產生公司商業預載 Google Play 的授權。</p>
+        <div class="capture-card">
+          <h3>APKMirror.com 是否提供付費應用程式或盜版應用程式？</h3>
+          <p>APKMirror.com 奉行零盜版政策，不提供付費應用程式下載。</p>
+          <p>注意：禁止使用付費應用程式的規則極有例外。有時，開發者會將付費應用程式的更新版本公開，通常是為了測試測試版。在這種情況下，通常會進行許可證驗證，以確保應用程式先前已被購買。<span class="em">MX Player Pro</span> 就是一個值得注意的例外，因為該應用程式的開發者 <span class="em">J2 Interactive 曾在其網站上提供測試版 APK。</span></p>
+        </div>
+        <div class="quote">
+          對本案的意義：APKMirror 的零盜版政策有助於說明平台不是以散布破解付費 App 為定位；但 Google Play APK 的預載問題不是「是否盜版付費 App」，而是「我們是否取得 Google apps 的預載與分發授權」。
+        </div>
+      </section>
+
+      <section class="wide">
+        <h2>決策表</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>情境</th>
+              <th>是否建議</th>
+              <th>說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>工程師拿 APKMirror 的 Google Play APK 做內部測試</td>
+              <td class="maybe">可作測試</td>
+              <td>此時重點是技術驗證，不是商業分發。需限實驗室、POC、bring-up。</td>
+            </tr>
+            <tr>
+              <td>設備沒有 CTS，預載 Google Play APK 出貨</td>
+              <td class="no">不建議</td>
+              <td>缺少 Google apps 預載/分發授權，且 Google 官方明確區分未認證設備。</td>
+            </tr>
+            <tr>
+              <td>使用者自行 sideload Google Play 或自行 GSF 註冊</td>
+              <td class="maybe">灰色較低</td>
+              <td>責任位置不同，但公司仍不應把它包裝成官方支援功能。</td>
+            </tr>
+            <tr>
+              <td>公司取得 GMS 授權，通過必要相容性與認證流程</td>
+              <td class="yes">建議</td>
+              <td>這才是可對客戶、法務、資安稽核交代的正式出貨路線。</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="wide">
+        <h2>為什麼「Google 提供 GSF ID 註冊」不等於可商用預載？</h2>
+        <ul>
+          <li>Google 的 uncertified device 頁面把對象分成 purchased device、unlicensed manufacturer、licensed manufacturer、custom ROM users。</li>
+          <li>對未授權製造商，Google 指向 GMS license 申請；對 custom ROM users，才是註冊該裝置。</li>
+          <li>因此 GSF ID 註冊是單台裝置例外，不是 OEM 將 Google Play 放進系統映像檔的授權。</li>
+        </ul>
+        <div class="quote">
+          管理層可用一句話理解：GSF ID 是「讓某台裝置登入 Google apps 的例外機制」，不是「允許公司預載 Google Play 出貨的授權文件」。
+        </div>
+      </section>
+
+      <section class="wide">
+        <h2>管理層判斷句</h2>
+        <div class="quote">
+          APKMirror 的價值是「幫工程師拿到較可信的 APK 檔案」；但商業出貨需要的是「Google 授權我們預載與散布 Google apps」。這兩件事不是同一件事。檔案合法/真實，不會自動產生我們的商業分發權。
+        </div>
+      </section>
+
+      <section class="wide">
+        <h2>關於 BOOX / Onyx 等市售設備</h2>
+        <p>市面上某些電子紙或白牌 Android 裝置看似提供 Google Play，但外部無法只靠畫面判斷其授權狀態。可能情境包括：海外版取得授權、特定機型通過認證、使用者手動啟用、或廠商採取灰色做法。</p>
+        <p>對我們公司而言，別家產品存在類似功能不能作為合規依據。若客戶或法務要求證明，我們需要提出 Google 授權、認證狀態或正式合作文件，而不是引用競品做法。</p>
+      </section>
+
+      <section class="wide">
+        <h2>建議決策</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>方案</th>
+              <th>優點</th>
+              <th>風險</th>
+              <th>建議</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>預載 APKMirror Google Play + GSF ID</td>
+              <td>最快、成本最低、短期可展示</td>
+              <td>授權、客戶稽核、Google 封鎖、商譽風險</td>
+              <td class="no">不要作量產方案</td>
+            </tr>
+            <tr>
+              <td>不預載，只提供「自行安裝」說明</td>
+              <td>責任切割較明確</td>
+              <td>仍可能被認為引導繞過，體驗也不穩定</td>
+              <td class="maybe">只可作非正式備案</td>
+            </tr>
+            <tr>
+              <td>走 Google GMS / Play Protect certified 流程</td>
+              <td>最能通過客戶、法務、資安審查</td>
+              <td>時程、測試、授權與維護成本較高</td>
+              <td class="yes">正式產品首選</td>
+            </tr>
+            <tr>
+              <td>改採無 GMS 產品策略</td>
+              <td>避開 Google Play 授權問題，可控性高</td>
+              <td>需自建應用分發或替代服務</td>
+              <td class="yes">適合專用裝置</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="wide">
+        <h2>APKMirror 與 APKPure 差異</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>項目</th>
+              <th>APKMirror</th>
+              <th>APKPure</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>主要定位</td>
+              <td>APK 歷史版本庫，偏工程測試、版本比對、相容性驗證。</td>
+              <td>第三方 App 商店，偏一般使用者下載、跨區 App、遊戲與 XAPK。</td>
+            </tr>
+            <tr>
+              <td>安全機制</td>
+              <td>重視 APK 簽章比對，較適合確認檔案是否為原廠簽章版本。</td>
+              <td>也有安全檢查，但因平台型態較接近商店與大量分發，供應鏈風險相對較高。</td>
+            </tr>
+            <tr>
+              <td>版本資訊</td>
+              <td>常見完整歷史版本、Beta、架構、DPI、Android 版本等資訊。</td>
+              <td>多以使用者可安裝為導向，常見整合包、XAPK、OBB、大型遊戲資源。</td>
+            </tr>
+            <tr>
+              <td>適合用途</td>
+              <td>內部 debug、找舊版 APK、確認簽章、測試不同架構與版本。</td>
+              <td>臨時下載跨區 App、無 Play Store 裝置的使用者側安裝。</td>
+            </tr>
+            <tr>
+              <td>商業預載授權</td>
+              <td class="no">不提供</td>
+              <td class="no">不提供</td>
+            </tr>
+            <tr>
+              <td>對本案的意義</td>
+              <td>可提高「檔案真實性」可信度，但不能產生 Google Play 商業分發權。</td>
+              <td>下載便利性較高，但更不適合作為公司系統映像檔或出貨 APK 來源。</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="quote">
+          結論：APKMirror 較適合工程驗證，APKPure 較像第三方商店；但兩者都不是 Google、Samsung 或任何 App 原廠授權我們商業預載與散布的管道。
+        </div>
+      </section>
+
+      <section class="wide">
+        <h2>官方來源</h2>
+        <div class="sources">
+          <a class="source" href="https://support.google.com/android/answer/7165974?hl=en" target="_blank" rel="noopener">
+            Android Help：Check & fix Play Protect certification status
+            <span>Google 說明 Play Protect certified devices 包含 Google 授權的 proprietary apps，且只有認證設備 eligible to include Google apps like Google Play Store。</span>
+          </a>
+          <a class="source" href="https://www.android.com/certified/" target="_blank" rel="noopener">
+            Android Certified：Play Protect Certified Android devices
+            <span>Google 說明認證設備會被驗證可安全、正確地執行 Google apps 與 Play Store。</span>
+          </a>
+          <a class="source" href="https://www.google.com/android/uncertified/warningauto" target="_blank" rel="noopener">
+            Google Uncertified Device Warning
+            <span>Google 將 unlicensed manufacturers、licensed manufacturers、custom ROM users 分開處理；未授權製造商需申請 Google license。</span>
+          </a>
+          <a class="source" href="https://source.android.com/static/docs/security/overview/reports/Google_Android_Enterprise_Security_Whitepaper_2020.pdf" target="_blank" rel="noopener">
+            Android Enterprise Security Whitepaper
+            <span>說明 CDD / CTS / Android compatibility，以及 GMS 不屬於 AOSP，需透過 Google license 取得。</span>
+          </a>
+        </div>
+      </section>
+
+      <div class="footer">
+        最終建議：內部 demo 可以暫時用 APKMirror + GSF ID；但若要出貨或提供給客戶，不能把「APKMirror 上是真檔」當成「公司有權預載 Google Play」的依據。正式產品應選擇 GMS 認證路線，或明確採用無 GMS 的產品策略。
+      </div>
+    </section>
+  </main>
+</body>
+</html>
