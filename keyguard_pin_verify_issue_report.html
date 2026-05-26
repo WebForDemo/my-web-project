@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Android 16 Keyguard 解鎖驗證異常說明</title>
+<style>
+  :root{
+    --bg:#0f1117;--s1:#171b24;--s2:#202634;--bd:#2e374a;
+    --tx:#e6eaf2;--dim:#98a2b3;--blue:#6ea8fe;--cyan:#5eead4;
+    --green:#4ade80;--amber:#fbbf24;--red:#f87171;--purple:#a78bfa;
+    --blue-d:rgba(110,168,254,.12);--green-d:rgba(74,222,128,.12);
+    --amber-d:rgba(251,191,36,.12);--red-d:rgba(248,113,113,.12);
+    --purple-d:rgba(167,139,250,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--tx);font-family:Arial,"Noto Sans TC",sans-serif;line-height:1.7;padding:32px 18px}
+  .wrap{max-width:980px;margin:0 auto}
+  .hdr{text-align:center;border-bottom:1px solid var(--bd);padding-bottom:24px;margin-bottom:30px}
+  .hdr h1{font-size:28px;margin-bottom:8px}
+  .hdr p{color:var(--dim);font-size:14px}
+  .meta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .chip{padding:5px 12px;border:1px solid var(--bd);background:var(--s1);border-radius:6px;font-size:12px;color:var(--dim)}
+  .sec{margin-bottom:28px}
+  .sec h2{font-size:18px;margin-bottom:12px;padding-left:10px;border-left:3px solid var(--blue)}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 20px;margin-bottom:12px}
+  .card p,.card li{font-size:14px}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:5px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;margin-right:6px}
+  .ok{background:var(--green-d);color:var(--green)}
+  .warn{background:var(--amber-d);color:var(--amber)}
+  .bad{background:var(--red-d);color:var(--red)}
+  .focus{background:var(--purple-d);color:var(--purple)}
+  .mono{font-family:"Courier New",monospace;font-size:12px;word-break:break-word}
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:stretch;margin-top:12px}
+  .node{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 12px;text-align:center}
+  .node .top{font-size:11px;color:var(--dim);margin-bottom:5px;text-transform:uppercase}
+  .node .name{font-size:14px;font-weight:700}
+  .node .desc{font-size:12px;color:var(--dim);margin-top:5px}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:22px}
+  .diag{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px}
+  .diag-row{display:grid;grid-template-columns:1fr 44px 1fr 44px 1fr;gap:10px;align-items:center}
+  .diag-box{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px}
+  .diag-box h3{font-size:14px;margin-bottom:6px}
+  .diag-box p{font-size:12px;color:var(--dim)}
+  .diag-arrow{text-align:center;color:var(--dim);font-size:22px}
+  .tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+  .tbl th{color:var(--dim);font-weight:700;background:var(--s2)}
+  .tbl tr:last-child td{border-bottom:none}
+  .summary{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .summary-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .big{font-size:24px;font-weight:800}
+  .foot{margin-top:24px;text-align:center;color:var(--dim);font-size:12px}
+  @media (max-width:760px){
+    .flow{grid-template-columns:1fr}
+    .arrow{transform:rotate(90deg)}
+    .diag-row{grid-template-columns:1fr}
+    .diag-arrow{transform:rotate(90deg)}
+    .summary{grid-template-columns:1fr}
+    .summary-3{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <h1>Android 16 Keyguard 解鎖驗證異常說明</h1>
+    <p>現象：重新開機後，無論是 Pattern、PIN 或 Password，輸入正確內容仍可能顯示驗證失敗</p>
+    <div class="meta">
+      <div class="chip">平台：MTK Android 16</div>
+      <div class="chip">範圍：LockScreen / GateKeeper / TEE</div>
+      <div class="chip">對象：主管摘要版</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>1. 問題一句話</h2>
+    <div class="summary-3">
+      <div class="card">
+        <div class="big" style="color:var(--amber)">重開機前正常</div>
+        <p>Pattern、PIN、Password 在剛設定完成後，都可以正常用來解鎖，代表當下設定與驗證流程是通的。</p>
+      </div>
+      <div class="card">
+        <div class="big" style="color:var(--red)">重開機後失敗</div>
+        <p>同一組正確的 Pattern、PIN、Password 在 reboot 後都可能被判定為錯誤，問題發生點明顯與重新開機後的底層狀態有關。</p>
+      </div>
+      <div class="card">
+        <div class="big" style="color:var(--purple)">不是 App / Keyguard 畫面邏輯問題</div>
+        <p>Keyguard 有正常把使用者輸入的解鎖資訊傳下去，問題點落在 secure world 的 GateKeeper 驗證結果。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>2. Keyguard 驗證流程</h2>
+    <div class="card">
+      <p>正常情況下，Pattern、PIN、Password 的驗證流程如下：</p>
+      <div class="flow">
+        <div class="node">
+          <div class="top">Step 1</div>
+          <div class="name">Keyguard UI</div>
+          <div class="desc">使用者輸入圖形、PIN 或密碼</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node">
+          <div class="top">Step 2</div>
+          <div class="name">LockSettingsService</div>
+          <div class="desc">接收並發起驗證</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node">
+          <div class="top">Step 3</div>
+          <div class="name">gatekeeperd / HAL</div>
+          <div class="desc">把請求送到 GateKeeper</div>
+        </div>
+      </div>
+      <div class="flow" style="margin-top:10px">
+        <div class="node">
+          <div class="top">Step 4</div>
+          <div class="name">OPTEE GateKeeper TA</div>
+          <div class="desc">在 TEE 內比對解鎖資訊與安全資料</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node">
+          <div class="top">Step 5</div>
+          <div class="name">驗證結果回傳</div>
+          <div class="desc">成功或失敗再回到 Keyguard</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>3. GateKeeper 與 TEE 是什麼</h2>
+    <div class="card">
+      <div class="diag-row">
+        <div class="diag-box">
+          <h3>Keyguard</h3>
+          <p>畫面層。負責讓使用者輸入 Pattern、PIN 或 Password，並把資料送到系統服務驗證。</p>
+        </div>
+        <div class="diag-arrow">→</div>
+        <div class="diag-box">
+          <h3>GateKeeper</h3>
+          <p>解鎖驗證模組。負責判斷這次輸入的圖形、PIN 或密碼是否正確，並回傳成功或失敗。</p>
+        </div>
+        <div class="diag-arrow">→</div>
+        <div class="diag-box">
+          <h3>TEE</h3>
+          <p>Trusted Execution Environment。安全世界，GateKeeper TA 會在這裡保存與驗證敏感資料。</p>
+        </div>
+      </div>
+      <ul style="margin-top:12px">
+        <li><strong>Keyguard</strong>：使用者看得到的鎖屏畫面。</li>
+        <li><strong>GateKeeper</strong>：驗證 Pattern、PIN、Password 的安全模組。</li>
+        <li><strong>TEE</strong>：比 Android 一般系統更受保護的安全執行環境。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>4. 這次異常卡在哪裡</h2>
+    <div class="diag">
+      <div class="diag-row">
+        <div class="diag-box">
+          <h3>Android 側</h3>
+          <p>Keyguard、LockSettingsService、gatekeeper HAL 都有正常進入驗證流程。</p>
+        </div>
+        <div class="diag-arrow">→</div>
+        <div class="diag-box" style="border-color:var(--red)">
+          <h3>TEE GateKeeper</h3>
+          <p>底層安全模組有收到驗證請求，但回傳失敗結果。</p>
+        </div>
+        <div class="diag-arrow">→</div>
+        <div class="diag-box">
+          <h3>畫面呈現</h3>
+          <p>前端只能把這個失敗結果翻成「wrong pin / try again」。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>5. 已確認的事實</h2>
+    <div class="card">
+      <table class="tbl">
+        <tr>
+          <th>項目</th>
+          <th>結論</th>
+          <th>說明</th>
+        </tr>
+        <tr>
+          <td>重開機前</td>
+          <td><span class="tag ok">可解鎖</span></td>
+          <td>Pattern、PIN、Password 在剛設定完成後都可正常使用，代表不是設定流程當下就失敗。</td>
+        </tr>
+        <tr>
+          <td>重開機後</td>
+          <td><span class="tag bad">失敗</span></td>
+          <td>Pattern、PIN、Password 在 reboot 後都可能被判定為錯誤，表示異常點在 reboot 前後的安全狀態切換。</td>
+        </tr>
+        <tr>
+          <td>Keyguard UI</td>
+          <td><span class="tag ok">正常</span></td>
+          <td>有正常觸發驗證，不是畫面層沒有送出 PIN。</td>
+        </tr>
+        <tr>
+          <td>gatekeeper HAL / OPTEE 呼叫</td>
+          <td><span class="tag ok">正常</span></td>
+          <td><span class="mono">InvokeCommand result=0x0</span>，代表 TEE 呼叫本身成功。</td>
+        </tr>
+        <tr>
+          <td>最終驗證結果</td>
+          <td><span class="tag bad">失敗</span></td>
+          <td><span class="mono">response.error=3</span>，表示是 GateKeeper TA 回了失敗結果。</td>
+        </tr>
+        <tr>
+          <td>錯誤類型</td>
+          <td><span class="tag focus">底層安全狀態</span></td>
+          <td>不是使用者輸入錯誤，而是 reboot 後 TEE 內部狀態與原先設定的解鎖資料不一致。</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>6. 關鍵證據</h2>
+    <div class="card">
+      <p>重開機後輸入正確的解鎖資訊時，log 顯示：</p>
+      <div class="mono" style="margin-top:10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px">
+05-26 01:21:22.364 E OpteeGateKeeper: InvokeCommand result=0x0 ret_orig=0x4 out_size=8<br>
+05-26 01:21:22.364 E OpteeGateKeeper: optee_gatekeeper_call cmd=137 result=0x0 out_size=8<br>
+05-26 01:21:22.364 E OpteeGateKeeper: verify result error=0 response.error=3 retry_timeout=0 auth_token_size=0 reenroll=0<br>
+05-26 01:21:22.364 E gatekeeperd: verify transaction failed
+      </div>
+      <ul style="margin-top:12px">
+        <li><span class="mono">result=0x0</span>：代表 Android 到 TEE 的呼叫通了。</li>
+        <li><span class="mono">response.error=3</span>：代表問題出在 TEE GateKeeper 回傳的驗證結果。</li>
+        <li><span class="mono">auth_token_size=0</span>：沒有成功驗證，因此沒有產生成功 token。</li>
+        <li>因為 Pattern、PIN、Password 都走同一條 GateKeeper 驗證路徑，所以會一起受影響。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>7. 管理層可理解的結論</h2>
+    <div class="card">
+      <p><span class="tag bad">根因位置</span> 問題在 <strong>TEE / GateKeeper 安全驗證層</strong>，不是 App 層，也不是單純 UI bug。</p>
+      <ul style="margin-top:10px">
+        <li>使用者設定 Pattern、PIN 或 Password 後，當下都可以正常解鎖。</li>
+        <li>但 reboot 後，底層安全模組無法用同一組狀態把正確的解鎖資訊驗證回來。</li>
+        <li>前端因此只能顯示驗證失敗，造成表面上像是使用者輸入錯誤。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>8. 建議後續處理</h2>
+    <div class="card">
+      <ul>
+        <li>由平台 / BSP / TEE 團隊檢查 GateKeeper TA 的 verify 流程。</li>
+        <li>重點檢查 reboot 前後的安全資料是否一致，例如 secure storage、RPMB、handle 狀態。</li>
+        <li>App / SystemUI 團隊目前不需要繼續修改 Keyguard 畫面邏輯。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">報告重點：Pattern、PIN、Password 都共用底層 GateKeeper 驗證，因此會一起受影響。</div>
+</div>
+</body>
+</html>
