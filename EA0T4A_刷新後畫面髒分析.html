@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refresh 刷新比較報告</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+      color: #fff;
+      padding: 48px 60px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      right: -60px;
+      bottom: -60px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      right: 80px;
+      bottom: 20px;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+    }
+    header .label {
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #90cdf4;
+      margin-bottom: 12px;
+    }
+    header h1 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    header .subtitle {
+      font-size: 15px;
+      color: #bee3f8;
+      opacity: 0.9;
+    }
+    header .meta {
+      margin-top: 28px;
+      display: flex;
+      gap: 32px;
+    }
+    header .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    header .meta-item span:first-child {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #90cdf4;
+    }
+    header .meta-item span:last-child {
+      font-size: 14px;
+      color: #fff;
+    }
+
+    /* ── Summary Bar ── */
+    .summary-bar {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 20px 60px;
+      display: flex;
+      gap: 40px;
+      align-items: center;
+    }
+    .summary-bar .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .summary-bar .stat-num {
+      font-size: 26px;
+      font-weight: 700;
+      color: #2d6a9f;
+    }
+    .summary-bar .stat-label {
+      font-size: 11px;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .summary-bar .divider {
+      width: 1px;
+      height: 40px;
+      background: #e2e8f0;
+    }
+    .summary-bar .desc {
+      flex: 1;
+      font-size: 13px;
+      color: #4a5568;
+      line-height: 1.7;
+    }
+
+    /* ── Main Content ── */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 60px 60px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #718096;
+      margin-bottom: 24px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      margin-bottom: 60px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+    }
+
+    .card-header {
+      padding: 16px 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #f0f4f8;
+    }
+    .badge {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .badge-1 { background: #4a5568; }
+    .badge-2 { background: #38a169; }
+    .badge-3 { background: #3182ce; }
+    .badge-4 { background: #805ad5; }
+    .badge-5 { background: #d69e2e; }
+    .badge-6 { background: #e53e3e; }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a202c;
+    }
+    .card-tag {
+      margin-left: auto;
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .tag-baseline { background: #edf2f7; color: #718096; }
+    .tag-gc       { background: #c6f6d5; color: #276749; }
+    .tag-fast     { background: #bee3f8; color: #2c5282; }
+    .tag-medium   { background: #e9d8fd; color: #553c9a; }
+    .tag-slow     { background: #fefcbf; color: #744210; }
+    .tag-slowest  { background: #fed7d7; color: #9b2c2c; }
+
+    .card-img-wrap {
+      position: relative;
+      background: #f7fafc;
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+    .card-img-wrap img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: opacity 0.2s;
+    }
+    .card-img-wrap:hover img {
+      opacity: 0.88;
+    }
+    .card-img-wrap .zoom-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .card-img-wrap:hover .zoom-hint {
+      opacity: 1;
+    }
+
+    /* ── Lightbox ── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    #lightbox.active {
+      display: flex;
+    }
+    #lightbox img {
+      max-width: 92vw;
+      max-height: 92vh;
+      border-radius: 6px;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+      cursor: default;
+    }
+    #lightbox-close {
+      position: fixed;
+      top: 20px;
+      right: 28px;
+      color: #fff;
+      font-size: 32px;
+      cursor: pointer;
+      line-height: 1;
+      user-select: none;
+      opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+    #lightbox-close:hover { opacity: 1; }
+    #lightbox-caption {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #e2e8f0;
+      font-size: 13px;
+      background: rgba(0,0,0,0.5);
+      padding: 6px 18px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .card-body {
+      padding: 16px 20px 18px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: #4a5568;
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+    .card-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      font-size: 11px;
+      background: #f0f4f8;
+      color: #718096;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    /* ── Comparison Table ── */
+    .table-wrap {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      overflow: hidden;
+      margin-bottom: 60px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead tr {
+      background: #2d6a9f;
+      color: #fff;
+    }
+    thead th {
+      padding: 14px 20px;
+      text-align: left;
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    tbody tr {
+      border-bottom: 1px solid #f0f4f8;
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f7fafc; }
+    tbody td {
+      padding: 13px 20px;
+      font-size: 13px;
+      color: #2d3748;
+    }
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    /* ── Key Findings ── */
+    .findings {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 52px;
+    }
+    .finding-card {
+      border-radius: 14px;
+      padding: 28px 28px 24px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .finding-critical {
+      background: #fff5f5;
+      border: 2px solid #fc8181;
+    }
+    .finding-blocked {
+      background: #fffff0;
+      border: 2px solid #e2e8f0;
+      opacity: 0.88;
+    }
+    .finding-badge {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .finding-critical .finding-badge {
+      background: #fed7d7;
+      color: #c53030;
+    }
+    .finding-blocked .finding-badge {
+      background: #edf2f7;
+      color: #718096;
+    }
+    .finding-num {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .finding-critical .finding-num { color: #fc8181; }
+    .finding-blocked .finding-num  { color: #cbd5e0; }
+    .finding-content {
+      flex: 1;
+    }
+    .finding-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .finding-critical .finding-title { color: #c53030; }
+    .finding-blocked .finding-title  { color: #2d3748; }
+    .finding-desc {
+      font-size: 13px;
+      color: #4a5568;
+      line-height: 1.75;
+      margin-bottom: 14px;
+    }
+    .finding-prereq {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #edf2f7;
+      border-left: 3px solid #cbd5e0;
+      padding: 7px 12px;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 12px;
+    }
+    .prereq-icon { font-size: 9px; color: #a0aec0; }
+    .finding-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .finding-critical .finding-status { color: #c53030; }
+    .finding-blocked  .finding-status { color: #a0aec0; }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-open    { background: #fc8181; box-shadow: 0 0 0 3px #fed7d7; }
+    .status-blocked { background: #cbd5e0; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 28px;
+      font-size: 12px;
+      color: #a0aec0;
+      border-top: 1px solid #e2e8f0;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<header>
+  <div class="label">Performance Analysis Report</div>
+  <h1>Refresh 刷新策略比較</h1>
+  <p class="subtitle">針對六種不同刷新方式進行效能與行為差異測試</p>
+  <div class="meta">
+    <div class="meta-item">
+      <span>測試組數</span>
+      <span>6 組</span>
+    </div>
+    <div class="meta-item">
+      <span>日期</span>
+      <span>2026-05-26</span>
+    </div>
+    <div class="meta-item">
+      <span>類型</span>
+      <span>Refresh Strategy Benchmark</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════ SUMMARY BAR ════════════════ -->
+<div class="summary-bar">
+  <div class="stat">
+    <span class="stat-num">6</span>
+    <span class="stat-label">測試策略</span>
+  </div>
+  <div class="divider"></div>
+  <div class="stat">
+    <span class="stat-num">1</span>
+    <span class="stat-label">Baseline</span>
+  </div>
+  <div class="divider"></div>
+  <div class="stat">
+    <span class="stat-num">1</span>
+    <span class="stat-label">GC 策略</span>
+  </div>
+  <div class="divider"></div>
+  <div class="stat">
+    <span class="stat-num">4</span>
+    <span class="stat-label">Delay 策略</span>
+  </div>
+  <div class="divider"></div>
+  <p class="desc">
+    本報告比較六種刷新策略的差異，涵蓋無刷新基準、GC 觸發刷新，以及四種不同延遲時間（300ms、1000ms、3000ms、8000ms）的快速刷新，以評估各方案對效能與穩定性的影響。
+  </p>
+</div>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<main>
+
+  <!-- Cards -->
+  <div class="section-title">測試結果一覽</div>
+  <div class="grid">
+
+    <!-- 1. No Refresh -->
+    <div class="card">
+      <div class="card-header">
+        <div class="badge badge-1">1</div>
+        <span class="card-title">No Refresh</span>
+        <span class="card-tag tag-baseline">Baseline</span>
+      </div>
+      <div class="card-img-wrap" onclick="openLightbox('no_refresh.jpg','No Refresh')">
+        <img src="no_refresh.jpg" alt="No Refresh 結果圖">
+        <span class="zoom-hint">點擊放大</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">未執行任何刷新操作，作為其他測試的基準比較組，反映系統自然狀態下的記憶體與效能表現。</p>
+        <div class="card-meta">
+          <span class="chip">無介入</span>
+          <span class="chip">基準組</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Quick Delay 300ms -->
+    <div class="card">
+      <div class="card-header">
+        <div class="badge badge-2">2</div>
+        <span class="card-title">Quick Delay 300ms</span>
+        <span class="card-tag tag-fast">快速延遲</span>
+      </div>
+      <div class="card-img-wrap" onclick="openLightbox('quick_300.jpg','Quick Delay 300ms')">
+        <img src="quick_300.jpg" alt="Quick Delay 300ms 結果圖">
+        <span class="zoom-hint">點擊放大</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">設定 300ms 刷新間隔，模擬高頻刷新情境，評估短延遲對系統負載與畫面穩定性的影響。</p>
+        <div class="card-meta">
+          <span class="chip">Delay 300ms</span>
+          <span class="chip">高頻</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Quick Delay 1000ms -->
+    <div class="card">
+      <div class="card-header">
+        <div class="badge badge-3">3</div>
+        <span class="card-title">Quick Delay 1000ms</span>
+        <span class="card-tag tag-medium">中度延遲</span>
+      </div>
+      <div class="card-img-wrap" onclick="openLightbox('quick_1000.jpg','Quick Delay 1000ms')">
+        <img src="quick_1000.jpg" alt="Quick Delay 1000ms 結果圖">
+        <span class="zoom-hint">點擊放大</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">設定 1 秒延遲，為最常見的刷新週期選項，平衡資料即時性與系統資源消耗。</p>
+        <div class="card-meta">
+          <span class="chip">Delay 1000ms</span>
+          <span class="chip">1 秒週期</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Quick Delay 3000ms -->
+    <div class="card">
+      <div class="card-header">
+        <div class="badge badge-4">4</div>
+        <span class="card-title">Quick Delay 3000ms</span>
+        <span class="card-tag tag-slow">低頻延遲</span>
+      </div>
+      <div class="card-img-wrap" onclick="openLightbox('quick_3000.jpg','Quick Delay 3000ms')">
+        <img src="quick_3000.jpg" alt="Quick Delay 3000ms 結果圖">
+        <span class="zoom-hint">點擊放大</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">設定 3 秒延遲，降低刷新頻率，測試系統在較輕負載下的行為與資料更新滯後程度。</p>
+        <div class="card-meta">
+          <span class="chip">Delay 3000ms</span>
+          <span class="chip">低頻</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Quick Delay 8000ms -->
+    <div class="card">
+      <div class="card-header">
+        <div class="badge badge-5">5</div>
+        <span class="card-title">Quick Delay 8000ms</span>
+        <span class="card-tag tag-slowest">極低頻</span>
+      </div>
+      <div class="card-img-wrap" onclick="openLightbox('quick_8000.jpg','Quick Delay 8000ms')">
+        <img src="quick_8000.jpg" alt="Quick Delay 8000ms 結果圖">
+        <span class="zoom-hint">點擊放大</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">設定 8 秒延遲，代表最保守的刷新策略，適合低資源環境或對即時性要求較低的場景。</p>
+        <div class="card-meta">
+          <span class="chip">Delay 8000ms</span>
+          <span class="chip">極低頻</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Quick GC x3 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="badge badge-6">6</div>
+        <span class="card-title">Quick GC &times; 3</span>
+        <span class="card-tag tag-gc">GC 策略</span>
+      </div>
+      <div class="card-img-wrap" onclick="openLightbox('quick_3times.jpg','Quick GC × 3')">
+        <img src="quick_3times.jpg" alt="Quick GC 3 Times 結果圖">
+        <span class="zoom-hint">點擊放大</span>
+      </div>
+      <div class="card-body">
+        <p class="card-desc">連續觸發 3 次 GC（Garbage Collection），觀察主動回收記憶體對系統狀態的改善效果。</p>
+        <div class="card-meta">
+          <span class="chip">GC &times; 3</span>
+          <span class="chip">主動回收</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid -->
+
+  <!-- Comparison Table -->
+  <div class="section-title">策略對比總表</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>策略名稱</th>
+          <th>刷新方式</th>
+          <th>延遲 / 頻率</th>
+          <th>適用情境</th>
+          <th>分類</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><span class="dot" style="background:#4a5568"></span>No Refresh</td>
+          <td>無刷新</td>
+          <td>—</td>
+          <td>效能基準測量</td>
+          <td>Baseline</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td><span class="dot" style="background:#38a169"></span>Quick Delay 300ms</td>
+          <td>定時刷新</td>
+          <td>300ms</td>
+          <td>高即時性需求</td>
+          <td>快速延遲</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td><span class="dot" style="background:#3182ce"></span>Quick Delay 1000ms</td>
+          <td>定時刷新</td>
+          <td>1000ms</td>
+          <td>一般使用場景</td>
+          <td>中度延遲</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td><span class="dot" style="background:#805ad5"></span>Quick Delay 3000ms</td>
+          <td>定時刷新</td>
+          <td>3000ms</td>
+          <td>輕量背景刷新</td>
+          <td>低頻延遲</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td><span class="dot" style="background:#d69e2e"></span>Quick Delay 8000ms</td>
+          <td>定時刷新</td>
+          <td>8000ms</td>
+          <td>低資源/節能優先</td>
+          <td>極低頻</td>
+        </tr>
+        <tr>
+          <td><strong>6</strong></td>
+          <td><span class="dot" style="background:#e53e3e"></span>Quick GC &times; 3</td>
+          <td>主動觸發 GC</td>
+          <td>連續 3 次</td>
+          <td>記憶體壓力緩解</td>
+          <td>GC 策略</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Key Findings -->
+  <div class="section-title">重點發現</div>
+  <div class="findings">
+
+    <div class="finding-card finding-critical">
+      <div class="finding-badge">優先處理</div>
+      <div class="finding-num">01</div>
+      <div class="finding-content">
+        <div class="finding-title">Refresh 不乾淨</div>
+        <p class="finding-desc">
+          測試結果顯示，目前的刷新機制並未完整清除狀態，殘留資料或副作用仍存在於刷新後的環境中。
+          此為當前最核心的問題，須優先確認並修復。
+        </p>
+        <div class="finding-status">
+          <span class="status-dot status-open"></span>待解決
+        </div>
+      </div>
+    </div>
+
+    <div class="finding-card finding-blocked">
+      <div class="finding-badge">待確認</div>
+      <div class="finding-num">02</div>
+      <div class="finding-content">
+        <div class="finding-title">刷新時間點是否異常</div>
+        <p class="finding-desc">
+          後續需驗證刷新的觸發時間點是否符合預期。然而，此項驗證
+          <strong>有前提依賴</strong>——必須在第 01 項（Refresh 不乾淨）完全解決後，
+          結果才具備參考價值，否則觀察到的異常可能源自殘留狀態而非時間點本身。
+        </p>
+        <div class="finding-prereq">
+          <span class="prereq-icon">&#9654;</span>
+          前提：01 Refresh 不乾淨 已修復
+        </div>
+        <div class="finding-status">
+          <span class="status-dot status-blocked"></span>Blocked — 等待前提完成
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  Refresh Strategy Benchmark Report &nbsp;|&nbsp; 2026-05-26 &nbsp;|&nbsp; Confidential &mdash; Internal Use Only
+</footer>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <span id="lightbox-close" onclick="closeLightbox()">&times;</span>
+  <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()">
+  <div id="lightbox-caption"></div>
+</div>
+
+<script>
+  function openLightbox(src, caption) {
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = caption;
+    lb.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>
