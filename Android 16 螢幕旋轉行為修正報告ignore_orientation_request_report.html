@@ -443,9 +443,68 @@
 
 </div>
 
-<!-- ═══ 7. 影響範圍 ═══ -->
+<!-- ═══ 7. Demo 影片 ═══ -->
 <div class="sec">
-  <div class="sec-t"><span class="n">7</span> 影響範圍與風險評估</div>
+  <div class="sec-t cyan"><span class="n">7</span> Demo 影片</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px">
+
+    <a href="https://drive.google.com/file/d/1Q3A3cQnUqNtFlTJxsOVIIgNTXF6zzhY4/view?usp=sharing"
+       target="_blank" rel="noopener"
+       style="text-decoration:none;display:block">
+      <div style="background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s"
+           onmouseover="this.style.borderColor='var(--red)';this.style.boxShadow='0 0 16px rgba(248,113,113,.18)'"
+           onmouseout="this.style.borderColor='var(--bd)';this.style.boxShadow='none'">
+        <div style="background:linear-gradient(135deg,rgba(248,113,113,.15),rgba(251,191,36,.08));height:110px;display:flex;align-items:center;justify-content:center;position:relative">
+          <div style="width:48px;height:48px;background:rgba(248,113,113,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(248,113,113,.4)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div style="position:absolute;top:10px;left:12px">
+            <span style="background:var(--red-d);color:var(--red);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace">修改前</span>
+          </div>
+        </div>
+        <div style="padding:14px 16px">
+          <div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:4px">旋轉行為異常</div>
+          <div style="font-size:12px;color:var(--dim);line-height:1.6">ignoreOrientationRequest = <span style="color:var(--red);font-family:'JetBrains Mono',monospace">true</span>，系統忽略 App 方向設定</div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            在 Google Drive 開啟
+          </div>
+        </div>
+      </div>
+    </a>
+
+    <a href="https://drive.google.com/file/d/1zR1yle8Hm1FmUlB_HQa4oI1IGnB7vyH7/view?usp=sharing"
+       target="_blank" rel="noopener"
+       style="text-decoration:none;display:block">
+      <div style="background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s"
+           onmouseover="this.style.borderColor='var(--green)';this.style.boxShadow='0 0 16px rgba(74,222,128,.18)'"
+           onmouseout="this.style.borderColor='var(--bd)';this.style.boxShadow='none'">
+        <div style="background:linear-gradient(135deg,rgba(74,222,128,.15),rgba(34,211,238,.08));height:110px;display:flex;align-items:center;justify-content:center;position:relative">
+          <div style="width:48px;height:48px;background:rgba(74,222,128,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(74,222,128,.4)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+          <div style="position:absolute;top:10px;left:12px">
+            <span style="background:var(--green-d);color:var(--green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace">修改後</span>
+          </div>
+        </div>
+        <div style="padding:14px 16px">
+          <div style="font-size:14px;font-weight:700;color:var(--tx);margin-bottom:4px">旋轉行為正常</div>
+          <div style="font-size:12px;color:var(--dim);line-height:1.6">ignoreOrientationRequest = <span style="color:var(--green);font-family:'JetBrains Mono',monospace">false</span>，系統尊重 App 方向設定</div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            在 Google Drive 開啟
+          </div>
+        </div>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<!-- ═══ 8. 影響範圍 ═══ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">8</span> 影響範圍與風險評估</div>
 
   <table class="tb">
     <thead>
