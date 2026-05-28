@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Status Bar 耳機 Icon 異常調查報告</title>
+<style>
+  :root{
+    --bg:#0f1117;--s1:#171b24;--s2:#202634;--bd:#2e374a;
+    --tx:#e6eaf2;--dim:#98a2b3;--blue:#6ea8fe;--cyan:#5eead4;
+    --green:#4ade80;--amber:#fbbf24;--red:#f87171;--purple:#a78bfa;
+    --blue-d:rgba(110,168,254,.12);--green-d:rgba(74,222,128,.12);
+    --amber-d:rgba(251,191,36,.12);--red-d:rgba(248,113,113,.12);
+    --purple-d:rgba(167,139,250,.12);--cyan-d:rgba(94,234,212,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--tx);font-family:Arial,"Noto Sans TC",sans-serif;line-height:1.7;padding:32px 18px}
+  .wrap{max-width:1000px;margin:0 auto}
+  .hdr{text-align:center;border-bottom:1px solid var(--bd);padding-bottom:24px;margin-bottom:30px}
+  .hdr h1{font-size:28px;margin-bottom:8px}
+  .hdr p{color:var(--dim);font-size:14px}
+  .meta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .chip{padding:5px 12px;border:1px solid var(--bd);background:var(--s1);border-radius:6px;font-size:12px;color:var(--dim)}
+  .sec{margin-bottom:28px}
+  .sec h2{font-size:18px;margin-bottom:12px;padding-left:10px;border-left:3px solid var(--blue)}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 20px;margin-bottom:12px}
+  .card p,.card li{font-size:14px}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:5px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;margin-right:6px}
+  .ok{background:var(--green-d);color:var(--green)}
+  .warn{background:var(--amber-d);color:var(--amber)}
+  .bad{background:var(--red-d);color:var(--red)}
+  .focus{background:var(--purple-d);color:var(--purple)}
+  .info{background:var(--blue-d);color:var(--blue)}
+  .cyan{background:var(--cyan-d);color:var(--cyan)}
+  .mono{font-family:"Courier New",monospace;font-size:12px;word-break:break-word}
+  .code-block{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-top:10px;font-family:"Courier New",monospace;font-size:12px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+  .flow{display:flex;align-items:stretch;gap:0;margin-top:12px;flex-wrap:wrap}
+  .flow-node{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px 14px;text-align:center;min-width:120px;flex:1}
+  .flow-node .top{font-size:10px;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+  .flow-node .name{font-size:13px;font-weight:700}
+  .flow-node .desc{font-size:11px;color:var(--dim);margin-top:4px}
+  .flow-arrow{display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:20px;padding:0 4px;flex-shrink:0}
+  .tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th,.tbl td{padding:10px 12px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+  .tbl th{color:var(--dim);font-weight:700;background:var(--s2)}
+  .tbl tr:last-child td{border-bottom:none}
+  .summary-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .summary-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .big{font-size:22px;font-weight:800;margin-bottom:8px}
+  .chain{display:flex;flex-direction:column;gap:0}
+  .chain-row{display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:start;margin-bottom:2px}
+  .chain-label{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;font-size:12px;font-weight:700;text-align:center;align-self:center}
+  .chain-body{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:10px 14px;font-size:13px}
+  .chain-arrow{text-align:center;color:var(--dim);font-size:18px;margin:2px 0;margin-left:90px}
+  .highlight-bad{border-color:var(--red) !important}
+  .highlight-warn{border-color:var(--amber) !important}
+  .highlight-green{border-color:var(--green) !important}
+  .person{display:inline-flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:4px 10px;font-size:12px}
+  .person .avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .foot{margin-top:24px;text-align:center;color:var(--dim);font-size:12px}
+  .divider{border:none;border-top:1px solid var(--bd);margin:8px 0}
+  @media (max-width:760px){
+    .summary-3{grid-template-columns:1fr}
+    .summary-2{grid-template-columns:1fr}
+    .flow{flex-direction:column}
+    .flow-arrow{transform:rotate(90deg)}
+    .chain-row{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="hdr">
+    <h1>Status Bar 耳機 Icon 異常調查報告</h1>
+    <p>現象：Android 16 裝置 Status Bar 的 WiFi icon 左側出現不明 icon，每次開機都存在</p>
+    <div class="meta">
+      <div class="chip">平台：MTK Android 16 (MT8171 / MT6366)</div>
+      <div class="chip">裝置：EA0T4A (e-reader)</div>
+      <div class="chip">發現日期：2026-05-28</div>
+      <div class="chip">修正版本：kernel/kernel_device_modules-6.6</div>
+    </div>
+  </div>
+
+  <!-- 1. 問題現象 -->
+  <div class="sec">
+    <h2>1. 問題現象</h2>
+
+    <!-- 裝置截圖示意 -->
+    <div class="card" style="background:#1a1a2e;border-color:#2e374a">
+
+      <!-- 問題行為描述：垂直清單 -->
+      <div class="card">
+        <table class="tbl">
+          <tr>
+            <th style="width:180px">觀察</th>
+            <th>說明</th>
+          </tr>
+          <tr>
+            <td><span class="tag bad">異常現象</span></td>
+            <td>WiFi icon 左側多出一個耳機形狀的 icon，沒有插耳機也出現，每次開機都存在</td>
+          </tr>
+          <tr>
+            <td><span class="tag ok">ADB 可控制</span></td>
+            <td>
+              <span class="mono">adb shell am broadcast -a android.intent.action.HEADSET_PLUG --ei state 0</span> → icon 消失<br>
+              <span class="mono">adb shell am broadcast -a android.intent.action.HEADSET_PLUG --ei state 1</span> → icon 出現
+            </td>
+          </tr>
+          <tr>
+            <td><span class="tag warn">getevent 確認</span></td>
+            <td>
+              <span class="mono">adb shell getevent -S</span> 顯示 <span class="mono">mt8171-mt6366 Headset Jack</span>（event3）的 switch 狀態為 <span class="mono" style="color:var(--red)">0004</span><br>
+              換算：<span class="mono">0x0004 = bit 2 = SW_HEADPHONE_INSERT = 1</span>，Kernel 在無耳機下就回報耳機已插入
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- getevent 截圖 -->
+      <div class="card" style="background:#1a1a2e">
+        <p style="font-size:12px;color:var(--dim);margin-bottom:10px">▼ adb shell getevent -S 實際輸出（問題裝置）</p>
+        <img src="1.png" alt="getevent -S 輸出截圖"
+             style="max-width:100%;border-radius:8px;border:1px solid #333;display:block"/>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px">
+          <span style="background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:3px 10px">
+            device 5: <span class="mono">mt8171-mt6366 Headset Jack</span>
+          </span>
+          <span style="background:var(--red-d);border:1px solid var(--red);border-radius:4px;padding:3px 10px;color:var(--red)">
+            switch state: <strong>0004</strong> ← SW_HEADPHONE_INSERT = 1
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Icon 識別 -->
+  <div class="sec">
+    <h2>2. Icon 識別 — 是耳機 icon，不是衛星</h2>
+    <div class="card">
+      <p><span class="tag bad">重要釐清</span> 初步推測這是衛星通訊 icon（satellite slot），但 ADB HEADSET_PLUG broadcast 測試證明這是 <strong>耳機 icon（headset slot）</strong>。</p>
+      <hr class="divider">
+      <p style="margin-top:10px"><strong>Status Bar icon 排列順序</strong>（定義於 <span class="mono">frameworks/base/core/res/res/values/config.xml</span>）：</p>
+      <div class="code-block">config_statusBarIcons 陣列（節錄）：
+...
+[5]  headset          ← 耳機 icon（這個！）
+...
+[30] bluetooth
+[31] ethernet
+[32] satellite        ← 衛星 icon（不是這個）
+[33] wifi             ← WiFi icon
+...</div>
+      <p style="margin-top:10px;font-size:13px">headset (位置 5) 與 wifi (位置 33) 之間的所有 icon 因條件未觸發而不顯示，視覺上 headset 就緊靠在 WiFi 左邊。</p>
+    </div>
+  </div>
+
+  <!-- 3. 耳機 icon 的觸發流程 -->
+  <div class="sec">
+    <h2>3. 耳機 Icon 觸發流程（正常有耳機孔的裝置）</h2>
+    <div class="card">
+      <div class="flow">
+        <div class="flow-node">
+          <div class="top">Kernel</div>
+          <div class="name">ACCDET 驅動</div>
+          <div class="desc">mt6358-accdet.ko<br>偵測到耳機插入</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="top">Input System</div>
+          <div class="name">/dev/input/event3</div>
+          <div class="desc">EV_SW<br>SW_HEADPHONE_INSERT=1</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="top">Framework</div>
+          <div class="name">InputManagerService</div>
+          <div class="desc">notifyWiredAccessory<br>Changed()</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="top">Framework</div>
+          <div class="name">WiredAccessory<br>Manager</div>
+          <div class="desc">ACTION_HEADSET_PLUG<br>state=1 broadcast</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="top">SystemUI</div>
+          <div class="name">PhoneStatusBar<br>Policy</div>
+          <div class="desc">setIconVisibility<br>(headset, true)</div>
+        </div>
+      </div>
+      <p style="margin-top:12px;font-size:13px">關鍵設定：<span class="mono">device/mediatek/system/common/overlay/accdet/</span> 中 <span class="mono">config_useDevInputEventForAudioJack = true</span>，代表此裝置走 Input Event 路徑（不是舊的 /sys/class/switch/h2w/state 路徑）。</p>
+    </div>
+  </div>
+
+  <!-- 4. 背景知識：兩種偵測機制 -->
+  <div class="sec">
+    <h2>4. 背景知識：耳機偵測的兩種 Kernel 介面</h2>
+    <div class="summary-2">
+      <div class="card">
+        <p><span class="tag warn">舊版（Android 早期）</span></p>
+        <p style="margin-top:8px"><strong>/sys/class/switch/h2w/state</strong></p>
+        <ul style="margin-top:8px">
+          <li>由 <span class="mono">android_switch</span> driver 提供</li>
+          <li>WiredAccessoryManager 直接讀 sysfs 節點</li>
+          <li>這台裝置 <strong>沒有</strong> 這個路徑</li>
+          <li><span class="mono">cat /sys/class/switch/h2w/state</span> → No such file</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p><span class="tag ok">新版（這台裝置）</span></p>
+        <p style="margin-top:8px"><strong>/dev/input/eventX（EV_SW events）</strong></p>
+        <ul style="margin-top:8px">
+          <li>由 ALSA sound driver 建立 input device</li>
+          <li>透過 <span class="mono">snd_soc_jack_new()</span> 建立 "Headset Jack"</li>
+          <li>InputManagerService 讀取 SW_HEADPHONE_INSERT bit</li>
+          <li><span class="mono">getevent -S</span> 可看到當前狀態</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <p><strong>getevent -S 輸出解讀（問題裝置）：</strong></p>
+      <div class="code-block">add device 5: /dev/input/event3
+  name: "mt8171-mt6366 Headset Jack"
+  switch states: 0004
+
+0x0004 = binary: 0000 0000 0000 0100
+                              ↑
+                         bit 2 = SW_HEADPHONE_INSERT = 1 ← 問題所在</div>
+    </div>
+  </div>
+
+  <!-- 5. ACCDET 是什麼 -->
+  <div class="sec">
+    <h2>5. 背景知識：ACCDET 耳機偵測原理</h2>
+    <div class="card">
+      <p>ACCDET（Accessory Detector）是 MTK PMIC（MT6366）內建的耳機偵測電路，透過測量 3.5mm 接頭腳位的阻抗來判斷插入狀態：</p>
+      <div class="code-block">PMIC 內部電路示意：
+  MICBIAS1（偏壓） → [R_bias] → EINT pin ──→ 耳機孔 MIC 腳
+                                    ↓
+                               Comparator（閾值比較）
+                                    ↓
+                               GND ──────────── 耳機孔 GND 腳</div>
+      <table class="tbl" style="margin-top:12px">
+        <tr>
+          <th>狀態</th>
+          <th>EINT pin 電位</th>
+          <th>ACCDET 判斷</th>
+          <th>SW_HEADPHONE_INSERT</th>
+        </tr>
+        <tr>
+          <td>有耳機孔、未插</td>
+          <td>Pull-up 到高電位（設計保證）</td>
+          <td><span class="tag ok">No headset</span></td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>有耳機孔、插入有麥耳機</td>
+          <td>被耳機拉低（低阻抗）</td>
+          <td><span class="tag ok">Headset with mic</span></td>
+          <td>1 + SW_MICROPHONE_INSERT=1</td>
+        </tr>
+        <tr>
+          <td>有耳機孔、插入無麥耳機</td>
+          <td>中等阻抗</td>
+          <td><span class="tag ok">Headphone only</span></td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td><strong>沒有耳機孔（這台裝置）</strong></td>
+          <td><strong>浮接（floating），阻抗不確定</strong></td>
+          <td><span class="tag bad">誤判為 headphone</span></td>
+          <td><strong>1（誤報）</strong></td>
+        </tr>
+      </table>
+      <p style="margin-top:10px;font-size:13px">沒有耳機孔的裝置，EINT pin 懸空，偏壓電流將其拉到一個落在偵測閾值內的電位，被 Comparator 誤判為「耳機插入」。這也是 Kconfig 標注 <em>"Select N if you don't have jack on board"</em> 的原因。</p>
+    </div>
+  </div>
+
+  <!-- 6. 根因分析 -->
+  <div class="sec">
+    <h2>6. 根因分析 — 完整因果鏈</h2>
+    <div class="card">
+      <div class="chain">
+
+        <div class="chain-row">
+          <div class="chain-label" style="background:var(--s2);border-color:var(--blue)">
+            <div style="font-size:10px;color:var(--dim);margin-bottom:2px">2025-05-07</div>
+            Sixiang Wang<br><span style="font-size:10px;color:var(--dim)">MediaTek 工程師</span>
+          </div>
+          <div class="chain-body">
+            <strong>[ALPS09806302] audio: Add support for MT8171 ADSP</strong><br>
+            在 <span class="mono">kernel/configs/mt8171.config</span> 加入 MT8171 音訊堆疊：<br>
+            <span class="mono">CONFIG_SND_SOC_MT8171_MT6366=m<br>CONFIG_DEVICE_MODULES_SND_SOC_MT6358=m</span><br>
+            <span style="color:var(--amber);font-size:12px">→ ACCDET 因 Kconfig <code>default m</code> 被一起帶進來（副作用，非刻意）</span>
+          </div>
+        </div>
+        <div class="chain-arrow">↓</div>
+
+        <div class="chain-row">
+          <div class="chain-label" style="background:var(--s2);border-color:var(--dim)">
+            <div style="font-size:10px;color:var(--dim);margin-bottom:2px">一直以來</div>
+            NTX DTS 設定
+          </div>
+          <div class="chain-body">
+            <span class="mono">EA0T4A_A00.dts</span> 中 <span class="mono">&amp;accdet { status = "okay"; }</span><br>
+            <span class="mono">aiv8126p3_64_bsp_ntx.dts</span> 同樣有此設定<br>
+            <span style="color:var(--dim);font-size:12px">→ 但舊 prebuilt kernel 不包含這些 NTX 客製 DTS，所以 ACCDET 不會啟動</span>
+          </div>
+        </div>
+        <div class="chain-arrow">↓</div>
+
+        <div class="chain-row">
+          <div class="chain-label" style="background:var(--s2);border-color:var(--red)">
+            <div style="font-size:10px;color:var(--dim);margin-bottom:2px">2026-05-06</div>
+            Terry Wang<br><span style="font-size:10px;color:var(--dim)">NTX 工程師</span>
+          </div>
+          <div class="chain-body highlight-bad" style="border-color:var(--red)">
+            <strong>[use local build boot.img]</strong><br>
+            <span class="mono">device/ntx/aiv8126p3_64_bsp_2cell_ntx/ProjectConfig.mk</span><br>
+            <span class="mono">MTK_USE_PREBUILT_BOOTIMAGE = no</span><br>
+            <span style="color:var(--red);font-size:12px">→ 從 MTK prebuilt kernel 切換成 local build kernel</span><br>
+            <span style="color:var(--red);font-size:12px">→ Local kernel 有 ACCDET 且 DTS 啟用，浮接腳位造成誤報</span>
+          </div>
+        </div>
+        <div class="chain-arrow">↓</div>
+
+        <div class="chain-row">
+          <div class="chain-label" style="background:var(--red-d);border-color:var(--red)">問題浮現</div>
+          <div class="chain-body highlight-bad">
+            開機時 <span class="mono">mt6358-accdet.ko</span> 載入，ACCDET 偵測浮接腳位誤報為耳機插入<br>
+            → <span class="mono">SW_HEADPHONE_INSERT = 1</span><br>
+            → WiredAccessoryManager 收到 HEADSET_PLUG state=1<br>
+            → Status Bar 顯示耳機 icon
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 責任分析 -->
+  <div class="sec">
+    <h2>7. 責任分析</h2>
+
+    <!-- 間接根因 -->
+    <div class="card" style="border-left:4px solid var(--amber)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <span class="tag warn">間接根因</span>
+        <span style="font-size:16px;font-weight:700">Sixiang Wang</span>
+        <span style="font-size:12px;color:var(--dim)">sixiang.wang@mediatek.com（MediaTek）</span>
+        <span style="font-size:12px;color:var(--dim);margin-left:auto">2025-05-07</span>
+      </div>
+      <p style="font-size:13px;margin-bottom:8px"><strong>動作：</strong>[ALPS09806302] audio: Add support for MT8171 ADSP</p>
+      <p style="font-size:13px;margin-bottom:8px">在 <span class="mono">kernel/configs/mt8171.config</span> 加入 MT8171 音訊堆疊，<span class="mono">CONFIG_SND_SOC_MT6366_ACCDET</span> 因 Kconfig <span class="mono">default m</span> 自動帶進來。</p>
+      <p style="font-size:13px;color:var(--dim)">目的是啟用 ADSP，ACCDET 是副作用，且 Kconfig 已說明「Select N if you don't have jack on board」但未針對此裝置設定。</p>
+    </div>
+
+    <!-- 直接觸發 -->
+    <div class="card" style="border-left:4px solid var(--red)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <span class="tag bad">直接觸發</span>
+        <span style="font-size:16px;font-weight:700">Terry Wang</span>
+        <span style="font-size:12px;color:var(--dim)">terry.wang@netronixinc.com（NTX）</span>
+        <span style="font-size:12px;color:var(--dim);margin-left:auto">2026-05-06</span>
+      </div>
+      <p style="font-size:13px;margin-bottom:8px"><strong>動作：</strong>use local build boot.img as user build boot.img</p>
+      <div class="code-block" style="margin-bottom:8px">device/ntx/aiv8126p3_64_bsp_2cell_ntx/ProjectConfig.mk
++MTK_USE_PREBUILT_BOOTIMAGE = no</div>
+      <p style="font-size:13px;color:var(--dim)">從 MTK prebuilt kernel 切換到 local build，目的是使用 NTX 客製化 kernel，屬合理開發行為，但沒有一併處理 ACCDET 誤報的副作用。</p>
+    </div>
+
+    <div class="card" style="background:var(--s2)">
+      <p style="font-size:13px"><span class="tag info">補充</span> 兩者都沒有直接意圖讓耳機 icon 出現。根本原因是 EA0T4A 沒有 3.5mm 耳機孔，但 ACCDET 驅動被啟用後偵測到浮接腳位而誤報。</p>
+    </div>
+  </div>
+
+  <!-- 8. 修正方案 -->
+  <div class="sec">
+    <h2>8. 修正方案</h2>
+    <div class="card">
+      <p><span class="tag ok">修正已完成</span> 共修改兩個檔案：</p>
+      <hr class="divider">
+
+      <p style="margin-top:12px"><strong>檔案 1：Kernel Config</strong></p>
+      <div class="code-block">檔案：kernel/kernel_device_modules-6.6/kernel/configs/mt8171.config
+
+修改：
+  CONFIG_DEVICE_MODULES_SND_SOC_MT6358=m   ← 保留（其他音訊功能需要）
++ CONFIG_SND_SOC_MT6366_ACCDET=n           ← 新增：關閉 ACCDET
+
+效果：
+  - mt6358-accdet.ko 不再被編譯
+  - mt8171-mt6366.c 中的 accdet_init 呼叫因 IS_ENABLED() guard 被跳過
+  - "mt8171-mt6366 Headset Jack" input device 不再被建立</div>
+
+      <p style="margin-top:14px"><strong>檔案 2：ko_order_table（避免 build 找不到 .ko 而失敗）</strong></p>
+      <div class="code-block">檔案：device/ntx/EA0T4A_A00/ko_order_table.csv
+
+修改：
+- mt6358-accdet.ko,/../kernel/kernel_device_modules-6.6/...  ← 刪除此行
+
+原因：CONFIG_SND_SOC_MT6366_ACCDET=n 後 .ko 不存在，
+      保留此行會導致 build 時找不到檔案而報錯。</div>
+    </div>
+  </div>
+
+  <!-- 9. 修正後預期結果 -->
+  <div class="sec">
+    <h2>9. 修正後預期結果</h2>
+    <div class="card">
+      <table class="tbl">
+        <tr>
+          <th>項目</th>
+          <th>修正前</th>
+          <th>修正後</th>
+        </tr>
+        <tr>
+          <td>Status Bar 耳機 icon</td>
+          <td><span class="tag bad">每次開機出現</span></td>
+          <td><span class="tag ok">不再出現</span></td>
+        </tr>
+        <tr>
+          <td>getevent 輸出</td>
+          <td><span class="mono">mt8171-mt6366 Headset Jack</span> 顯示 <span class="mono">0004</span></td>
+          <td>該 input device <strong>完全不存在</strong>，從 getevent 消失</td>
+        </tr>
+        <tr>
+          <td>喇叭（aw883xx 外部 amp）</td>
+          <td>正常</td>
+          <td><span class="tag ok">不受影響</span></td>
+        </tr>
+        <tr>
+          <td>麥克風（ADDA）</td>
+          <td>正常</td>
+          <td><span class="tag ok">不受影響</span></td>
+        </tr>
+        <tr>
+          <td>Bluetooth 音訊</td>
+          <td>正常</td>
+          <td><span class="tag ok">不受影響</span></td>
+        </tr>
+        <tr>
+          <td>ADSP 音訊 DSP</td>
+          <td>正常</td>
+          <td><span class="tag ok">不受影響（MT6358 codec 保留）</span></td>
+        </tr>
+        <tr>
+          <td>耳機偵測</td>
+          <td>誤報（無孔卻偵測到）</td>
+          <td><span class="tag cyan">停用（無 3.5mm 孔，正確行為）</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 10. 關鍵程式碼路徑 -->
+  <div class="sec">
+    <h2>10. 關鍵程式碼路徑（技術參考）</h2>
+    <div class="card">
+      <p><strong>PhoneStatusBarPolicy.java — 耳機 icon 顯示邏輯</strong></p>
+      <div class="code-block">// frameworks/base/packages/SystemUI/.../PhoneStatusBarPolicy.java
+private void updateHeadsetPlug(Intent intent) {
+    boolean connected = intent.getIntExtra("state", 0) != 0;
+    boolean hasMic = intent.getIntExtra("microphone", 0) != 0;
+    if (connected) {
+        mIconController.setIcon(mSlotHeadset,
+            hasMic ? R.drawable.stat_sys_headset_mic : R.drawable.stat_sys_headset,
+            contentDescription);
+        mIconController.setIconVisibility(mSlotHeadset, true);   // icon 出現
+    } else {
+        mIconController.setIconVisibility(mSlotHeadset, false);   // icon 消失
+    }
+}</div>
+
+      <p style="margin-top:14px"><strong>mt8171-mt6366.c — ACCDET init 的 compile-time guard</strong></p>
+      <div class="code-block">// kernel/kernel_device_modules-6.6/sound/soc/mediatek/mt8171/mt8171-mt6366.c
+#if IS_ENABLED(CONFIG_SND_SOC_MT6366_ACCDET) && !defined(BYPASS_FOR_61_BRINGUP)
+    mt6358_accdet_init(codec_component, rtd->card);
+    // ↑ 這裡建立 "Headset Jack" input device
+    // CONFIG_SND_SOC_MT6366_ACCDET=n 後此段不會執行
+#endif</div>
+
+      <p style="margin-top:14px"><strong>Kconfig — 官方說明</strong></p>
+      <div class="code-block">// kernel/kernel_device_modules-6.6/sound/soc/codecs/Kconfig
+config SND_SOC_MT6366_ACCDET
+    tristate "MediaTek MT6366 ACCDET driver"
+    default m
+    help
+      ACCDET means Accessory Detection technology, MediaTek develop it
+      for ASoC codec soc-jack detection mechanism.
+      Select N if you don't have jack on board.
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      官方明確說明：沒有耳機孔就設 N</div>
+
+      <p style="margin-top:14px"><strong>WiredAccessoryManager — 為什麼 h2w 不存在</strong></p>
+      <div class="code-block">// frameworks/base/.../WiredAccessoryManager.java
+if (ExtconUEventObserver.extconExists()) {
+    mExtconObserver.init();   // extcon0 (USB only) 存在，走這條
+} else {
+    mObserver.init();         // 這條才讀 /sys/class/switch/h2w/state
+}
+// 另外：config_useDevInputEventForAudioJack=true
+// → 同時也透過 InputManagerService 讀取 /dev/input/eventX 的 EV_SW 事件</div>
+    </div>
+  </div>
+
+  <!-- 11. 相關檔案清單 -->
+  <div class="sec">
+    <h2>11. 相關檔案清單</h2>
+    <div class="card">
+      <table class="tbl">
+        <tr>
+          <th>檔案</th>
+          <th>Repo</th>
+          <th>說明</th>
+        </tr>
+        <tr>
+          <td class="mono">kernel/configs/mt8171.config</td>
+          <td>android16_mtk_vendor_v0mp5_aiv</td>
+          <td><span class="tag ok">已修改</span> 新增 CONFIG_SND_SOC_MT6366_ACCDET=n</td>
+        </tr>
+        <tr>
+          <td class="mono">device/ntx/EA0T4A_A00/ko_order_table.csv</td>
+          <td>android16_mtk_vendor_v0mp5_aiv</td>
+          <td><span class="tag ok">已修改</span> 刪除 mt6358-accdet.ko 條目</td>
+        </tr>
+        <tr>
+          <td class="mono">device/ntx/aiv8126p3_64_bsp_2cell_ntx/ProjectConfig.mk</td>
+          <td>android16_mtk_vendor_v0mp5_aiv</td>
+          <td><span class="tag warn">觸發點</span> MTK_USE_PREBUILT_BOOTIMAGE = no（Terry, 2026-05-06）</td>
+        </tr>
+        <tr>
+          <td class="mono">arch/arm64/boot/dts/mediatek/EA0T4A_A00.dts</td>
+          <td>android16_mtk_vendor_v0mp5_aiv / kernel_device_modules-6.6</td>
+          <td>accdet status = "okay"（無需修改，kernel config 關閉即可）</td>
+        </tr>
+        <tr>
+          <td class="mono">frameworks/base/packages/SystemUI/.../PhoneStatusBarPolicy.java</td>
+          <td>android16_mtk_system_b0mp5_aiv / frameworks/base</td>
+          <td>耳機 icon 顯示邏輯（無需修改）</td>
+        </tr>
+        <tr>
+          <td class="mono">frameworks/base/services/.../WiredAccessoryManager.java</td>
+          <td>android16_mtk_system_b0mp5_aiv / frameworks/base</td>
+          <td>耳機狀態路由（無需修改）</td>
+        </tr>
+        <tr>
+          <td class="mono">sound/soc/mediatek/mt8171/mt8171-mt6366.c</td>
+          <td>android16_mtk_vendor_v0mp5_aiv / kernel_device_modules-6.6</td>
+          <td>ACCDET init guard（無需修改）</td>
+        </tr>
+        <tr>
+          <td class="mono">sound/soc/codecs/mt6358-accdet.c</td>
+          <td>android16_mtk_vendor_v0mp5_aiv / kernel_device_modules-6.6</td>
+          <td>ACCDET 驅動（無需修改）</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    調查：Claude Code &nbsp;|&nbsp; 裝置：EA0T4A (MT8171 + MT6366) &nbsp;|&nbsp; 2026-05-28
+  </div>
+
+</div>
+</body>
+</html>
