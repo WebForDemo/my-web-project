@@ -403,6 +403,35 @@
       margin-bottom: 16px;
     }
 
+    /* ── Float reset button ── */
+    .float-reset {
+      position: fixed;
+      bottom: 28px;
+      right: 24px;
+      z-index: 200;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 20px;
+      background: #fff;
+      border: 1.5px solid var(--line);
+      border-radius: 99px;
+      box-shadow: 0 4px 18px rgba(30,58,95,0.15);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .float-reset:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      box-shadow: 0 6px 22px rgba(30,58,95,0.20);
+      transform: translateY(-1px);
+    }
+    .float-reset.show { display: flex; }
+
     /* ── Print ── */
     @media print {
       .step-nav, .nav-footer { display: none; }
@@ -431,8 +460,8 @@
     <h1>AI 大使會前準備包</h1>
     <div class="header-meta">
       <span>📬 致：各部門 AI 大使</span>
-      <span>📅 回傳期限：2026 年 6 月 5 日（五）前</span>
-      <span>📮 回傳：AI 推動委員會 總幹事 呂紹綸（Alan）信箱</span>
+      <span>📅 回傳期限：2026 年 6 月 8 日（一）前</span>
+      <span>📮 回傳：<a href="mailto:alan@netronixinc.com" style="color:#fcd34d;font-weight:700">alan@netronixinc.com</a></span>
     </div>
   </div>
 </header>
@@ -483,8 +512,8 @@
             <thead><tr><th style="width:52px">步驟</th><th>事項</th><th>時間</th><th>期限</th></tr></thead>
             <tbody>
               <tr><td style="text-align:center"><strong>1</strong></td><td>閱讀本包《一頁 AI 簡介》（5 分鐘讀懂 AI）</td><td>5 分鐘</td><td>會前</td></tr>
-              <tr><td style="text-align:center"><strong>2</strong></td><td>填寫《痛點調研問卷》（<strong>大部分為勾選題</strong>）</td><td>10 分鐘</td><td>6/5 前</td></tr>
-              <tr><td style="text-align:center"><strong>3</strong></td><td>以 Email 回覆出席 + 回傳問卷</td><td>1 分鐘</td><td>6/5（五）前</td></tr>
+              <tr><td style="text-align:center"><strong>2</strong></td><td>填寫《痛點調研問卷》（<strong>大部分為勾選題</strong>）</td><td>10 分鐘</td><td>6/8 前</td></tr>
+              <tr><td style="text-align:center"><strong>3</strong></td><td>以 Email 回覆出席 + 回傳問卷</td><td>1 分鐘</td><td>6/8（一）前</td></tr>
             </tbody>
           </table>
         </div>
@@ -499,7 +528,7 @@
       <div class="card-body">
         <ul>
           <li><strong>不需要 AI 背景</strong>：您只需要懂自己部門的工作；技術的部分，全交給 AI 團隊。</li>
-          <li><strong>問卷很輕鬆</strong>：第三部分<strong>大多是勾選題</strong>，約 10 分鐘可完成（《一頁簡介》值得花 5 分鐘細讀，它會解答您對 AI 的所有不安）。</li>
+          <li><strong>問卷很輕鬆</strong>：第三部分<strong>大多是勾選題</strong>，約 10 分鐘可完成（《一頁簡介》值得花 5 分鐘細讀，它會解答您對 AI 的所有疑問）。</li>
           <li><strong>您的角色是橋樑，更是設計者</strong>：把部門最耗時、最煩的工作說出來，就是最有價值的貢獻——這正是讓 AI 真正幫到您的起點。</li>
         </ul>
       </div>
@@ -514,8 +543,9 @@
   <!-- ════════════ TAB 2 AI 簡介 ════════════ -->
   <div class="tab-panel" id="tab-1">
 
-    <div class="callout info" style="margin-bottom:16px">這份簡介回答你對 AI 的三個問題：<strong>它是什麼？能幫我什麼？我會不會被取代？</strong> 並告訴你<strong>怎麼安全地用</strong>。</div>
-    <div class="callout success" style="margin-bottom:20px">🌟 <strong>在振曜，AI 是來「幫你」的，不是來「取代你」的。</strong> 下面用事實告訴你為什麼。</div>
+    <div class="callout info" style="margin-bottom:16px">這份簡介回答你對 AI 的三個問題：<strong>它是什麼？能幫我什麼？我該怎麼聰明地用？</strong> 讓你安心又上手。</div>
+    <p style="margin-bottom:12px">面對「公司要導入 AI」這件新事，會<strong>好奇</strong>、也會有些<strong>問號</strong>，都很正常。所以先講最重要的一句話：</p>
+    <div class="callout success" style="margin-bottom:20px">🌟 <strong>在振曜，AI 是你的「得力新幫手」——幫你把時間留給更重要、更有價值的事。</strong> 下面用事實告訴你它能怎麼幫你。</div>
 
     <div class="card">
       <div class="card-head" onclick="toggleCard(this)">
@@ -528,7 +558,7 @@
           <li>✅ 它<strong>不是</strong>科幻片裡有自我意識的機器人（那叫 AGI，目前還不存在）</li>
           <li>✅ 它是<strong>很會處理文字與資料的工具</strong>（這叫 narrow AI，專精單一任務）</li>
         </ul>
-        <div class="callout info">👉 一句話記住：<strong>AI 會「預測」，不會「思考」；它是工具，不是同事的替身。</strong></div>
+        <div class="callout info">👉 一句話記住：<strong>AI 會「預測」，不會「思考」；它是幫你省力的工具，不是有自己想法的人。</strong></div>
       </div>
     </div>
 
@@ -592,15 +622,15 @@
 
     <div class="card">
       <div class="card-head" onclick="toggleCard(this)">
-        <h2>😌 五、為什麼你不用怕被取代？</h2>
+        <h2>😌 五、AI 會讓你的工作更輕鬆、更有價值</h2>
         <span class="chevron">▼</span>
       </div>
       <div class="card-body">
         <p class="q-desc">這些都是振曜的事實，不是安慰：</p>
         <ol>
-          <li><strong>公司沒有為 AI 裁任何人</strong>——Phase 1 全由現有同仁兼任，AI 用來「放大每個人的產出」，不是減人。</li>
+          <li><strong>公司導入 AI，是為了讓每位同仁產出更大、工作更省力</strong>——Phase 1 全由現有同仁兼任推動，AI 是來幫大家加值的。</li>
           <li><strong>AI 只能「看」和「建議」</strong>（唯讀層級），連動手執行都不行，<strong>決策權 100% 在你手上</strong>。</li>
-          <li><strong>你是「需求定義者」</strong>——AI 要解什麼問題，是你說了算。<strong>你不是被取代的人，是指揮 AI 的人。</strong></li>
+          <li><strong>你是「需求定義者」</strong>——AI 要解什麼問題，是你說了算。<strong>AI 聽你的，你才是指揮它的人。</strong></li>
           <li>AI 把你從重複瑣事中解放，讓你做更有價值的判斷與創造。</li>
         </ol>
       </div>
@@ -612,13 +642,13 @@
         <span class="chevron">▼</span>
       </div>
       <div class="card-body">
-        <p class="q-desc">我們是 ODM，<strong>客戶的資料比我們自己的還敏感</strong>——一次外洩 = 違反 NDA + 失去客戶。</p>
+        <p class="q-desc">我們是 ODM，<strong>守護客戶資料 = 守護公司的信譽與訂單</strong>（這是我們最珍貴的競爭力）。請記住：</p>
         <ul>
           <li>🥇 <strong>黃金法則</strong>：<strong>不會貼到公司公布欄的東西，就不要貼進公開 AI。</strong></li>
           <li>🔴 <strong>紅燈絕不外傳</strong>：客戶名稱、BOM、CAD／Gerber、報價、原始碼、NDA 文件。</li>
-          <li>🪣 <strong>兩個水桶</strong>：公司核准的 AI 工具（安全）✅ ｜ 個人免費 ChatGPT（危險，輸入會被拿去訓練）❌。</li>
+          <li>🪣 <strong>兩個水桶</strong>：公司核准的 AI 工具（安全）✅ ｜ 個人免費 ChatGPT（輸入可能被拿去訓練，請避開）❌。</li>
         </ul>
-        <div class="callout danger">📰 <strong>前車之鑑</strong>：2023 年三星工程師把半導體原始碼貼進 ChatGPT，20 天內公司全面禁用——聰明人都會犯的錯，規則保護的是你。</div>
+        <div class="callout danger">📰 <strong>前車之鑑</strong>：2023 年三星工程師把半導體原始碼貼進 ChatGPT，20 天內公司全面禁用——聰明人都會犯的錯，所以規則保護的是你。</div>
       </div>
     </div>
 
@@ -653,6 +683,8 @@
         </div>
       </div>
     </div>
+
+    <div class="callout info" style="margin-top:4px">📌 想更深入了解？<strong>6/9（週二）下午 2:00 說明會</strong>將完整說明大使職責、AI 應用實例與痛點調研啟動方式。本簡介為說明會的預習版。</div>
 
     <div class="nav-footer">
       <button class="btn btn-outline" onclick="goTab(0)">← 上一步</button>
@@ -835,7 +867,7 @@
       </div>
       <div class="card-body">
         <div class="callout success">本問卷由 <strong>AI 推動委員會</strong>進行，採<strong>匿名</strong>方式。結果僅以<strong>彙總形式</strong>（每組 ≥5 人才呈現）分析，<strong>不會以個人形式呈報主管</strong>，也<strong>不評斷個人績效</strong>。資料僅用於 AI 選題分析，分析後刪除。參與完全自願，拒答不影響考績與權益。</div>
-        <div class="callout warn">📮 <strong>回傳方式</strong>：填妥後請於 <strong>2026 年 6 月 5 日（星期五）前</strong>，以電子郵件回傳至 AI 推動委員會　總幹事　呂紹綸（Alan）信箱。</div>
+        <div class="callout warn">📮 <strong>回傳方式</strong>：填妥後請於 <strong>2026 年 6 月 8 日（星期一）前</strong>，以電子郵件回傳至 AI 推動委員會　總幹事　呂紹綸（Alan）：<a href="mailto:alan@netronixinc.com" style="font-weight:700;color:#1e3a5f">alan@netronixinc.com</a></div>
       </div>
     </div>
 
@@ -848,6 +880,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button type="button" class="btn btn-accent" onclick="generateSummary()">📋 產生回覆摘要</button>
           <button type="button" class="btn btn-outline" id="copy-btn" style="display:none" onclick="copySummary()">複製全部</button>
+          <button type="button" class="btn btn-outline" id="pdf-btn" style="display:none" onclick="savePDF()">🖨️ 存成 PDF</button>
         </div>
         <div class="summary-out" id="summary-out"></div>
         <p id="copy-ok" style="display:none;color:var(--ok);font-size:13px;font-weight:700;margin-top:6px">✅ 已複製！請貼到 Email 寄出。</p>
@@ -866,6 +899,9 @@
   </div>
 
 </main>
+
+<!-- 浮動清除重填按鈕 -->
+<button class="float-reset" id="float-reset-btn" onclick="clearForm()">🔄 清除重填</button>
 
 <script>
   // ── Data ──
@@ -1004,6 +1040,7 @@
       else if (i < idx)   { btn.classList.add("done");   num.textContent = "✓"; }
       else                {                               num.textContent = i + 1; }
     });
+    document.getElementById("float-reset-btn").classList.toggle("show", idx === 2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1096,7 +1133,30 @@
     out.textContent = text;
     out.classList.add("show");
     document.getElementById("copy-btn").style.display = "inline-flex";
+    document.getElementById("pdf-btn").style.display = "inline-flex";
     document.getElementById("copy-ok").style.display = "none";
+  }
+
+  function savePDF() {
+    const text = document.getElementById("summary-out").textContent;
+    const win = window.open("", "_blank");
+    win.document.write(`<!doctype html><html lang="zh-Hant"><head>
+      <meta charset="utf-8">
+      <title>AI 大使問卷回覆</title>
+      <style>
+        body { font-family: "Noto Sans TC","Microsoft JhengHei",Arial,sans-serif; font-size:14px; line-height:1.8; color:#1a202c; padding:32px 40px; max-width:720px; margin:0 auto; }
+        h1 { font-size:18px; font-weight:800; color:#1e3a5f; border-bottom:3px solid #f59e0b; padding-bottom:8px; margin-bottom:20px; }
+        pre { white-space:pre-wrap; font-family:inherit; font-size:14px; }
+        .footer { margin-top:32px; font-size:12px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:12px; }
+        @media print { body { padding:16px 24px; } }
+      </style>
+    </head><body>
+      <h1>AI 大使會前準備包 v2.0 — 問卷回覆</h1>
+      <pre>${text.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</pre>
+      <div class="footer">© 2026 振曜科技 AI 推動委員會</div>
+      <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+    win.document.close();
   }
 
   function copySummary() {
@@ -1106,6 +1166,22 @@
       ok.style.display = "block";
       setTimeout(() => { ok.style.display = "none"; }, 3500);
     });
+  }
+
+  function clearForm() {
+    if (!confirm("確定要清除所有填寫內容並重新開始嗎？")) return;
+    document.getElementById("survey-form").reset();
+    document.getElementById("dept-other-wrap").classList.remove("show");
+    document.getElementById("work-other-wrap").classList.remove("show");
+    painCount = 1;
+    document.getElementById("pain-container").innerHTML = painItemHTML(1);
+    syncAddBtn();
+    document.getElementById("summary-out").textContent = "";
+    document.getElementById("summary-out").classList.remove("show");
+    document.getElementById("copy-btn").style.display = "none";
+    document.getElementById("pdf-btn").style.display = "none";
+    document.getElementById("copy-ok").style.display = "none";
+    goTab(2);
   }
 
   // ── Init ──
