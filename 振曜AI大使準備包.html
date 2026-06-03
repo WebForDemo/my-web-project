@@ -879,7 +879,7 @@
         <p style="color:var(--muted);font-size:14px;margin-bottom:14px">點下方按鈕，系統會將你的所有答案整理成一段文字，<strong>複製後貼到 Email 寄出即可</strong>。</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button type="button" class="btn btn-accent" onclick="generateSummary()">📋 產生回覆摘要</button>
-          <button type="button" class="btn btn-outline" id="copy-btn" style="display:none" onclick="copySummary()">複製全部</button>
+<button type="button" class="btn btn-outline" id="copy-btn" style="display:none" onclick="copySummary()">複製全部</button>
           <button type="button" class="btn btn-outline" id="pdf-btn" style="display:none" onclick="savePDF()">🖨️ 存成 PDF</button>
         </div>
         <div class="summary-out" id="summary-out"></div>
@@ -935,7 +935,8 @@
   ];
 
   const TIME_OPTS = ["< 30 分", "30 分–2h", "2–5h", "5–10h", "> 10h"];
-  const LABELS = ["①","②","③"];
+  const LABELS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
+  const NUM_ZH = ["","二","三","四","五","六","七","八","九","十"];
 
   let painCount = 1;
 
@@ -1013,7 +1014,7 @@
   }
 
   function addPain() {
-    if (painCount >= 3) return;
+    if (painCount >= 10) return;
     painCount++;
     document.getElementById("pain-container").insertAdjacentHTML("beforeend", painItemHTML(painCount));
     syncAddBtn();
@@ -1021,10 +1022,10 @@
 
   function syncAddBtn() {
     const btn = document.getElementById("add-pain-btn");
-    if (painCount >= 3) {
+    if (painCount >= 10) {
       btn.style.display = "none";
     } else {
-      btn.textContent = `＋ 新增第${painCount === 1 ? "二" : "三"}個痛點`;
+      btn.textContent = `＋ 新增第${NUM_ZH[painCount]}個痛點`;
     }
   }
 
@@ -1136,6 +1137,7 @@
     document.getElementById("pdf-btn").style.display = "inline-flex";
     document.getElementById("copy-ok").style.display = "none";
   }
+
 
   function savePDF() {
     const text = document.getElementById("summary-out").textContent;
