@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Ink 混合式防護架構 — 技術報告</title>
+<style>
+  :root {
+    --primary: #1a1a2e;
+    --accent: #0f3460;
+    --highlight: #16213e;
+    --green: #00b894;
+    --red: #e17055;
+    --yellow: #fdcb6e;
+    --blue: #74b9ff;
+    --text: #2d3436;
+    --text-light: #636e72;
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --border: #e0e3e7;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.05);
+    top: -200px; right: -200px;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.05);
+    bottom: -150px; left: -150px;
+  }
+  .cover-badge {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50px;
+    padding: 8px 24px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    color: #74b9ff;
+  }
+  .cover h1 {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+  .cover h1 span { color: #00b894; }
+  .cover .subtitle {
+    font-size: 20px;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 48px;
+    max-width: 600px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 48px;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 40px;
+  }
+  .cover-meta-item { text-align: center; }
+  .cover-meta-item .label { font-size: 12px; color: rgba(255,255,255,0.4); letter-spacing: 2px; text-transform: uppercase; }
+  .cover-meta-item .value { font-size: 16px; color: white; margin-top: 4px; font-weight: 500; }
+
+  /* ── Layout ── */
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 40px;
+  }
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #00b894;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .section-desc {
+    font-size: 17px;
+    color: var(--text-light);
+    max-width: 680px;
+    margin-bottom: 56px;
+    line-height: 1.8;
+  }
+
+  /* ── Problem Section ── */
+  .problem-section { background: #fff; border-bottom: 1px solid var(--border); }
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 0;
+  }
+  .problem-card {
+    border-radius: 16px;
+    padding: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .problem-card.old {
+    background: #fff5f5;
+    border: 1px solid #fab1a0;
+  }
+  .problem-card.new {
+    background: #f0faf6;
+    border: 1px solid #55efc4;
+  }
+  .problem-card .card-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 50px;
+    margin-bottom: 20px;
+    display: inline-block;
+  }
+  .problem-card.old .card-badge { background: #e17055; color: white; }
+  .problem-card.new .card-badge { background: #00b894; color: white; }
+  .problem-card h3 { font-size: 20px; margin-bottom: 16px; color: var(--primary); }
+  .problem-card p { font-size: 15px; color: var(--text-light); line-height: 1.8; }
+  .problem-card ul { list-style: none; margin-top: 16px; }
+  .problem-card ul li {
+    padding: 8px 0;
+    font-size: 15px;
+    color: var(--text-light);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .problem-card ul li::before { content: '✗'; color: #e17055; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .problem-card.new ul li::before { content: '✓'; color: #00b894; }
+
+  /* ── Architecture ── */
+  .arch-section { background: var(--bg); }
+  .arch-diagram {
+    background: var(--primary);
+    border-radius: 20px;
+    padding: 48px;
+    color: white;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-diagram::before {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.02);
+    top: -100px; right: -100px;
+  }
+  .arch-diagram-title {
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 32px;
+  }
+  .arch-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .arch-layer {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    transition: all 0.2s;
+  }
+  .arch-layer + .arch-layer { margin-top: 12px; }
+  .arch-layer-num {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .layer-3 .arch-layer-num { background: rgba(253,203,110,0.2); color: #fdcb6e; border: 1px solid #fdcb6e; }
+  .layer-2a .arch-layer-num { background: rgba(116,185,255,0.2); color: #74b9ff; border: 1px solid #74b9ff; }
+  .layer-2b .arch-layer-num { background: rgba(116,185,255,0.15); color: #74b9ff; border: 1px solid rgba(116,185,255,0.4); }
+  .layer-1 .arch-layer-num { background: rgba(0,184,148,0.2); color: #00b894; border: 1px solid #00b894; }
+  .arch-layer-info { flex: 1; }
+  .arch-layer-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+  .arch-layer-desc { font-size: 14px; color: rgba(255,255,255,0.5); }
+  .arch-layer-tag {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .layer-3 .arch-layer-tag { background: rgba(253,203,110,0.15); color: #fdcb6e; }
+  .layer-2a .arch-layer-tag, .layer-2b .arch-layer-tag { background: rgba(116,185,255,0.15); color: #74b9ff; }
+  .layer-1 .arch-layer-tag { background: rgba(0,184,148,0.15); color: #00b894; }
+
+  .arch-connector {
+    display: flex;
+    align-items: center;
+    padding: 4px 36px;
+    gap: 12px;
+  }
+  .arch-connector-line {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+  .arch-connector-text {
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+    white-space: nowrap;
+  }
+
+  /* ── Layers Detail ── */
+  .layers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .layer-card {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .layer-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .layer-card.green::before { background: #00b894; }
+  .layer-card.blue::before { background: #74b9ff; }
+  .layer-card.yellow::before { background: #fdcb6e; }
+  .layer-card-num {
+    font-size: 48px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    line-height: 1;
+  }
+  .layer-card.green .layer-card-num { color: #00b894; }
+  .layer-card.blue .layer-card-num { color: #74b9ff; }
+  .layer-card.yellow .layer-card-num { color: #fdcb6e; }
+  .layer-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  .layer-card .layer-trigger {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 16px;
+  }
+  .layer-card p { font-size: 14px; color: var(--text-light); line-height: 1.8; }
+  .layer-card .tech-tag {
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: var(--text);
+    margin-top: 16px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Scenarios ── */
+  .scenarios-section { background: white; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .scenarios-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .scenario-card {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 28px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+  }
+  .scenario-icon {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .s1 .scenario-icon { background: #e8f5e9; }
+  .s2 .scenario-icon { background: #e3f2fd; }
+  .s3 .scenario-icon { background: #fce4ec; }
+  .s4 .scenario-icon { background: #fff8e1; }
+  .scenario-info h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--primary); }
+  .scenario-info .scenario-action {
+    font-size: 13px;
+    font-family: monospace;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    color: #0f3460;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .scenario-info p { font-size: 14px; color: var(--text-light); line-height: 1.7; }
+  .scenario-info .layer-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 50px;
+    margin-top: 10px;
+  }
+  .s1 .layer-badge { background: #c8e6c9; color: #2e7d32; }
+  .s2 .layer-badge { background: #bbdefb; color: #1565c0; }
+  .s3 .layer-badge { background: #fce4ec; color: #c62828; }
+  .s4 .layer-badge { background: #fff9c4; color: #f57f17; }
+
+  /* ── Validation ── */
+  .validation-section { background: var(--bg); }
+  .validation-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .vf-step {
+    flex: 1;
+    padding: 32px 24px;
+    text-align: center;
+    position: relative;
+  }
+  .vf-step + .vf-step {
+    border-left: 1px solid var(--border);
+  }
+  .vf-step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .vf-step h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  .vf-step p { font-size: 13px; color: var(--text-light); line-height: 1.7; }
+  .vf-step code {
+    display: block;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    margin-top: 10px;
+    color: #0f3460;
+  }
+
+  /* ── Handover ── */
+  .handover-section { background: white; border-top: 1px solid var(--border); }
+  .handover-box {
+    background: var(--primary);
+    border-radius: 20px;
+    padding: 48px;
+    color: white;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .handover-box h3 { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+  .handover-box p { font-size: 15px; color: rgba(255,255,255,0.65); line-height: 1.8; }
+  .handover-code {
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    padding: 28px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .handover-code pre {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #dfe6e9;
+    white-space: pre-wrap;
+  }
+  .handover-code .comment { color: #636e72; }
+  .handover-code .keyword { color: #74b9ff; }
+  .handover-code .string { color: #55efc4; }
+  .handover-code .todo { color: #fdcb6e; font-weight: 600; }
+
+  /* ── Blind Spots ── */
+  .blindspot-section { background: var(--bg); }
+  .blindspot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .blindspot-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    border: 1px solid var(--border);
+    border-left: 4px solid #e17055;
+  }
+  .blindspot-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  .blindspot-card p { font-size: 14px; color: var(--text-light); line-height: 1.8; }
+  .blindspot-card .solution {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #f0faf6;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #00b894;
+    font-weight: 500;
+  }
+  .blindspot-card .solution::before { content: '→  解法：'; font-weight: 700; }
+
+  /* ── Footer ── */
+  .footer {
+    background: var(--primary);
+    color: rgba(255,255,255,0.4);
+    text-align: center;
+    padding: 40px;
+    font-size: 14px;
+  }
+  .footer strong { color: rgba(255,255,255,0.8); }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0;
+  }
+
+  @media print {
+    .cover { min-height: auto; padding: 60px; page-break-after: always; }
+    .page { padding: 40px; }
+    .problem-grid, .layers-grid, .scenarios-grid, .blindspot-grid { grid-template-columns: 1fr 1fr; }
+    .handover-box { grid-template-columns: 1fr; }
+    .validation-flow { flex-direction: column; }
+    .vf-step + .vf-step { border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ COVER ══════════ -->
+<div class="cover">
+  <div class="cover-badge">Proof of Concept · Technical Report</div>
+  <h1>E-Ink <span>混合式防護</span><br>架構前導驗證</h1>
+  <p class="subtitle">以 Android Framework 層實現手寫出水的自動化零遺漏防護機制</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="label">文件類型</div>
+      <div class="value">技術 PoC 報告</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">目標受眾</div>
+      <div class="value">BSP／韌體團隊</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">實作語言</div>
+      <div class="value">Java / Kotlin</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">平台</div>
+      <div class="value">Android（E-Ink 裝置）</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 01 · 問題背景 ══════════ -->
+<div class="problem-section">
+  <div class="page">
+    <div class="section-label">01 · 問題背景</div>
+    <h2 class="section-title">為什麼需要這套機制？</h2>
+    <p class="section-desc">E-Ink 裝置的手寫出水行為若無法精確控制，將直接影響使用者體驗與產品品質。</p>
+
+    <div class="problem-grid">
+      <div class="problem-card old">
+        <div class="card-badge">現有問題</div>
+        <h3>傳統手動管理的痛點</h3>
+        <p>過去依賴 App 工程師在每個可能遮擋畫布的地方，手動呼叫 <code style="background:#fff0ee;padding:2px 6px;border-radius:4px;font-size:13px;">suspendHandWrite()</code>。</p>
+        <ul>
+          <li>容易在新功能開發時遺漏呼叫點</li>
+          <li>不同 App 實作品質參差不齊</li>
+          <li>Dialog、Fragment、PopupWindow 各需個別處理</li>
+          <li>維護成本高，每次 UI 改版都需重新確認</li>
+          <li>測試難以覆蓋所有邊緣情境</li>
+        </ul>
+      </div>
+      <div class="problem-card new">
+        <div class="card-badge">本 PoC 解法</div>
+        <h3>自動化、防呆的底層機制</h3>
+        <p>在 Java Framework 層建立統一的出水決策中樞，App 端完全不需要手動介入。</p>
+        <ul>
+          <li>非侵入式設計，不修改任何 App 程式碼</li>
+          <li>三層防護自動偵測所有遮擋情境</li>
+          <li>同一個邏輯服務所有 App</li>
+          <li>新 App 開發無需特別注意出水問題</li>
+          <li>提供 Hook 機制保留 App 端特殊需求的彈性</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 02 · 整體架構 ══════════ -->
+<div class="arch-section">
+  <div class="page">
+    <div class="section-label">02 · 整體架構</div>
+    <h2 class="section-title">三層混合式防護演算法</h2>
+    <p class="section-desc">核心元件 <strong>MockDrawView</strong> 繼承自 <code style="background:white;padding:2px 8px;border-radius:4px;font-size:14px;border:1px solid #e0e3e7;">SurfaceView</code>，模擬 E-Ink 手寫畫布。每次 touch / hover 事件或佈局變化時，<code style="background:white;padding:2px 8px;border-radius:4px;font-size:14px;border:1px solid #e0e3e7;">isWaterSuspend()</code> 自動執行以下判斷流程。</p>
+
+    <div class="arch-diagram">
+      <div class="arch-diagram-title">決策流程 — isWaterSuspend()</div>
+      <div class="arch-flow">
+        <div class="arch-layer layer-3">
+          <div class="arch-layer-num">優先</div>
+          <div class="arch-layer-info">
+            <div class="arch-layer-title">第三層 — App 業務邏輯 Hook</div>
+            <div class="arch-layer-desc">App 端透過 setBusinessLogicHook() 注入自訂邏輯；回傳 true/false 直接決定結果，回傳 null 則交給底層繼續判斷</div>
+          </div>
+          <div class="arch-layer-tag">BusinessLogicHook</div>
+        </div>
+
+        <div class="arch-connector">
+          <div class="arch-connector-line"></div>
+          <div class="arch-connector-text">hook 回傳 null → 繼續往下</div>
+          <div class="arch-connector-line"></div>
+        </div>
+
+        <div class="arch-layer layer-2a">
+          <div class="arch-layer-num">2A</div>
+          <div class="arch-layer-info">
+            <div class="arch-layer-title">第二層 A — Window Focus 偵測</div>
+            <div class="arch-layer-desc">hasWindowFocus() 返回 false 時，代表系統 Dialog 或其他 Window 已搶走焦點，畫布被遮擋</div>
+          </div>
+          <div class="arch-layer-tag">跨 Window</div>
+        </div>
+
+        <div class="arch-layer layer-2b" style="margin-top:8px;">
+          <div class="arch-layer-num">2B</div>
+          <div class="arch-layer-info">
+            <div class="arch-layer-title">第二層 B — MotionEvent Flag 偵測</div>
+            <div class="arch-layer-desc">FLAG_WINDOW_IS_PARTIALLY_OBSCURED 由系統在 touch/hover 事件中標記，可捕捉同 UID 懸浮視窗（PopupWindow 等）</div>
+          </div>
+          <div class="arch-layer-tag">跨 Window</div>
+        </div>
+
+        <div class="arch-connector">
+          <div class="arch-connector-line"></div>
+          <div class="arch-connector-text">無跨 Window 遮擋 → 繼續往下</div>
+          <div class="arch-connector-line"></div>
+        </div>
+
+        <div class="arch-layer layer-1">
+          <div class="arch-layer-num">1</div>
+          <div class="arch-layer-info">
+            <div class="arch-layer-title">第一層 — 同 Window View Tree 遞迴掃描</div>
+            <div class="arch-layer-desc">OnGlobalLayoutListener 監聽佈局變化，DFS 嚴格遵守 Z-order 掃描，找出所有疊在畫布上方的可見 View</div>
+          </div>
+          <div class="arch-layer-tag">同 Window</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer cards -->
+    <div class="layers-grid">
+      <div class="layer-card green">
+        <div class="layer-card-num">01</div>
+        <h3>View Tree 遞迴掃描</h3>
+        <div class="layer-trigger">觸發時機：佈局變化（OnGlobalLayoutListener）</div>
+        <p>從根節點做 DFS，先定位 MockDrawView 自身在 Z-order 的位置，之後掃描到的所有 View 就代表「疊在畫布上方」。若與畫布矩形交疊且非透明，立即判定遮擋。</p>
+        <span class="tech-tag">checkObscuringRecursive()</span>
+        <span class="tech-tag">ignore_obscure tag</span>
+      </div>
+      <div class="layer-card blue">
+        <div class="layer-card-num">02</div>
+        <h3>跨 Window 雙重偵測</h3>
+        <div class="layer-trigger">觸發時機：每次 touch / hover 事件</div>
+        <p>結合兩個互補機制：系統 Dialog 透過 Window Focus 機制捕捉；同 UID 的 PopupWindow 透過 MotionEvent flag 捕捉。兩者涵蓋不同的跨 Window 遮擋情境。</p>
+        <span class="tech-tag">hasWindowFocus()</span>
+        <span class="tech-tag">FLAG_WINDOW_IS_PARTIALLY_OBSCURED</span>
+      </div>
+      <div class="layer-card yellow">
+        <div class="layer-card-num">03</div>
+        <h3>App 業務邏輯 Hook</h3>
+        <div class="layer-trigger">觸發時機：每次 isWaterSuspend() 呼叫</div>
+        <p>提供標準介面讓 App 端注入自訂邏輯，優先級最高。適用於橡皮擦模式、特殊頁面、或自動偵測有盲點時的手動補強。回傳 null 表示不介入，交由底層自動判斷。</p>
+        <span class="tech-tag">setBusinessLogicHook()</span>
+        <span class="tech-tag">BusinessLogicHook interface</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 03 · 測試情境 ══════════ -->
+<div class="scenarios-section">
+  <div class="page">
+    <div class="section-label">03 · 測試情境</div>
+    <h2 class="section-title">四個極端遮擋情境驗證</h2>
+    <p class="section-desc">此 App 內建四種壓測情境，確認防護網在最極端條件下均無漏洞。</p>
+
+    <div class="scenarios-grid">
+      <div class="scenario-card s1">
+        <div class="scenario-icon">🧩</div>
+        <div class="scenario-info">
+          <h4>情境 A — 同 Window 動態 UI 遮擋</h4>
+          <div class="scenario-action">Toggle Fragment</div>
+          <p>動態將一個帶有背景的 Fragment View 加入 fragment_container，疊在 MockDrawView 上方。佈局變化觸發 OnGlobalLayoutListener，DFS 掃描即時偵測。</p>
+          <span class="layer-badge">第一層：View Tree 掃描</span>
+        </div>
+      </div>
+
+      <div class="scenario-card s2">
+        <div class="scenario-icon">🪟</div>
+        <div class="scenario-info">
+          <h4>情境 B — 跨 Window 懸浮視窗</h4>
+          <div class="scenario-action">Show PopupWindow</div>
+          <p>以 isFocusable=true 建立 PopupWindow 顯示在畫布中央。系統在後續的 touch 事件中附加 FLAG_WINDOW_IS_PARTIALLY_OBSCURED，由第二層 B 捕捉。</p>
+          <span class="layer-badge">第二層 B：MotionEvent Flag</span>
+        </div>
+      </div>
+
+      <div class="scenario-card s3">
+        <div class="scenario-icon">🚨</div>
+        <div class="scenario-info">
+          <h4>情境 C — 系統 Dialog 搶焦點</h4>
+          <div class="scenario-action">Show AlertDialog</div>
+          <p>AlertDialog 彈出時系統自動搶走 Window Focus，MockDrawView 的 hasWindowFocus() 立即返回 false，由第二層 A 捕捉，不依賴任何 touch 事件。</p>
+          <span class="layer-badge">第二層 A：Window Focus</span>
+        </div>
+      </div>
+
+      <div class="scenario-card s4">
+        <div class="scenario-icon">🖊️</div>
+        <div class="scenario-info">
+          <h4>情境 D — App 業務邏輯強制介入</h4>
+          <div class="scenario-action">Eraser Mode ☑</div>
+          <p>勾選橡皮擦模式後，Hook 回傳 true 強制關水，不論底層掃描結果為何。模擬 App 需要在特殊狀態下完全自主控制出水的場景。</p>
+          <span class="layer-badge">第三層：業務邏輯 Hook</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 04 · 驗證方式 ══════════ -->
+<div class="validation-section">
+  <div class="page">
+    <div class="section-label">04 · 驗證方式</div>
+    <h2 class="section-title">如何確認防護網無漏洞</h2>
+    <p class="section-desc">三個步驟，透過 Logcat 即可完整驗證所有情境。</p>
+
+    <div class="validation-flow">
+      <div class="vf-step">
+        <div class="vf-step-num">1</div>
+        <h4>安裝 App</h4>
+        <p>以 Android Studio 編譯並安裝至目標 E-Ink 測試設備。</p>
+      </div>
+      <div class="vf-step">
+        <div class="vf-step-num">2</div>
+        <h4>監聽 Logcat</h4>
+        <p>過濾以下 Tag 觀察即時輸出。</p>
+        <code>EinkPoC_MockDrawView</code>
+      </div>
+      <div class="vf-step">
+        <div class="vf-step-num">3</div>
+        <h4>逐一測試四個情境</h4>
+        <p>每個操作後確認 Log 正確輸出對應狀態。</p>
+        <code>Action: SUSPEND WATER（關水）</code>
+        <code>Action: RESUME WATER（出水）</code>
+      </div>
+      <div class="vf-step">
+        <div class="vf-step-num">✓</div>
+        <h4>驗證通過</h4>
+        <p>四個情境皆正確輸出，代表三層防護架構無漏洞，可移交 BSP 整合真實 API。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 05 · BSP 交接 ══════════ -->
+<div class="handover-section">
+  <div class="page">
+    <div class="section-label">05 · BSP 交接</div>
+    <h2 class="section-title">移交 BSP 團隊的唯一動作</h2>
+    <p class="section-desc">驗證完成後，BSP 團隊只需修改一個函式，即可完成整合。</p>
+
+    <div class="handover-box">
+      <div>
+        <h3>僅需替換兩行程式碼</h3>
+        <p>在 <strong>MockDrawView.java</strong> 的 <code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;font-size:13px;">checkAndPrintWaterState()</code> 函式中，將 Logcat 輸出替換為真實的 E-Ink API 呼叫。所有判斷邏輯保持不變。</p>
+        <br>
+        <p style="color:rgba(255,255,255,0.4);font-size:14px;">搜尋關鍵字：<code style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">TODO [BSP Team]</code></p>
+      </div>
+      <div class="handover-code">
+        <pre><span class="comment">// 關水 — 畫布被遮擋時</span>
+<span class="keyword">if</span> (suspend) {
+    <span class="comment">// 移除這行 Log：</span>
+    <span class="comment">// Log.w(TAG, "SUSPEND WATER");</span>
+
+    <span class="todo">// TODO [BSP Team]：換成真實 API</span>
+    <span class="string">EinkManager</span>.suspendHandWrite(<span class="keyword">true</span>);
+}
+
+<span class="comment">// 出水 — 畫布可正常手寫時</span>
+<span class="keyword">else</span> {
+    <span class="comment">// 移除這行 Log：</span>
+    <span class="comment">// Log.i(TAG, "RESUME WATER");</span>
+
+    <span class="todo">// TODO [BSP Team]：換成真實 API</span>
+    <span class="string">EinkManager</span>.suspendHandWrite(<span class="keyword">false</span>);
+}</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 06 · 已知盲點 ══════════ -->
+<div class="blindspot-section">
+  <div class="page">
+    <div class="section-label">06 · 已知盲點與對策</div>
+    <h2 class="section-title">邊緣情境與處理方式</h2>
+    <p class="section-desc">以下情境超出自動偵測範圍，需要 App 端配合或額外說明。</p>
+
+    <div class="blindspot-grid">
+      <div class="blindspot-card">
+        <h4>PopupWindow isFocusable=false</h4>
+        <p>若 PopupWindow 設為不可取焦，將不觸發 Window Focus Lost；部分 Android 版本對同 UID 的視窗豁免 FLAG_WINDOW_IS_PARTIALLY_OBSCURED，導致第二層完全失效。</p>
+        <div class="solution">App 端必須透過第三層 BusinessLogicHook 手動強制關水。</div>
+      </div>
+      <div class="blindspot-card">
+        <h4>固定工具列誤判</h4>
+        <p>App 中常見的固定工具列（Toolbox）位置固定且始終疊在畫布上方，若不特別處理，第一層掃描會永遠判定遮擋導致全局關水。</p>
+        <div class="solution">在包裹 Toolbox 的 ViewGroup 加上 android:tag="ignore_obscure"，掃描時自動略過。</div>
+      </div>
+      <div class="blindspot-card">
+        <h4>透明 ViewGroup 容器</h4>
+        <p>第一層掃描遇到無背景的透明 ViewGroup 時，不會直接判定遮擋，而是繼續掃描其子 View，避免因容器節點產生誤判。</p>
+        <div class="solution">設計上已處理；只有 Leaf View 或有背景的 ViewGroup 才算實體遮擋。</div>
+      </div>
+      <div class="blindspot-card">
+        <h4>系統懸浮視窗（System Alert Window）</h4>
+        <p>部分系統級懸浮視窗（如無障礙服務覆蓋層）屬於不同 UID，行為與一般 App Window 不同，旗標保護機制可能不完整覆蓋。</p>
+        <div class="solution">此情境屬於系統層級問題，建議由 BSP 在 Framework 中另行處理。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ FOOTER ══════════ -->
+<div class="footer">
+  <strong>E-Ink 混合式防護架構 PoC</strong> · 技術前導驗證報告 · 機密文件，僅供內部使用
+</div>
+
+</body>
+</html>
