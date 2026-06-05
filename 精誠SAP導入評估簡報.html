@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SAP 導入評估 — 精誠科技簡報摘要</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:    #0f4c81;
+      --blue-2:  #1a6db5;
+      --blue-lt: #e8f2fb;
+      --teal:    #0891b2;
+      --teal-lt: #e0f7fb;
+      --amber:   #d97706;
+      --amber-lt:#fffbeb;
+      --green:   #059669;
+      --green-lt:#ecfdf5;
+      --red:     #dc2626;
+      --red-lt:  #fef2f2;
+      --text:    #1a202c;
+      --muted:   #64748b;
+      --line:    #e2e8f0;
+      --bg:      #f0f5fb;
+      --panel:   #ffffff;
+      --shadow:  0 4px 20px rgba(15,76,129,0.09);
+      --radius:  10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── Header ── */
+    .hero {
+      background: linear-gradient(135deg, #0a3260 0%, #1a6db5 100%);
+      color: #fff;
+      padding: 48px 24px 40px;
+    }
+    .hero-inner { max-width: 960px; margin: 0 auto; }
+    .hero-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 12px;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+    }
+    .hero h1 {
+      font-size: clamp(24px, 3.5vw, 38px);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .hero-sub { color: #a8c8e8; font-size: 14px; }
+    .hero-meta {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      font-size: 13px;
+      color: #c8dff0;
+    }
+
+    /* ── Wrap ── */
+    .wrap { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+
+    /* ── Section ── */
+    .section { margin-bottom: 36px; }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 16px 20px;
+      background: #f6faff;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-head h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .card-body { padding: 20px; }
+
+    /* ── Grid ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    /* ── Callout ── */
+    .callout {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      font-size: 14px;
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+    .callout:last-child { margin-bottom: 0; }
+    .callout.blue   { background: var(--blue-lt); border-color: var(--blue); color: #1e3a5f; }
+    .callout.green  { background: var(--green-lt); border-color: var(--green); color: #064e3b; }
+    .callout.amber  { background: var(--amber-lt); border-color: var(--amber); color: #78350f; }
+    .callout.teal   { background: var(--teal-lt); border-color: var(--teal); color: #164e63; }
+
+    /* ── Table ── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: #f0f5fb;
+      color: var(--blue);
+      font-weight: 700;
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 2px solid var(--line);
+      white-space: nowrap;
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fbff; }
+
+    /* ── Pill badge ── */
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .pill-blue  { background: var(--blue-lt);  color: var(--blue); }
+    .pill-green { background: var(--green-lt); color: var(--green); }
+    .pill-amber { background: var(--amber-lt); color: var(--amber); }
+    .pill-teal  { background: var(--teal-lt);  color: var(--teal); }
+
+    /* ── Stat card ── */
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--blue);
+      line-height: 1.1;
+    }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .stat-note  { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* ── Feature block ── */
+    .feature-block {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .feature-block h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--blue-lt);
+    }
+    .feature-block ul { padding-left: 18px; }
+    .feature-block li { margin-bottom: 6px; font-size: 14px; }
+
+    /* ── Ticket visual ── */
+    .ticket-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .ticket-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: #fafcff;
+      position: relative;
+      overflow: hidden;
+    }
+    .ticket-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+    }
+    .ticket-card.dev::before  { background: var(--red); }
+    .ticket-card.adv::before  { background: var(--blue); }
+    .ticket-card.core::before { background: var(--teal); }
+    .ticket-card.self::before { background: var(--green); }
+    .ticket-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .ticket-ratio {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+    .ticket-card.dev .ticket-ratio  { color: var(--red); }
+    .ticket-card.adv .ticket-ratio  { color: var(--blue); }
+    .ticket-card.core .ticket-ratio { color: var(--teal); }
+    .ticket-card.self .ticket-ratio { color: var(--green); }
+    .ticket-desc { font-size: 12px; color: var(--muted); }
+    .ticket-dept { font-size: 13px; margin-top: 6px; color: var(--text); }
+
+    /* ── Flow ── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .flow-item {
+      flex: 1;
+      min-width: 140px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 13px;
+    }
+    .flow-item strong { display: block; font-size: 15px; color: var(--blue); margin-bottom: 4px; }
+    .flow-arrow {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 20px;
+      padding: 0 6px;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--line); margin: 20px 0; }
+
+    /* ── Footer ── */
+    .footer {
+      background: var(--blue);
+      color: #a8c8e8;
+      padding: 20px 24px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* ── Print ── */
+    @media print {
+      body { background: #fff; }
+      .card, .stat-card, .feature-block, .ticket-card, .flow-item { box-shadow: none; break-inside: avoid; }
+    }
+
+    /* ── RWD ── */
+    @media (max-width: 640px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Hero ── -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">INTERNAL BRIEFING</div>
+    <h1>SAP ERP + AI 導入評估</h1>
+    <p style="color:#c8dff0;font-size:15px;margin-top:8px">精誠科技簡報摘要 · 供管理層參考</p>
+    <div class="hero-meta">
+      <span>資料來源：精誠科技說明會</span>
+      <span>整理日期：2026 年 6 月 5 日</span>
+      <span>振曜科技 AI 推動委員會</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ── 什麼是 SAP ── -->
+  <div class="section">
+    <div class="section-title">背景說明</div>
+    <div class="card">
+      <div class="card-head">
+        <h2>SAP 是什麼？</h2>
+      </div>
+      <div class="card-body">
+        <div class="grid-2" style="gap:20px;align-items:start">
+          <div>
+            <p style="margin-bottom:12px">SAP 是全球最大的 <strong>ERP 系統</strong>（企業資源規劃），將公司所有部門的資料與流程整合進同一平台，即時連動。</p>
+            <div class="callout blue">
+              <strong>對 ODM 製造商的核心價值：</strong><br>
+              採購、倉庫、製造、品保、銷售、財務、人資，全部串在一起，輸入一次，所有部門即時可見。
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>沒有 ERP 時</th><th>有 ERP 時</th></tr></thead>
+              <tbody>
+                <tr><td>各部門各用自己的系統</td><td>全部資料在同一平台</td></tr>
+                <tr><td>同一筆資料重複輸入三次</td><td>輸入一次，全部門同步</td></tr>
+                <tr><td>月底才知道庫存與成本</td><td>即時查詢</td></tr>
+                <tr><td>跨部門對帳困難</td><td>一鍵生成報表</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 部署方式 ── -->
+  <div class="section">
+    <div class="section-title">部署方式</div>
+    <div class="grid-3">
+      <div class="feature-block">
+        <h3>公有雲 <span class="pill pill-green" style="font-size:11px">多數公司選擇</span></h3>
+        <ul>
+          <li>使用 SAP 官方雲端基礎設施</li>
+          <li>價格較甜，計費細緻，依服務模組計算</li>
+          <li><strong>低消：15 人</strong>，需要幾人買幾人</li>
+          <li>SAP 標準版功能，彈性較小</li>
+          <li>授權方式：帳號數買斷，按人頭訂閱</li>
+        </ul>
+      </div>
+      <div class="feature-block">
+        <h3>私有雲 <span class="pill pill-amber" style="font-size:11px">大型企業</span></h3>
+        <ul>
+          <li>獨立雲端環境，彈性高、可客製</li>
+          <li><strong>低消：60 人 / 1,000 萬給 SAP</strong></li>
+          <li>授權方式：購買帳號「票池」，依角色分配使用名額（詳見下方票券說明）</li>
+          <li>注意：持股 &lt; 51% 的集團不能統一採購</li>
+        </ul>
+      </div>
+      <div class="feature-block">
+        <h3>地端（On-Premise）<span class="pill pill-blue" style="font-size:11px">費用最高</span></h3>
+        <ul>
+          <li>自建伺服器，資料完全在公司內</li>
+          <li>授權方式：<strong>Named User</strong>，每個帳號對應特定實名人員，不可共用</li>
+          <li>買斷制，但每年需繳 22% 維護費</li>
+          <li>100 人規模買斷約 <strong>2,600 萬</strong>，詳見下方試算</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 費用結構 ── -->
+  <div class="section">
+    <div class="section-title">費用結構</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="grid-2" style="margin-bottom:20px">
+          <div style="border:1px solid var(--line);border-radius:8px;padding:18px">
+            <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px;letter-spacing:1px">費用一</div>
+            <div style="font-size:17px;font-weight:700;margin-bottom:8px">SAP 雲端年訂閱費</div>
+            <div style="font-size:13px;color:var(--muted)">直接付給 SAP 原廠，依使用人數與服務模組計費，每年訂閱制。</div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:18px">
+            <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px;letter-spacing:1px">費用二</div>
+            <div style="font-size:17px;font-weight:700;margin-bottom:8px">精誠顧問合約</div>
+            <div style="font-size:13px;color:var(--muted)">導入費用 + 若有後續需求可另簽營運支援合約（依需求決定是否簽訂）。</div>
+          </div>
+        </div>
+        <div class="callout amber">
+          <strong>重要：</strong>兩份合約分開簽訂，一份對 SAP 原廠，一份對精誠顧問。預算規劃需分開計算。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 責任歸屬 ── -->
+  <div class="section">
+    <div class="section-title">責任歸屬</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="flow" style="margin-bottom:16px">
+          <div class="flow-item">
+            <strong>SAP 原廠</strong>
+            台北有 FAE 駐點<br>
+            負責系統層面<br>
+            <span style="font-size:11px;color:var(--muted)">底層技術問題</span>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-item">
+            <strong>精誠科技</strong>
+            台灣在地顧問<br>
+            負責 Functional 操作面<br>
+            <span style="font-size:11px;color:var(--muted)">功能配置、資料串接</span>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-item">
+            <strong>振曜</strong>
+            一線使用者<br>
+            各部門操作與確認<br>
+            <span style="font-size:11px;color:var(--muted)">需求定義與驗收</span>
+          </div>
+        </div>
+        <div class="callout teal" style="margin-bottom:10px">
+          精誠會協助<strong>輔助資料串接</strong>：把現有系統的資料轉接進 ERP，並提供操作教學與上線支援。
+        </div>
+        <div class="callout blue">
+          <strong>導入時程：</strong>預估約 <strong>6 個月</strong>完成上線，實際時間依各公司系統複雜度與資料整備狀況而定。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 地端費用試算 ── -->
+  <div class="section">
+    <div class="section-title">地端（On-Premise）費用試算</div>
+    <div class="card">
+      <div class="card-head">
+        <h2>地端版屬於 Named User 授權，買斷後每年收取維護費</h2>
+      </div>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">以 <strong>100 人規模</strong>為例試算，Professional（專業用戶）佔 4 成、Functional（功能用戶）佔 6 成：</p>
+        <div class="grid-3" style="margin-bottom:20px">
+          <div class="stat-card">
+            <div class="stat-value" style="font-size:22px">Professional</div>
+            <div style="font-size:28px;font-weight:800;color:var(--blue);margin:6px 0">40 人</div>
+            <div class="stat-label">財務、採購、IT 等核心用戶</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" style="font-size:22px">Functional</div>
+            <div style="font-size:28px;font-weight:800;color:var(--teal);margin:6px 0">60 人</div>
+            <div class="stat-label">銷售、品保、倉管等一般用戶</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">2,600 萬</div>
+            <div class="stat-label">第一年買斷費用（估）</div>
+            <div class="stat-note">含 License 授權費</div>
+          </div>
+        </div>
+        <div class="tbl-wrap" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>年度</th><th>費用項目</th><th>金額（估）</th><th>說明</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="pill pill-amber">第 1 年</span></td>
+                <td>License 買斷費</td>
+                <td><strong>約 2,600 萬</strong></td>
+                <td>一次性支出，永久授權</td>
+              </tr>
+              <tr>
+                <td><span class="pill pill-blue">第 2 年起</span></td>
+                <td>年度維護費（22%）</td>
+                <td><strong>約 572 萬 / 年</strong></td>
+                <td>2,600 萬 × 22%，含版本更新與技術支援</td>
+              </tr>
+              <tr>
+                <td><span class="pill pill-teal">5 年累計</span></td>
+                <td>總擁有成本試算</td>
+                <td><strong>約 4,888 萬</strong></td>
+                <td>買斷 + 4 年維護費（不含導入與顧問費）</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout amber">
+          <strong>地端版費用說明：</strong>地端版因需自行建置伺服器並維護，整體 TCO（總擁有成本）明顯高於雲端訂閱制。22% 年維護費為業界標準，停繳則無法取得版本更新與原廠支援。建議與雲端方案進行長期成本比較後再決策。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 票券制度 ── -->
+  <div class="section">
+    <div class="section-title">私有雲 License 票券制度</div>
+    <div class="card">
+      <div class="card-head">
+        <h2>不同角色，消耗不同數量的「票」</h2>
+      </div>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:8px">私有雲購買的是一個「帳號票池」，公司統一持有票數，再依員工角色分配使用名額。比例代表「票 : 人」，數字越高代表每人消耗票數越多。</p>
+        <div class="callout blue" style="margin-bottom:16px;font-size:13px">與地端 Named User 的差異：地端每個帳號綁定特定姓名人員，不可轉讓；私有雲票池可依需求靈活調配，人員異動時不需重新購買授權。</div>
+        <div class="ticket-grid">
+          <div class="ticket-card dev">
+            <div class="ticket-name">Developer Use</div>
+            <div class="ticket-ratio">2 : 1</div>
+            <div class="ticket-desc">1 人消耗 2 張票，最高</div>
+            <div class="ticket-dept">IT 部門</div>
+          </div>
+          <div class="ticket-card adv">
+            <div class="ticket-name">Advance Use</div>
+            <div class="ticket-ratio">1 : 1</div>
+            <div class="ticket-desc">1 人消耗 1 張票，標準</div>
+            <div class="ticket-dept">財務、採購</div>
+          </div>
+          <div class="ticket-card core">
+            <div class="ticket-name">Core Use</div>
+            <div class="ticket-ratio">1 : 5</div>
+            <div class="ticket-desc">1 張票供 5 人共用</div>
+            <div class="ticket-dept">銷售、RD、品保</div>
+          </div>
+          <div class="ticket-card self">
+            <div class="ticket-name">Self Service Use</div>
+            <div class="ticket-ratio">1 : 30</div>
+            <div class="ticket-desc">1 張票供 30 人共用，最輕量</div>
+            <div class="ticket-dept">倉管、報工</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SAP AI 功能 ── -->
+  <div class="section">
+    <div class="section-title">SAP AI 功能</div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <h2>Joule — SAP 內建 AI Agent</h2>
+        <span class="pill pill-blue" style="margin-left:auto">支援所有語言</span>
+      </div>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Joule 是 SAP 原生 AI 助理，直接整合在 SAP 操作介面內，分三個能力層級：</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>層級</th>
+                <th>能力</th>
+                <th>實際例子</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="pill pill-teal">① Informational</span></td>
+                <td>問答查詢</td>
+                <td>「這個月採購金額是多少？」直接回答</td>
+              </tr>
+              <tr>
+                <td><span class="pill pill-blue">② Navigational</span></td>
+                <td>引導操作步驟</td>
+                <td>「我要建一張採購單」，Joule 帶你一步一步點</td>
+              </tr>
+              <tr>
+                <td><span class="pill pill-amber">③ Transactional</span></td>
+                <td>直接執行任務</td>
+                <td>幫你開工單、製作報表、分析數據</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout green" style="margin-top:14px">
+          <strong>費用說明：</strong>Joule 與 Embedded AI 為 <strong>SAP 訂閱內建功能</strong>，不需額外付費，包含在 SAP Business AI 基本授權中。
+        </div>
+        <div class="callout amber" style="margin-top:10px">
+          <strong>注意：</strong>需監控使用量，避免濫用。系統可查詢每位使用者的用量，後台有數據可看。
+        </div>
+      </div>
+    </div>
+
+    <!-- 應用情境 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <h2>實際應用情境示例</h2>
+        <span class="pill pill-green" style="margin-left:auto">Joule 示範</span>
+      </div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div style="border:1px solid var(--line);border-radius:8px;padding:18px">
+            <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:8px;letter-spacing:0.5px">情境一</div>
+            <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:10px">SAP 直接約 Teams 會議</div>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:10px">過去：發現訂單異常 → 打電話 → 手動在 Teams 發邀請 → 等待確認</p>
+            <p style="font-size:14px;margin-bottom:0">現在：在 SAP 內對 Joule 說「<strong>幫我安排相關人員明天討論這張訂單</strong>」，Joule 直接串連 Microsoft Teams，自動發出會議邀請，不需要離開 SAP 系統。</p>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:8px;padding:18px">
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:8px;letter-spacing:0.5px">情境二</div>
+            <div style="font-size:16px;font-weight:700;color:var(--blue);margin-bottom:10px">對話式開立單據</div>
+            <p style="font-size:14px;color:var(--muted);margin-bottom:10px">過去：逐一點選選單 → 一欄一欄手動填寫 → 送出</p>
+            <p style="font-size:14px;margin-bottom:0">現在：直接對 Joule 說「<strong>幫我開一張採購單，廠商 ABC，品項 XYZ，數量 100</strong>」，Joule 自動填入並建立單據，只需最後確認送出。</p>
+          </div>
+        </div>
+        <div class="callout blue" style="margin-top:14px">
+          以上為 <strong>Transactional 層級</strong>的 Joule 能力，代表 AI 可直接在 SAP 系統內執行操作，而不只是查詢或引導，這是 SAP Joule 與一般 AI 聊天工具最大的差異。
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="feature-block">
+        <h3>Embedded AI（內嵌 AI）</h3>
+        <ul>
+          <li><strong>條件式</strong>：設定條件自動觸發（如庫存低於閾值自動警示）</li>
+          <li><strong>Summary</strong>：自動摘要文件、報表內容</li>
+          <li>可由公司自訂模板格式</li>
+          <li>直接內嵌在現有 SAP 功能畫面中</li>
+        </ul>
+      </div>
+      <div class="feature-block">
+        <h3>Fiori 介面</h3>
+        <ul>
+          <li>SAP 現代化操作介面</li>
+          <li><strong>手機、平板均可查看</strong></li>
+          <li>比傳統 SAP 介面更直覺易用</li>
+          <li>適合現場人員、主管移動查詢</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-head">
+        <h2>SAP Business AI 架構</h2>
+      </div>
+      <div class="card-body">
+        <div class="flow" style="margin-bottom:14px">
+          <div class="flow-item">
+            <strong>SAP Business Data Cloud</strong>
+            歷史資料 + 資料交換<br>
+            <span style="font-size:11px;color:var(--muted)">Machine Learning 基礎</span>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-item">
+            <strong>AI 模型</strong>
+            SAP Business AI<br>
+            <span style="font-size:11px;color:var(--muted)">GAI + Joule + Embedded</span>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-item">
+            <strong>SAP Applications</strong>
+            回到你的 SAP 系統<br>
+            <span style="font-size:11px;color:var(--muted)">無縫整合，不改核心</span>
+          </div>
+        </div>
+        <div class="callout green">
+          <strong>核心原則：不動 SAP 系統核心。</strong>加上 AI 功能不會改動原本的 ERP 設定，SAP 協助程式升級，開發語言使用 ABAP / 4GL。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 待釐清問題 ── -->
+  <div class="section">
+    <div class="section-title">待釐清問題</div>
+    <div class="card">
+      <div class="card-head">
+        <h2>下次與精誠會談前需確認的項目</h2>
+      </div>
+      <div class="card-body">
+
+        <h3 style="color:var(--blue);font-size:14px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)">AI 技術架構</h3>
+        <div class="tbl-wrap" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th style="width:40%">問題</th><th>為何重要</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Joule 背後的 LLM 是 SAP 自有模型，還是會連到 Google Gemini / Anthropic Claude 的機房？</td>
+                <td>涉及資料主權與 NDA 合規，若流量出境至第三方 AI 廠商，客戶資料外洩風險需特別評估</td>
+              </tr>
+              <tr>
+                <td>SAP Business AI 的模型訓練資料是否包含客戶輸入的資料？</td>
+                <td>ODM 廠商對客戶 BOM、規格資料保密義務極嚴，需確認 SAP 的 Zero Data Retention 政策</td>
+              </tr>
+              <tr>
+                <td>Joule 是否支援連接公司內部知識庫（RAG），還是僅限 SAP 系統內的資料？</td>
+                <td>若只能查 SAP 資料，對跨系統查詢的場景幫助有限</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="color:var(--blue);font-size:14px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)">資料管理與導入</h3>
+        <div class="tbl-wrap" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th style="width:40%">問題</th><th>為何重要</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>現有 ERP 的資料如何轉移到 SAP？格式轉換、資料清理由誰負責？</td>
+                <td>資料清洗往往是導入最耗時的環節，需確認責任歸屬與工時</td>
+              </tr>
+              <tr>
+                <td>SAP Business AI 的 ML 模型需要多少歷史資料才能有效運作？</td>
+                <td>若振曜歷史資料格式不符，模型效果可能大打折扣</td>
+              </tr>
+              <tr>
+                <td>外圍系統（MES、WMS、客服系統等）的串接工時與費用如何計算？</td>
+                <td>顧問費的大宗往往在外圍系統串接，需在報價前先盤點</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="color:var(--blue);font-size:14px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)">使用管控與治理</h3>
+        <div class="tbl-wrap" style="margin-bottom:20px">
+          <table>
+            <thead><tr><th style="width:40%">問題</th><th>為何重要</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>是否有 by 使用者的用量管控介面？可以設定單人用量上限或部門配額嗎？</td>
+                <td>避免少數人過度使用產生超額費用，或 AI 被濫用於非工作用途</td>
+              </tr>
+              <tr>
+                <td>Joule Transactional（直接執行動作）的權限控管如何設計？誰可以授權 AI 開單、修改資料？</td>
+                <td>AI 直接操作 ERP 資料的風險控管，需有明確的審核機制</td>
+              </tr>
+              <tr>
+                <td>SAP 操作的稽核紀錄（Audit Log）是否包含 AI 的操作行為？</td>
+                <td>符合內控與未來可能的法規要求</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="color:var(--blue);font-size:14px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)">費用與合約</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th style="width:40%">問題</th><th>為何重要</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>精誠的導入顧問費大概落在什麼範圍？是 Time &amp; Material 還是 Fixed Price？</td>
+                <td>導入費用可能與 SAP 授權費同等量級，需一起評估總預算</td>
+              </tr>
+              <tr>
+                <td>公有雲的合約若中途要增加使用人數或模組，彈性如何？</td>
+                <td>公司成長後的授權擴充成本需預先了解</td>
+              </tr>
+              <tr>
+                <td>是否有製造業（ODM / OEM）的導入參考案例，可以分享成效數據？</td>
+                <td>同業案例最有說服力，有助於評估實際 ROI</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 後續評估建議 ── -->
+  <div class="section">
+    <div class="section-title">後續評估建議</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>評估項目</th><th>說明</th><th>優先度</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>部署方式確認</strong></td>
+                <td>公有雲 vs 私有雲，取決於公司規模與客製化需求</td>
+                <td><span class="pill pill-amber">高</span></td>
+              </tr>
+              <tr>
+                <td><strong>使用人數盤點</strong></td>
+                <td>各部門使用者人數 × License 類型 → 試算年費</td>
+                <td><span class="pill pill-amber">高</span></td>
+              </tr>
+              <tr>
+                <td><strong>AI 功能範疇確認</strong></td>
+                <td>Joule / Embedded AI 是否包含在基本訂閱或需額外付費</td>
+                <td><span class="pill pill-blue">中</span></td>
+              </tr>
+              <tr>
+                <td><strong>精誠導入報價</strong></td>
+                <td>顧問費 + 導入工時，建議要求書面報價</td>
+                <td><span class="pill pill-blue">中</span></td>
+              </tr>
+              <tr>
+                <td><strong>現有系統盤點</strong></td>
+                <td>確認哪些外圍系統需要串接進 SAP，影響導入複雜度</td>
+                <td><span class="pill pill-teal">低</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  振曜科技 AI 推動委員會 · 本文件僅供內部評估參考 · 2026
+</div>
+
+</body>
+</html>
