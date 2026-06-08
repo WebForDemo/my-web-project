@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFA Dither Release</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;
+  background: #0f1117; color: #e2e8f0;
+  overflow: hidden; height: 100vh;
+}
+.slides { width:100%; height:100vh; position:relative; }
+.slide {
+  position:absolute; width:100%; height:100%;
+  display:none; padding:50px 72px 88px;
+  overflow:hidden; flex-direction:column; justify-content:center;
+}
+.slide.active { display:flex; }
+.slide-cover {
+  background:linear-gradient(135deg,#0f1a10 0%,#0f1117 55%,#101a0f 100%);
+  align-items:center; text-align:center; justify-content:center; padding-bottom:50px;
+}
+.slide-content { background:#0f1117; }
+
+.cover-tag { font-size:13px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:#4ade80; margin-bottom:18px; }
+.cover-title { font-size:50px; font-weight:800; line-height:1.15; background:linear-gradient(135deg,#e2e8f0 0%,#86efac 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:16px; }
+.cover-sub { font-size:19px; color:#94a3b8; margin-bottom:36px; }
+.cover-meta { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+.meta-item { background:rgba(74,222,128,.1); border:1px solid rgba(74,222,128,.3); border-radius:12px; padding:9px 18px; font-size:13px; color:#86efac; }
+
+h2 { font-size:28px; font-weight:700; color:#e2e8f0; margin-bottom:20px; padding-bottom:11px; border-bottom:2px solid rgba(74,222,128,.4); display:flex; align-items:center; gap:12px; }
+h2 .num { background:#16a34a; color:white; width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+h3 { font-size:14px; font-weight:700; color:#86efac; margin-bottom:9px; margin-top:16px; }
+h3:first-child { margin-top:0; }
+p { color:#94a3b8; line-height:1.65; font-size:13.5px; margin-bottom:7px; }
+
+pre {
+  background:#1e2030; border:1px solid #2d3148; border-left:3px solid #4ade80;
+  border-radius:10px; padding:13px 16px;
+  font-family:'JetBrains Mono','Fira Code','Consolas',monospace;
+  font-size:12px; line-height:1.65; color:#c9d1d9;
+  overflow-x:auto; margin:8px 0; white-space:pre;
+}
+code { font-family:'JetBrains Mono','Fira Code','Consolas',monospace; font-size:11.5px; }
+
+.cg { color:#4ade80; } .cy { color:#fbbf24; } .cb { color:#60a5fa; }
+.cp { color:#c084fc; } .cr { color:#f87171; } .cz { color:#6b7280; }
+.co { color:#fb923c; }
+
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+
+.card { background:#1e2030; border:1px solid #2d3148; border-radius:12px; padding:15px; }
+.card-title { font-size:13px; font-weight:700; color:#86efac; margin-bottom:8px; }
+.card-body { font-size:12.5px; color:#94a3b8; line-height:1.65; }
+
+.badge { display:inline-block; padding:2px 9px; border-radius:6px; font-size:11.5px; font-weight:600; }
+.badge-green  { background:rgba(74,222,128,.15);  color:#4ade80; }
+.badge-yellow { background:rgba(251,191,36,.15);  color:#fbbf24; }
+.badge-red    { background:rgba(248,113,113,.15); color:#f87171; }
+.badge-blue   { background:rgba(96,165,250,.15);  color:#60a5fa; }
+.badge-orange { background:rgba(251,146,60,.15);  color:#fb923c; }
+
+table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+th { background:rgba(74,222,128,.15); color:#86efac; padding:9px 13px; text-align:left; font-weight:600; border-bottom:2px solid rgba(74,222,128,.3); }
+td { padding:9px 13px; border-bottom:1px solid #1e2030; color:#94a3b8; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+td:first-child { color:#e2e8f0; font-weight:500; }
+
+.hbox { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.3); border-radius:10px; padding:11px 15px; margin:8px 0; font-size:13px; color:#bbf7d0; }
+.hbox strong { color:#86efac; }
+.wbox { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.3); border-radius:10px; padding:11px 15px; margin:8px 0; font-size:13px; color:#fde68a; }
+.wbox strong { color:#fbbf24; }
+.rbox { background:rgba(248,113,113,.07); border:1px solid rgba(248,113,113,.3); border-radius:10px; padding:11px 15px; margin:8px 0; font-size:13px; color:#fecaca; }
+
+.step { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; }
+.step-n { background:#16a34a; color:white; width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.step-n.off { background:#dc2626; }
+.step-n.check { background:#0284c7; }
+.step-c strong { display:block; color:#e2e8f0; font-size:13px; margin-bottom:3px; }
+.step-c span { color:#94a3b8; font-size:12px; }
+
+ul { list-style:none; }
+ul li { padding:3px 0 3px 16px; position:relative; color:#94a3b8; font-size:13px; line-height:1.6; }
+ul li::before { content:'▸'; position:absolute; left:0; color:#4ade80; }
+
+.slide-num { position:absolute; top:20px; right:32px; font-size:11px; color:#334155; }
+.key-hint { position:fixed; top:16px; right:16px; font-size:11px; color:#334155; }
+
+.nav { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; z-index:100; }
+.nav button { background:rgba(74,222,128,.15); border:1px solid rgba(74,222,128,.35); color:#86efac; border-radius:9px; width:40px; height:40px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+.nav button:hover { background:rgba(74,222,128,.3); }
+.nav button:disabled { opacity:.3; cursor:not-allowed; }
+.page-info { font-size:12px; color:#64748b; min-width:60px; text-align:center; }
+.dots { display:flex; gap:5px; }
+.dot { width:6px; height:6px; border-radius:50%; background:#334155; cursor:pointer; transition:all .2s; }
+.dot.active { background:#4ade80; width:18px; border-radius:3px; }
+
+/* Dither visual */
+.dither-demo { font-family:'JetBrains Mono','Fira Code','Consolas',monospace; font-size:18px; line-height:2; letter-spacing:2px; }
+</style>
+</head>
+<body>
+<div class="key-hint">← → 或空白鍵切換</div>
+<div class="slides">
+
+<!-- ══════════ SLIDE 1: Cover ══════════ -->
+<div class="slide slide-cover active">
+  <div class="cover-tag">Feature Release · E-Ink Display · Android 16</div>
+  <div class="cover-title">CFA Dither<br>功能釋出報告</div>
+  <div class="cover-sub">讓 E-Ink 在少色模式下看起來更有層次</div>
+  <div class="cover-meta">
+    <div class="meta-item">🎨 Y1 / Y4 Dithering</div>
+    <div class="meta-item">⚙️ 4 個 Repo 改動</div>
+    <div class="meta-item">📡 Broadcast API 控制</div>
+    <div class="meta-item">🖼️ MDP 硬體加速</div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 2: What is Dithering ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">02 / 08</div>
+  <h2><span class="num">1</span>Dithering 是什麼？（白話版）</h2>
+  <div class="two-col">
+    <div>
+      <h3>E-Ink 的灰階限制</h3>
+      <table style="margin-bottom:14px">
+        <tr><th>模式</th><th>灰階數</th><th>說明</th></tr>
+        <tr><td>Y1</td><td><span class="badge badge-yellow">2 色</span></td><td>只有純黑、純白</td></tr>
+        <tr><td>Y4</td><td><span class="badge badge-blue">16 色</span></td><td>黑到白共 16 階</td></tr>
+        <tr><td>Y8</td><td><span class="badge badge-green">256 色</span></td><td>最細緻，刷新最慢</td></tr>
+      </table>
+      <h3>Dithering 要解決的問題</h3>
+      <p>假設圖片有 256 種灰，但螢幕只有 2 色（Y1）。</p>
+      <div class="rbox" style="margin-top:8px">
+        <strong>沒有 Dithering</strong>：強制把 256 色壓成 2 色 → 細節丟失，色塊分明、很醜
+      </div>
+      <div class="hbox">
+        <strong>有 Dithering</strong>：把黑白像素排成特定花紋，視覺上欺騙眼睛，感覺有更多層次
+      </div>
+    </div>
+    <div>
+      <h3>視覺效果對比</h3>
+      <div style="background:#1e2030;border:1px solid #2d3148;border-radius:12px;padding:20px 16px;margin-bottom:12px">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:12px">從深灰漸變到淺灰（只有黑白可用）</div>
+        <div style="margin-bottom:14px">
+          <div style="font-size:11.5px;color:#f87171;margin-bottom:5px">❌ 沒有 Dithering</div>
+          <div class="dither-demo" style="color:#e2e8f0">
+            <span style="color:#1e1e1e">████</span><span style="color:#1e1e1e">████</span><span style="color:#e2e8f0">░░░░</span><span style="color:#e2e8f0">░░░░</span>
+          </div>
+          <div style="font-size:11px;color:#475569;margin-top:3px">（硬切邊界，突兀）</div>
+        </div>
+        <div>
+          <div style="font-size:11.5px;color:#4ade80;margin-bottom:5px">✅ 有 Dithering</div>
+          <div class="dither-demo">
+            <span style="color:#1e1e1e">████</span><span style="color:#555">▓▓</span><span style="color:#888">▒▒</span><span style="color:#aaa">░░</span><span style="color:#e2e8f0">░░░░</span>
+          </div>
+          <div style="font-size:11px;color:#475569;margin-top:3px">（漸層感，自然）</div>
+        </div>
+      </div>
+      <div class="hbox" style="font-size:12.5px">
+        <strong>類比：報紙印刷</strong><br>
+        靠近看只有黑點，遠看卻有灰色。Dithering 就是同樣的原理。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 3: Mode Comparison ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">03 / 08</div>
+  <h2><span class="num">2</span>模式對照與使用場景</h2>
+  <table style="margin-bottom:16px">
+    <tr><th>模式</th><th>灰階</th><th>速度</th><th>Dither 參數</th><th>典型用途</th></tr>
+    <tr>
+      <td><strong style="color:#fbbf24">Y1</strong></td>
+      <td><span class="badge badge-yellow">2 色</span></td>
+      <td><span class="badge badge-green">最快</span></td>
+      <td><code style="color:#fbbf24">flags=0x2000</code> + dithermode 可選</td>
+      <td>Seekbar 滑動、手寫輸入、拖曳物件</td>
+    </tr>
+    <tr>
+      <td><strong style="color:#60a5fa">Y4</strong></td>
+      <td><span class="badge badge-blue">16 色</span></td>
+      <td><span class="badge badge-blue">中等</span></td>
+      <td><code style="color:#60a5fa">flags=0x4000</code>（dithermode 寫死，無須設定）</td>
+      <td>需要層次感的動態畫面</td>
+    </tr>
+    <tr>
+      <td><strong style="color:#94a3b8">GC16</strong></td>
+      <td><span class="badge badge-blue">16 色</span></td>
+      <td><span class="badge badge-red">慢 ~330ms</span></td>
+      <td>—（不使用 Dither）</td>
+      <td>高品質靜態畫面</td>
+    </tr>
+    <tr>
+      <td><strong style="color:#94a3b8">GLR16 / GLC16</strong></td>
+      <td><span class="badge badge-blue">16 色</span></td>
+      <td><span class="badge badge-red">慢</span></td>
+      <td>—（不使用 Dither）</td>
+      <td>文字優化渲染</td>
+    </tr>
+  </table>
+
+  <div class="two-col">
+    <div>
+      <h3>Y1 的三種 dithermode 演算法</h3>
+      <table>
+        <tr><th>值</th><th>演算法</th><th>特性</th></tr>
+        <tr><td><code style="color:#fbbf24">0x300</code></td><td>Quantization（Q）</td><td>最基本，邊緣硬</td></tr>
+        <tr><td><code style="color:#4ade80">0x301</code></td><td>Blue Noise（B）</td><td>初步看起來效果最好 ★</td></tr>
+        <tr><td><code style="color:#60a5fa">0x302</code></td><td>Sierra（S）</td><td>預設值，漸層均勻</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>使用原則</h3>
+      <ul>
+        <li>理論上都用 <strong style="color:#fbbf24">Y1</strong>，速度最快，搭配 dither 補足層次</li>
+        <li>Y1 dithermode 推薦先測 <strong style="color:#4ade80">0x301 Blue Noise</strong></li>
+        <li>Y4 dithermode 寫死，不需設定，直接填 <code>flags=0x4000</code></li>
+        <li>Global Mode 為主；NNote 類似 Lasso 拖曳，System 是 Seekbar / 滑動</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 4: Parameters ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">04 / 08</div>
+  <h2><span class="num">3</span>參數說明</h2>
+  <div class="two-col" style="gap:22px">
+    <div>
+      <h3>必填參數</h3>
+      <table style="margin-bottom:14px">
+        <tr><th>參數</th><th>作用</th><th>常用值</th></tr>
+        <tr>
+          <td><code class="cy">waveformmode</code></td>
+          <td>選波形，決定刷新品質</td>
+          <td><code>1</code> 開啟 / <code>0</code> 關閉（同時關 dither）</td>
+        </tr>
+        <tr>
+          <td><code class="cy">flags</code></td>
+          <td>選 Dither 類型</td>
+          <td><code>0x2000</code> = Y1 ／ <code>0x4000</code> = Y4</td>
+        </tr>
+      </table>
+
+      <h3>選填參數</h3>
+      <table>
+        <tr><th>參數</th><th>作用</th><th>常用值</th></tr>
+        <tr>
+          <td><code class="cb">updatemode</code></td>
+          <td>刷新範圍</td>
+          <td><code>0</code> = 全螢幕</td>
+        </tr>
+        <tr>
+          <td><code class="cb">waitmode</code></td>
+          <td>是否等刷新完才繼續</td>
+          <td><code>1</code> = 等待</td>
+        </tr>
+        <tr>
+          <td><code class="cb">dithermode</code></td>
+          <td>Y1 的演算法（Y4 不用填）</td>
+          <td><code>0x300</code> Q / <code>0x301</code> Blue Noise / <code>0x302</code> Sierra</td>
+        </tr>
+      </table>
+    </div>
+    <div>
+      <h3>flags vs dithermode 的關係</h3>
+      <div style="background:#1e2030;border:1px solid #2d3148;border-radius:12px;padding:16px;font-size:13px;line-height:2;color:#94a3b8">
+        <div style="margin-bottom:10px">
+          <code class="cy">flags</code> → 決定「<strong style="color:#e2e8f0">用幾個灰階</strong>」做 Dither<br>
+          <span style="color:#475569;font-size:12px;margin-left:12px">（黑白兩色 Y1？還是 16 色 Y4？）</span>
+        </div>
+        <div>
+          <code class="cb">dithermode</code> → 決定「<strong style="color:#e2e8f0">點要怎麼排</strong>」<br>
+          <span style="color:#475569;font-size:12px;margin-left:12px">（斜排 Q？隨機 Blue Noise？菱形 Sierra？）</span>
+        </div>
+      </div>
+      <div class="hbox" style="font-size:12.5px;margin-top:10px">
+        <strong>類比印刷</strong><br>
+        flags = 決定「印幾色」<br>
+        dithermode = 決定「點要怎麼排」
+      </div>
+      <h3 style="margin-top:14px">關閉 Dither</h3>
+      <pre style="font-size:12px">adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  <span class="cr">--ei waveformmode 0</span></pre>
+      <p style="font-size:11.5px;color:#475569">waveformmode=0 即同時關閉 dither，其他參數不需要填</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 5: Quick Commands ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">05 / 08</div>
+  <h2><span class="num">4</span>快速啟用指令</h2>
+  <div class="two-col" style="gap:20px">
+    <div>
+      <h3>Y1 Dither（推薦，速度最快）</h3>
+      <pre style="font-size:11.5px"><span class="cz"># Blue Noise（初步看起來效果最好）★</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 \
+  --ei waveformmode 1 \
+  --ei flags 0x2000 <span class="cg">--ei dithermode 0x301</span>
+
+<span class="cz"># Sierra（預設值）</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 \
+  --ei waveformmode 1 \
+  --ei flags 0x2000 --ei dithermode 0x302
+
+<span class="cz"># Quantization</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 \
+  --ei waveformmode 1 \
+  --ei flags 0x2000 --ei dithermode 0x300</pre>
+    </div>
+    <div>
+      <h3>Y4 Dither（16 色，較豐富）</h3>
+      <pre style="font-size:11.5px"><span class="cz"># dithermode 寫死，無須設定</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 \
+  --ei waveformmode 1 \
+  --ei flags <span class="cb">0x4000</span></pre>
+      <h3 style="margin-top:14px">關閉 Dither</h3>
+      <pre style="font-size:11.5px"><span class="cz"># 任何時候都可以用這個關閉</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  <span class="cr">--ei waveformmode 0</span></pre>
+      <div class="hbox" style="font-size:12px;margin-top:10px">
+        <strong>dithermode 預設值</strong>：不填 dithermode 時預設為 <code>0x302</code> Sierra
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 6: Test Flow ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">06 / 08</div>
+  <h2><span class="num">5</span>測試流程</h2>
+  <div class="two-col" style="gap:20px">
+    <div>
+      <div class="step">
+        <div class="step-n">1</div>
+        <div class="step-c">
+          <strong>基準：不開 Dither</strong>
+          <pre style="font-size:11px;margin-top:5px">adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 \
+  --ei waveformmode 0</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">2</div>
+        <div class="step-c">
+          <strong>Y1 Dither（三種演算法依序測試）</strong>
+          <pre style="font-size:11px;margin-top:5px"><span class="cz"># 2-A  Sierra（先測這個）</span>
+... --ei flags 0x2000 --ei dithermode 0x302
+
+<span class="cz"># 2-B  Blue Noise ★推薦</span>
+... --ei flags 0x2000 --ei dithermode 0x301
+
+<span class="cz"># 2-C  Quantization</span>
+... --ei flags 0x2000 --ei dithermode 0x300</pre>
+          <span>每測完一個，先關閉再換下一個</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="step">
+        <div class="step-n off">↓</div>
+        <div class="step-c">
+          <strong>每次切換前：關閉 Dither</strong>
+          <pre style="font-size:11px;margin-top:5px">adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei waveformmode 0</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n">3</div>
+        <div class="step-c">
+          <strong>Y4 Dither（dithermode 寫死）</strong>
+          <pre style="font-size:11px;margin-top:5px">adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 \
+  --ei waveformmode 1 --ei flags 0x4000</pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-n check">4</div>
+        <div class="step-c">
+          <strong>驗收：確認關閉正常</strong>
+          <pre style="font-size:11px;margin-top:5px">adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei waveformmode 0</pre>
+        </div>
+      </div>
+
+      <div class="wbox" style="font-size:12px;margin-top:4px">
+        <strong>測試順序</strong>：基準 → 2-A Sierra → 關 → 2-B Blue Noise → 關 → 2-C Q → 關 → Y4 → 關 → 驗收
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 7: Checklist ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">07 / 08</div>
+  <h2><span class="num">6</span>驗收清單 &amp; 確認項目</h2>
+  <div class="two-col" style="gap:22px">
+    <div>
+      <h3>每個 case 確認清單</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:18px;flex-shrink:0">🖼️</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:3px">彩色照片</div>
+            <div style="font-size:12.5px;color:#94a3b8">顏色正常，沒有色偏或奇怪色塊</div>
+          </div>
+        </div>
+        <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:18px;flex-shrink:0">🌫️</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:3px">灰階漸層</div>
+            <div style="font-size:12.5px;color:#94a3b8">看得出層次，不斷層、不色塊分明</div>
+          </div>
+        </div>
+        <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:18px;flex-shrink:0">🔤</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:3px">文字邊緣</div>
+            <div style="font-size:12.5px;color:#94a3b8">清晰，沒有花斑或鋸齒感</div>
+          </div>
+        </div>
+        <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:18px;flex-shrink:0">✅</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:3px">關閉後</div>
+            <div style="font-size:12.5px;color:#94a3b8">恢復正常顯示，無殘留花紋</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>Y1 三種演算法比較</h3>
+      <table style="margin-bottom:14px">
+        <tr><th>演算法</th><th>優點</th><th>缺點</th></tr>
+        <tr>
+          <td><code>0x302</code> Sierra</td>
+          <td>漸層均勻，預設值</td>
+          <td>較規律，可能產生條紋感</td>
+        </tr>
+        <tr>
+          <td><code>0x301</code> Blue Noise ★</td>
+          <td>隨機分布，自然感最強</td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><code>0x300</code> Quantization</td>
+          <td>計算最簡單</td>
+          <td>邊緣較硬，層次感弱</td>
+        </tr>
+      </table>
+      <div class="hbox" style="font-size:12.5px">
+        <strong>初步推薦</strong>：Blue Noise（0x301）效果最自然，先以此為主進行驗收。最終選擇依實機視覺效果而定。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 8: Repos ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">08 / 08</div>
+  <h2><span class="num">7</span>改動範圍（4 個 Repo）</h2>
+  <div class="two-col" style="gap:22px">
+    <div>
+      <h3>System（make sys_images）</h3>
+      <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-size:12px;color:#64748b;font-family:monospace;margin-bottom:8px">frameworks/base</div>
+        <div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-bottom:4px">a59ef17 — [SMode] Support CFA dither</div>
+        <div style="font-size:12px;color:#94a3b8">Broadcast 參數解析、CFA dither mode 傳遞</div>
+      </div>
+      <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;color:#64748b;font-family:monospace;margin-bottom:8px">frameworks/native</div>
+        <div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-bottom:4px">274fbac — [SMode] Support CFA dither</div>
+        <div style="font-size:12px;color:#94a3b8">SurfaceFlinger / HWC Native 層 dither 支援</div>
+      </div>
+
+      <h3 style="margin-top:16px">Vendor（make vnd_images / krn_images）</h3>
+      <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+        <div style="font-size:12px;color:#64748b;font-family:monospace;margin-bottom:8px">vendor/mediatek/proprietary/hardware/libhwcomposer</div>
+        <div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-bottom:4px">5193479 — [SMode] Support CFA dither</div>
+        <div style="font-size:12px;color:#94a3b8">HWC flags / dithermode 參數帶入硬體</div>
+      </div>
+      <div style="background:#1e2030;border:1px solid rgba(74,222,128,.4);border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;color:#64748b;font-family:monospace;margin-bottom:8px">kernel/kernel_device_modules-6.6</div>
+        <div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-bottom:4px">256d82e — [dither] Support CFA dither</div>
+        <div style="font-size:12px;color:#94a3b8">hwtcon driver：MDP CFA dither 硬體加速實作<br>HWTCON_FLAG_USE_DITHERING_Y1 / Y4</div>
+      </div>
+    </div>
+    <div>
+      <h3>架構鏈路</h3>
+      <pre style="font-size:12px">Broadcast 帶入 flags / dithermode
+    │
+    ▼
+<span class="cb">frameworks/base</span>（PowerManagerService）
+    │ 解析參數，傳給 SurfaceFlinger
+    ▼
+<span class="cb">frameworks/native</span>（SurfaceFlinger）
+    │ 帶入 Layer metadata
+    ▼
+<span class="cy">libhwcomposer</span>（HWC）
+    │ 轉換為 HWTCON_FLAG 帶入幀
+    ▼
+<span class="cg">hwtcon kernel driver</span>
+    │ HWTCON_FLAG_USE_DITHERING_Y1 = 0x2000
+    │ HWTCON_FLAG_USE_DITHERING_Y4 = 0x4000
+    ▼
+<span class="cg">MDP 硬體</span>（CFA dithering 硬體加速）
+    │
+    ▼
+E-Ink 面板顯示</pre>
+      <div class="hbox" style="margin-top:10px;font-size:12.5px">
+        <strong>Build 範圍</strong>：sys_images + vnd_images + krn_images 三包都需要更新
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /slides -->
+
+<div class="nav">
+  <button id="prevBtn" onclick="changeSlide(-1)" disabled>‹</button>
+  <div class="dots" id="dots"></div>
+  <div class="page-info" id="pageInfo">1 / 8</div>
+  <button id="nextBtn" onclick="changeSlide(1)">›</button>
+</div>
+
+<script>
+  let cur = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' active':'');
+    d.onclick=()=>goTo(i);
+    dotsEl.appendChild(d);
+  });
+  function goTo(n){
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur=Math.max(0,Math.min(total-1,n));
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    document.getElementById('pageInfo').textContent=(cur+1)+' / '+total;
+    document.getElementById('prevBtn').disabled=cur===0;
+    document.getElementById('nextBtn').disabled=cur===total-1;
+  }
+  function changeSlide(d){goTo(cur+d);}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();changeSlide(1);}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();changeSlide(-1);}
+  });
+</script>
+</body>
+</html>
