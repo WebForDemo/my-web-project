@@ -155,7 +155,7 @@ ul li::before { content:'▸'; position:absolute; left:0; color:#7c3aed; }
 
 <!-- ══════════ SLIDE 2: Original Problem ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">02 / 13</div>
+  <div class="slide-num">02 / 14</div>
   <h2><span class="num">1</span>原始問題：殘影</h2>
   <div class="two-col">
     <div>
@@ -200,7 +200,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 3: Architecture ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">03 / 13</div>
+  <div class="slide-num">03 / 14</div>
   <h2><span class="num">2</span>系統架構：幀是怎麼走到螢幕的</h2>
   <div class="two-col">
     <div>
@@ -253,9 +253,94 @@ scrcpy（電腦鏡像）是正常的
   </div>
 </div>
 
+<!-- ══════════ SLIDE 4: Full Pipeline ══════════ -->
+<div class="slide slide-content" style="padding:38px 60px 80px">
+  <div class="slide-num">04 / 14</div>
+  <h2 style="margin-bottom:14px"><span class="num">◌</span>完整更新鏈路：從點按鈕到 E-Ink 像素</h2>
+
+  <!-- 5-stage pipeline -->
+  <div style="display:flex;align-items:stretch;gap:5px;margin-bottom:13px">
+
+    <div style="flex:1;background:#1e2030;border:1px solid #2d3148;border-top:3px solid #60a5fa;border-radius:10px;padding:12px 10px">
+      <div style="font-weight:700;color:#60a5fa;font-size:12px;margin-bottom:8px">① App / View</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.85">
+        使用者點 Button<br>
+        touch → InputDispatcher<br>
+        <code style="color:#60a5fa;font-size:10.5px">View.invalidate()</code><br>
+        Choreographer 登記下一幀
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:#334155;font-size:20px;flex-shrink:0;padding:0 2px">›</div>
+
+    <div style="flex:1;background:#1e2030;border:1px solid #2d3148;border-top:3px solid #a78bfa;border-radius:10px;padding:12px 10px">
+      <div style="font-weight:700;color:#a78bfa;font-size:12px;margin-bottom:8px">② SurfaceFlinger</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.85">
+        VSYNC 到（16ms 週期）<br>
+        <code style="color:#a78bfa;font-size:10.5px">View.draw()</code> → GraphicBuffer<br>
+        Skia / HWUI 硬體加速<br>
+        所有 Layer 合成成一幀
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:#334155;font-size:20px;flex-shrink:0;padding:0 2px">›</div>
+
+    <div style="flex:1;background:#1e2030;border:1px solid #2d3148;border-top:3px solid #fbbf24;border-radius:10px;padding:12px 10px">
+      <div style="font-weight:700;color:#fbbf24;font-size:12px;margin-bottom:8px">③ HWC / DRM</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.85">
+        HWC 套用 waveformmode / flags<br>
+        DRM <code style="color:#fbbf24;font-size:10.5px">atomic_commit</code><br>
+        建立 frame + update_marker<br>
+        等三個 completion 回執 ⚠️
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:#334155;font-size:20px;flex-shrink:0;padding:0 2px">›</div>
+
+    <div style="flex:1;background:#1e2030;border:2px solid rgba(124,58,237,.6);border-top:3px solid #7c3aed;border-radius:10px;padding:12px 10px">
+      <div style="font-weight:700;color:#c084fc;font-size:12px;margin-bottom:8px">④ hwtcon Driver ★</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.85">
+        <span style="color:#4ade80">立刻 signal 3 個 completion</span><br>
+        Pending Slot 判斷 IDLE/BUSY<br>
+        MDP 格式轉換 + dithering<br>
+        waveform 資料送 FITI
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;color:#334155;font-size:20px;flex-shrink:0;padding:0 2px">›</div>
+
+    <div style="flex:1;background:#1e2030;border:1px solid #2d3148;border-top:3px solid #4ade80;border-radius:10px;padding:12px 10px">
+      <div style="font-weight:700;color:#4ade80;font-size:12px;margin-bottom:8px">⑤ FITI → E-Ink</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.85">
+        FITI PMIC 輸出電壓序列<br>
+        帶電粒子受電場驅動移動<br>
+        像素改色（雙穩態保留）<br>
+        完成 → 釋放 LUT slot
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="hbox" style="font-size:12px;line-height:1.85">
+      <strong>修復作用點（③ ↔ ④ 邊界）</strong><br>
+      DRM 送幀後立刻收到 completion → Android UI 繼續 60fps<br>
+      hwtcon 非同步驅動 E-Ink 波形 → 兩者完全不阻塞
+    </div>
+    <div style="background:#1e2030;border:1px solid #2d3148;border-radius:10px;padding:12px 14px">
+      <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:6px">E-Ink 與 LCD 根本差異</div>
+      <div style="font-size:11.5px;color:#64748b;line-height:1.9">
+        <span style="color:#60a5fa">LCD</span>：GPU → display controller → 每 16ms 持續刷新 → 即時顯示<br>
+        <span style="color:#4ade80">E-Ink</span>：GPU → 波形引擎 → FITI 驅動 <span style="color:#fbbf24">~250ms</span> → 雙穩態，斷電不消失
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════ SLIDE 4: Ghosting Root Cause ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">04 / 13</div>
+  <div class="slide-num">05 / 14</div>
   <h2><span class="num">3</span>殘影根因：多個 LUT 同時執行</h2>
   <div class="two-col">
     <div>
@@ -303,7 +388,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 5: First Fix + Side Effect ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">05 / 13</div>
+  <div class="slide-num">06 / 14</div>
   <h2><span class="num">4</span>第一版修法與衍生問題</h2>
   <div class="two-col">
     <div>
@@ -352,7 +437,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 6: Complete Fix ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">06 / 13</div>
+  <div class="slide-num">07 / 14</div>
   <h2><span class="num">5</span>完整修法：兩個問題一起解決</h2>
   <div class="tl">
     <div class="tl-item">
@@ -401,7 +486,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 7: Core Code ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">07 / 13</div>
+  <div class="slide-num">08 / 14</div>
   <h2><span class="num">5</span>核心邏輯（技術細節）</h2>
   <div class="two-col" style="gap:20px;align-items:start">
 
@@ -474,7 +559,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 8: Before/After Timing ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">08 / 13</div>
+  <div class="slide-num">09 / 14</div>
   <h2><span class="num">6</span>修復前後時序對比</h2>
 
   <h3>修復前：AUTO / GC16 模式</h3>
@@ -530,7 +615,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 9: Wait vs Pending Slot ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">09 / 13</div>
+  <div class="slide-num">10 / 14</div>
   <h2><span class="num">◎</span>Wait Mode vs Pending Slot：概念差在哪？</h2>
   <div class="two-col" style="gap:18px;align-items:stretch">
 
@@ -628,7 +713,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 10: Demo ══════════ -->
 <div class="slide slide-content" style="padding:36px 56px 80px;">
-  <div class="slide-num">10 / 13</div>
+  <div class="slide-num">11 / 14</div>
 
   <h2 style="margin-bottom:14px"><span class="num">★</span>實機 Demo 對比</h2>
 
@@ -683,7 +768,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 10: Architecture & Broadcast ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">11 / 13</div>
+  <div class="slide-num">12 / 14</div>
   <h2><span class="num">7</span>廣播控制架構與使用方式</h2>
   <div class="two-col">
     <div>
@@ -735,7 +820,7 @@ adb shell am broadcast \
 
 <!-- ══════════ SLIDE 11: Files ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">12 / 13</div>
+  <div class="slide-num">13 / 14</div>
   <h2><span class="num">8</span>修改檔案清單</h2>
   <p style="font-size:12px;color:#475569;margin:-14px 0 14px">點擊任一檔案查看完整 diff</p>
   <div class="two-col">
@@ -795,7 +880,7 @@ adb shell am broadcast \
 
 <!-- ══════════ SLIDE 12: Summary ══════════ -->
 <div class="slide slide-cover" style="padding-bottom:52px">
-  <div class="slide-num">13 / 13</div>
+  <div class="slide-num">14 / 14</div>
   <div style="text-align:center;width:100%">
     <div class="cover-tag">修復成果總結</div>
     <table style="max-width:820px;margin:24px auto 20px;font-size:13px">
@@ -1186,7 +1271,7 @@ index 2dae734210e5..e03982d4b4ba 100644
 <div class="nav">
   <button id="prevBtn" onclick="changeSlide(-1)" disabled>‹</button>
   <div class="dots" id="dots"></div>
-  <div class="page-info" id="pageInfo">1 / 13</div>
+  <div class="page-info" id="pageInfo">1 / 14</div>
   <button id="nextBtn" onclick="changeSlide(1)">›</button>
 </div>
 
