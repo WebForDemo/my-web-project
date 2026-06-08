@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Ink 顯示殘影問題修復報告</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;
+  background: #0f1117;
+  color: #e2e8f0;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.slides { width:100%; height:100vh; position:relative; }
+
+.slide {
+  position:absolute; width:100%; height:100%;
+  display:none; padding:52px 76px 90px;
+  overflow:hidden; flex-direction:column; justify-content:center;
+}
+.slide.active { display:flex; }
+
+.slide-cover {
+  background:linear-gradient(135deg,#1a1f35 0%,#0f1117 60%,#1a1035 100%);
+  align-items:center; text-align:center; justify-content:center;
+  padding-bottom: 52px;
+}
+
+.slide-content { background:#0f1117; }
+
+/* Typography */
+.cover-tag { font-size:13px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:#7c3aed; margin-bottom:20px; }
+.cover-title { font-size:48px; font-weight:800; line-height:1.15; background:linear-gradient(135deg,#e2e8f0 0%,#a78bfa 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:18px; }
+.cover-sub { font-size:19px; color:#94a3b8; margin-bottom:40px; }
+.cover-meta { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; }
+.meta-item { background:rgba(124,58,237,.12); border:1px solid rgba(124,58,237,.3); border-radius:12px; padding:10px 20px; font-size:13px; color:#a78bfa; }
+
+h2 { font-size:30px; font-weight:700; color:#e2e8f0; margin-bottom:22px; padding-bottom:12px; border-bottom:2px solid rgba(124,58,237,.4); display:flex; align-items:center; gap:12px; }
+h2 .num { background:#7c3aed; color:white; width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+
+h3 { font-size:15px; font-weight:600; color:#a78bfa; margin-bottom:10px; margin-top:18px; }
+h3:first-child { margin-top:0; }
+p { color:#94a3b8; line-height:1.65; font-size:14px; margin-bottom:7px; }
+
+pre {
+  background:#1e2030; border:1px solid #2d3148; border-left:3px solid #7c3aed;
+  border-radius:10px; padding:14px 18px;
+  font-family:'JetBrains Mono','Fira Code','Consolas',monospace;
+  font-size:12.5px; line-height:1.65; color:#c9d1d9;
+  overflow-x:auto; margin:10px 0; white-space:pre;
+}
+
+.cg { color:#4ade80; } .cy { color:#fbbf24; } .cb { color:#60a5fa; }
+.cp { color:#c084fc; } .cr { color:#f87171; } .cz { color:#6b7280; }
+
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+
+.card { background:#1e2030; border:1px solid #2d3148; border-radius:12px; padding:16px; }
+.card-title { font-size:13px; font-weight:700; color:#a78bfa; margin-bottom:8px; }
+.card-body { font-size:12.5px; color:#94a3b8; line-height:1.65; }
+
+.badge { display:inline-block; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:600; }
+.badge-red    { background:rgba(248,113,113,.15); color:#f87171; }
+.badge-green  { background:rgba(74,222,128,.15);  color:#4ade80; }
+.badge-yellow { background:rgba(251,191,36,.15);  color:#fbbf24; }
+.badge-blue   { background:rgba(96,165,250,.15);  color:#60a5fa; }
+
+table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+th { background:rgba(124,58,237,.2); color:#a78bfa; padding:9px 13px; text-align:left; font-weight:600; border-bottom:2px solid rgba(124,58,237,.3); }
+td { padding:9px 13px; border-bottom:1px solid #1e2030; color:#94a3b8; vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+
+.hbox { background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.35); border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13px; color:#c4b5fd; }
+.hbox strong { color:#a78bfa; }
+.wbox { background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3); border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13px; color:#fde68a; }
+.sbox { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.3); border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13px; color:#bbf7d0; }
+
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:start; }
+
+/* Steps */
+.step { display:flex; align-items:flex-start; gap:12px; background:#1e2030; border-radius:10px; padding:12px 16px; border:1px solid #2d3148; margin-bottom:8px; }
+.step-n { background:#7c3aed; color:white; width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.step-n.red { background:#ef4444; }
+.step-c strong { display:block; color:#e2e8f0; font-size:13px; margin-bottom:2px; }
+.step-c span { color:#94a3b8; font-size:12px; }
+
+/* Timeline */
+.tl { display:flex; flex-direction:column; }
+.tl-item { display:flex; gap:14px; }
+.tl-left { display:flex; flex-direction:column; align-items:center; width:28px; flex-shrink:0; }
+.tl-dot { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+.tl-line { width:2px; flex:1; background:#2d3148; min-height:12px; margin:3px 0; }
+.tl-right { flex:1; background:#1e2030; border:1px solid #2d3148; border-radius:10px; padding:12px 15px; margin-bottom:10px; }
+.tl-title { font-size:13px; font-weight:700; margin-bottom:5px; }
+.tl-body { font-size:12px; color:#94a3b8; line-height:1.6; }
+
+/* Files */
+.file-item { display:flex; align-items:center; gap:10px; background:#1e2030; border:1px solid #2d3148; border-radius:8px; padding:9px 13px; font-size:12.5px; margin-bottom:7px; }
+.file-name { color:#60a5fa; font-family:monospace; flex:1; }
+.file-desc { color:#64748b; font-size:11.5px; }
+
+/* Nav */
+.nav { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; z-index:100; }
+.nav button { background:rgba(124,58,237,.2); border:1px solid rgba(124,58,237,.4); color:#a78bfa; border-radius:9px; width:40px; height:40px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+.nav button:hover { background:rgba(124,58,237,.4); }
+.nav button:disabled { opacity:.3; cursor:not-allowed; }
+.page-info { font-size:12px; color:#64748b; min-width:60px; text-align:center; }
+.dots { display:flex; gap:5px; }
+.dot { width:6px; height:6px; border-radius:50%; background:#334155; cursor:pointer; transition:all .2s; }
+.dot.active { background:#7c3aed; width:18px; border-radius:3px; }
+.slide-num { position:absolute; top:20px; right:32px; font-size:11px; color:#334155; }
+.key-hint { position:fixed; top:16px; right:16px; font-size:11px; color:#334155; }
+
+.diff-item { cursor:pointer; transition:background .15s, border-color .15s; }
+.diff-item:hover { background:#252840; border-color:#7c3aed !important; }
+.diff-arrow { font-size:11px; color:#7c3aed; margin-left:auto; flex-shrink:0; opacity:.7; }
+.diff-item:hover .diff-arrow { opacity:1; }
+
+ul { list-style:none; }
+ul li { padding:3px 0 3px 16px; position:relative; color:#94a3b8; font-size:13px; line-height:1.6; }
+ul li::before { content:'▸'; position:absolute; left:0; color:#7c3aed; }
+
+/* Timing bars */
+.timing-wrap { background:#1e2030; border:1px solid #2d3148; border-radius:10px; padding:18px 20px; margin:10px 0; }
+.timing-label { font-family:monospace; font-size:11.5px; color:#6b7280; margin-bottom:10px; }
+.timing-row { display:flex; align-items:center; margin-bottom:6px; gap:8px; }
+.timing-name { font-family:monospace; font-size:12px; color:#94a3b8; width:90px; flex-shrink:0; text-align:right; }
+.timing-track { position:relative; flex:1; height:22px; }
+.timing-bar { position:absolute; height:100%; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; white-space:nowrap; }
+.timing-note { font-size:11px; color:#6b7280; margin-top:6px; margin-left:98px; }
+.timing-sep { border:none; border-top:1px solid #2d3148; margin:12px 0; }
+</style>
+</head>
+<body>
+<div class="key-hint">← → 或空白鍵切換</div>
+<div class="slides">
+
+<!-- ══════════ SLIDE 1: Cover ══════════ -->
+<div class="slide slide-cover active">
+  <div class="cover-tag">技術報告 · MediaTek MT8171 · Android 16</div>
+  <div class="cover-title">E-Ink 顯示殘影<br>問題修復報告</div>
+  <div class="cover-sub">Seekbar 拖曳殘影根因分析、修復過程與最終解決方案</div>
+  <div class="cover-meta">
+    <div class="meta-item">🖥️ hwtcon Kernel Driver</div>
+    <div class="meta-item">⚡ Pending Slot 序列化</div>
+    <div class="meta-item">🔓 Completion 提前釋放</div>
+    <div class="meta-item">📡 單一 Broadcast API</div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 2: Original Problem ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">02 / 13</div>
+  <h2><span class="num">1</span>原始問題：殘影</h2>
+  <div class="two-col">
+    <div>
+      <h3>現象</h3>
+      <p>在 E-Ink 裝置上拖動 Seekbar，<strong style="color:#e2e8f0">舊畫面的痕跡殘留在螢幕上</strong>，沒有被清除。</p>
+      <pre style="font-size:12px">拖曳 Seekbar 時螢幕的樣子：
+
+┌────────────────────────────────┐
+│    ─────────────────○          │ ← 目前正確位置
+│          ░░░░░░░░○░            │ ← 殘留的舊位置
+│               ░○░             │ ← 更舊的殘留
+└────────────────────────────────┘
+
+scrcpy（電腦鏡像）是正常的
+→ 問題只發生在 E-Ink 硬體層</pre>
+      <div class="badge badge-red" style="margin-top:4px">嚴重影響使用體驗</div>
+    </div>
+    <div>
+      <h3>E-Ink 顯示的特殊性</h3>
+      <p>E-Ink 像素不像 LCD 通電就亮，它需要發送一段特定的<strong style="color:#e2e8f0">電壓序列（波形）</strong>才能讓像素改變顏色。</p>
+      <div class="grid-3" style="margin-top:10px; margin-bottom:12px">
+        <div class="card">
+          <div class="card-title">GC16</div>
+          <div class="card-body">~330ms<br>最佳品質<br>16 階灰</div>
+        </div>
+        <div class="card">
+          <div class="card-title">DU</div>
+          <div class="card-body">~250ms<br>灰階有限<br>較快</div>
+        </div>
+        <div class="card">
+          <div class="card-title">A2</div>
+          <div class="card-body">~120ms<br>純黑白<br>最快</div>
+        </div>
+      </div>
+      <div class="hbox">
+        波形執行期間，面板處於 <strong>BUSY</strong> 狀態（約 250ms）。<br>
+        執行完畢才回到 <strong>IDLE</strong>（閒置），可接受下一次更新。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 3: Architecture ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">03 / 13</div>
+  <h2><span class="num">2</span>系統架構：幀是怎麼走到螢幕的</h2>
+  <div class="two-col">
+    <div>
+      <pre style="font-size:12.5px; line-height:1.8">┌─────────────────────────────────┐
+│  App / SurfaceFlinger           │
+│  每 16ms 產生一幀畫面            │
+└──────────────┬──────────────────┘
+               │  送幀
+               ▼
+┌─────────────────────────────────┐
+│  <span class="cb">DRM</span>（Display Rendering Manager）│
+│                                 │
+│  送幀後等「回執」(Completion)    │
+│  才能送下一幀                    │
+│                                 │
+│  ┌ 等 mdp_completion  ~0.5ms ┐  │
+│  └ 等 update_completion  ??? ┘  │
+└──────────────┬──────────────────┘
+               │
+               ▼
+┌─────────────────────────────────┐
+│  <span class="cp">hwtcon kernel driver</span>           │
+│  收幀 → 啟動 LUT → 跑波形       │
+│  跑完後 signal 回執給 DRM       │
+└──────────────┬──────────────────┘
+               │  啟動波形
+               ▼
+┌─────────────────────────────────┐
+│  <span class="cg">E-Ink 面板</span>                     │
+│  IDLE →【BUSY ~250ms】→ IDLE   │
+└─────────────────────────────────┘</pre>
+    </div>
+    <div>
+      <h3>什麼是 LUT？</h3>
+      <p>LUT（Look-Up Table）是 hwtcon 硬體的<strong style="color:#e2e8f0">波形執行槽</strong>，共約 128 個。每個 LUT 代表一個正在執行的波形任務。硬體允許多個 LUT 同時執行。</p>
+      <h3 style="margin-top:14px">什麼是 Completion（回執）？</h3>
+      <p>可以理解為「收到確認才繼續」的機制：</p>
+      <div style="background:#1e2030; border-radius:10px; padding:14px; font-size:13px; color:#94a3b8; margin-top:8px; line-height:1.8">
+        DRM 送出幀<br>
+        &nbsp;&nbsp;&nbsp;→ 等 hwtcon 回傳 Completion<br>
+        &nbsp;&nbsp;&nbsp;→ 收到才能送下一幀<br><br>
+        <span class="cy">問題點</span>：原本 update_completion<br>
+        &nbsp;&nbsp;&nbsp;要等波形真正跑完才 signal<br>
+        &nbsp;&nbsp;&nbsp;→ DRM 被鎖住 <span class="cr">~250ms</span>
+      </div>
+      <div class="hbox" style="margin-top:10px; font-size:12.5px">
+        <strong>後面提到「Signal Completion」</strong>＝ 主動提前傳回執給 DRM，讓它不用等波形跑完就能繼續送幀。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 4: Ghosting Root Cause ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">04 / 13</div>
+  <h2><span class="num">3</span>殘影根因：多個 LUT 同時執行</h2>
+  <div class="two-col">
+    <div>
+      <h3>問題行為</h3>
+      <p>系統在 AUTO（GC16）模式下，允許多個 LUT 同時執行。拖動 Seekbar 時，每幀都啟動一個新 LUT，導致十幾個 LUT 同時對同一區域的像素發送波形。</p>
+      <div class="wbox" style="font-size:12.5px">
+        <strong>電壓殘留原理</strong>：E-Ink 像素改變顏色需要特定電壓序列。多個波形同時驅動同一像素，電壓互相疊加、殘留，像素無法完整回到目標狀態 → 舊影像留在螢幕上。
+      </div>
+      <h3>為什麼 GC16 特別嚴重？</h3>
+      <p>GC16 需要 330ms，拖動時每 16ms 就有新幀，會同時積累 20 個以上的 LUT 在跑，重疊最嚴重。</p>
+    </div>
+    <div>
+      <h3>波形重疊時序</h3>
+      <div class="timing-wrap">
+        <div class="timing-label">時間軸（每格 = 約 50ms）</div>
+        <div class="timing-row">
+          <div class="timing-name">幀1 LUT6</div>
+          <div class="timing-track" style="height:22px">
+            <div class="timing-bar" style="left:0%;width:66%;background:rgba(248,113,113,.5);color:#fca5a5;border:1px solid #f87171">GC16 330ms</div>
+          </div>
+        </div>
+        <div class="timing-row">
+          <div class="timing-name">幀2 LUT7</div>
+          <div class="timing-track">
+            <div class="timing-bar" style="left:3%;width:66%;background:rgba(248,113,113,.4);color:#fca5a5;border:1px solid #f87171">GC16 330ms</div>
+          </div>
+        </div>
+        <div class="timing-row">
+          <div class="timing-name">幀3 LUT8</div>
+          <div class="timing-track">
+            <div class="timing-bar" style="left:6%;width:66%;background:rgba(248,113,113,.3);color:#fca5a5;border:1px solid #f87171">GC16 330ms</div>
+          </div>
+        </div>
+        <div class="timing-row">
+          <div class="timing-name">幀4 LUT9</div>
+          <div class="timing-track">
+            <div class="timing-bar" style="left:9%;width:66%;background:rgba(248,113,113,.25);color:#fca5a5;border:1px solid #f87171">GC16 330ms</div>
+          </div>
+        </div>
+        <div class="timing-note cr">↑ 多個 LUT 同時跑，像素被多個波形驅動 → 電壓殘留 → 殘影</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 5: First Fix + Side Effect ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">05 / 13</div>
+  <h2><span class="num">4</span>第一版修法與衍生問題</h2>
+  <div class="two-col">
+    <div>
+      <h3>修法思路：Pending Slot（暫存槽）</h3>
+      <p>改用 DU 波形（250ms），並實作 Pending Slot：</p>
+      <ul style="margin:8px 0 12px">
+        <li>波形執行中（BUSY）→ 新幀存入暫存槽，只保留最新幀</li>
+        <li>波形結束（IDLE）→ 取出暫存槽的幀，送去執行</li>
+        <li>同一時間最多只有 1 個波形在跑 → 殘影解決 ✓</li>
+      </ul>
+      <div class="sbox" style="font-size:12.5px"><strong>殘影問題：已解決 ✓</strong></div>
+      <h3 style="margin-top:16px">衍生問題：間歇性卡頓</h3>
+      <p>第一版實作有 bug：</p>
+      <ul style="margin:8px 0">
+        <li>BUSY 路徑 → 有提前 signal completion ✓</li>
+        <li>IDLE 路徑（每週期第一幀）→ 忘了提前 signal ✗</li>
+      </ul>
+      <div class="wbox" style="font-size:12.5px">
+        <strong>結果</strong>：每當 DU 波形剛跑完（面板回到 IDLE），下一幀進來走 IDLE 路徑，DRM 遇到同步幀就等 update_completion → 凍住 250ms → 使用者感受到「滑一滑卡一下」
+      </div>
+    </div>
+    <div>
+      <h3>卡頓模式說明</h3>
+      <pre style="font-size:12px">DRM 的幀分兩種：
+
+<span class="cg">快速幀</span>（大多數）
+  只等 mdp_completion（~0.5ms）
+  → 不凍住，正常
+
+<span class="cr">同步幀</span>（特定條件觸發）
+  還要等 update_completion
+  → 要等波形跑完（~250ms）
+  → DRM 凍住 250ms
+
+使用者感受：
+滑動──────<span class="cr">卡250ms</span>────滑動──<span class="cr">卡250ms</span>──
+          ↑                    ↑
+      每次波形完成後         下次波形完成後
+      第一幀遇到同步幀       第一幀遇到同步幀</pre>
+      <div class="hbox" style="font-size:12.5px">
+        <strong>關鍵</strong>：不是每幀都凍，只有波形剛結束後的「第一幀」可能遇到同步幀，所以是「時而卡頓」而不是「一直卡頓」。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 6: Complete Fix ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">06 / 13</div>
+  <h2><span class="num">5</span>完整修法：兩個問題一起解決</h2>
+  <div class="tl">
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot" style="background:#4ade80;color:#0f1117">A</div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-right" style="border-color:#4ade80">
+        <div class="tl-title" style="color:#4ade80">解決殘影：Pending Slot 波形序列化</div>
+        <div class="tl-body">
+          面板 BUSY 時，新幀存入暫存槽（只保最新），等波形結束後再取出執行。<br>
+          → <strong style="color:#4ade80">同一時間只有 1 個波形執行，不重疊，不殘影。</strong>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot" style="background:#4ade80;color:#0f1117">B</div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-right" style="border-color:#4ade80">
+        <div class="tl-title" style="color:#4ade80">解決卡頓：Completion 提前 Signal（Bug 修復）</div>
+        <div class="tl-body">
+          將「提前 signal 三個 completion」移到判斷 idle/busy <strong>之前</strong>。<br>
+          → 不管面板是 IDLE 還是 BUSY，DRM 收到幀後立刻得到回執，永遠不等波形。<br>
+          → <strong style="color:#4ade80">DRM 全速運行，UI 不凍。E-Ink 非同步慢慢更新，互不阻塞。</strong>
+        </div>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot" style="background:#a78bfa;color:white">C</div>
+      </div>
+      <div class="tl-right" style="border-color:#7c3aed">
+        <div class="tl-title" style="color:#a78bfa">額外優化：防止不必要的電源循環</div>
+        <div class="tl-body">
+          <code style="color:#60a5fa">hwtcon_core_handle_clock_disable()</code>：若暫存槽有待執行的任務，不提前關閉 MMSYS/FITI 電源，避免不必要的硬體重啟延遲。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hbox" style="margin-top:4px">
+    <strong>最終效果</strong>：Android UI 60fps 全速跑（DRM 不等波形），E-Ink 螢幕每 250ms 非同步更新一次。快速又無殘影。
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 7: Core Code ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">07 / 13</div>
+  <h2><span class="num">5</span>核心邏輯（技術細節）</h2>
+  <div class="two-col" style="gap:20px;align-items:start">
+
+    <!-- Left: code -->
+    <pre style="font-size:11.5px;margin:0"><span class="cp">hwtcon_core_submit_task_internal()</span>  <span class="cz">← 每幀提交</span>
+
+<span class="cb">if</span> (此幀是 DU / A2 模式) {
+
+  <span class="cg">// ★ 關鍵：三個 completion 全部提前 signal</span>
+  <span class="cg">// 不管 IDLE/BUSY，DRM 幀進來就立刻拿到回執</span>
+  complete(&amp;pmarker-&gt;<span class="cy">mdp_completion</span>);
+  complete(&amp;pmarker-&gt;<span class="cy">submit_completion</span>);
+  complete(&amp;pmarker-&gt;<span class="cy">update_completion</span>);  <span class="cr">// ← 這個最重要</span>
+
+  <span class="cb">if</span> (面板 BUSY) {
+    <span class="cg">// Pending Slot：只保最新幀</span>
+    pending_task = 當前幀;
+  } <span class="cb">else</span> {
+    <span class="cg">// IDLE：直接啟動波形</span>
+    insert_to_wait_for_mdp_list(task);
+    wake_up(mdp_trigger_wait_queue);
+  }
+
+} <span class="cb">else</span> {
+  <span class="cz">// GC16/AUTO：走原本邏輯，不動</span>
+  insert_to_wait_for_mdp_list(task);
+  wake_up(mdp_trigger_wait_queue);
+}</pre>
+
+    <!-- Right: completion explanations -->
+    <div>
+      <h3 style="margin-top:0">三個 Completion 說明</h3>
+
+      <div class="card" style="margin-bottom:10px;border-color:#2d3148">
+        <div class="card-title" style="color:#60a5fa;font-family:monospace">mdp_completion</div>
+        <div class="card-body">
+          <div style="margin-bottom:4px">DRM 確認幀已進入 <strong style="color:#e2e8f0">MDP（影像處理器）pipeline</strong> 的回執。</div>
+          <div style="color:#475569;font-size:11.5px">每幀都會等 ｜ 原本：MDP 接受後 ~0.5ms signal → 不影響速度</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:10px;border-color:#2d3148">
+        <div class="card-title" style="color:#60a5fa;font-family:monospace">submit_completion</div>
+        <div class="card-body">
+          <div style="margin-bottom:4px">DRM 確認幀已被<strong style="color:#e2e8f0">提交給硬體</strong>的回執。</div>
+          <div style="color:#475569;font-size:11.5px">部分幀會等 ｜ 原本：提交後 signal，時間短</div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:#f87171;background:rgba(248,113,113,.05)">
+        <div class="card-title" style="color:#f87171;font-family:monospace">update_completion ← 問題根源</div>
+        <div class="card-body">
+          <div style="margin-bottom:6px">DRM 確認<strong style="color:#e2e8f0">螢幕已更新完成</strong>的回執。「同步幀」（有 PLANE_PROP_WAIT_COMPLETE 旗標的幀）會等這個。</div>
+          <div style="background:rgba(248,113,113,.1);border-radius:6px;padding:7px 10px;margin-bottom:5px;font-size:11.5px">
+            <span style="color:#f87171">修復前</span>：等 E-Ink 波形真正跑完才 signal → <strong style="color:#f87171">DRM 凍住 ~250ms</strong>
+          </div>
+          <div style="background:rgba(74,222,128,.1);border-radius:6px;padding:7px 10px;font-size:11.5px">
+            <span style="color:#4ade80">修復後</span>：幀進來就立刻 signal → <strong style="color:#4ade80">DRM 繼續跑，E-Ink 非同步更新</strong>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11.5px;color:#475569;margin-top:8px;line-height:1.6">
+        Bug：第一版只在 BUSY 路徑 signal，IDLE 路徑（每 DU 週期第一幀）沒 signal → 週期性凍住。修復：提到 if/else 前面，兩條路都覆蓋。
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 8: Before/After Timing ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">08 / 13</div>
+  <h2><span class="num">6</span>修復前後時序對比</h2>
+
+  <h3>修復前：AUTO / GC16 模式</h3>
+  <div class="timing-wrap" style="margin-bottom:16px">
+    <div class="timing-label">時間軸（每格 ≈ 50ms）→</div>
+    <div class="timing-row">
+      <div class="timing-name">幀1 LUT6</div>
+      <div class="timing-track">
+        <div class="timing-bar" style="left:0%;width:66%;background:rgba(248,113,113,.55);color:#fee2e2;border:1px solid #f87171">GC16 330ms</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="timing-name">幀2 LUT7</div>
+      <div class="timing-track">
+        <div class="timing-bar" style="left:3.2%;width:66%;background:rgba(248,113,113,.42);color:#fee2e2;border:1px solid #f87171">GC16 330ms</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="timing-name">幀3 LUT8</div>
+      <div class="timing-track">
+        <div class="timing-bar" style="left:6.4%;width:66%;background:rgba(248,113,113,.3);color:#fee2e2;border:1px solid #f87171">GC16 330ms</div>
+      </div>
+    </div>
+    <div class="timing-note cr">多個 LUT 同時執行 → 波形重疊 → 殘影</div>
+  </div>
+
+  <h3>修復後：DU 模式 + Pending Slot</h3>
+  <div class="timing-wrap">
+    <div class="timing-label">時間軸（每格 ≈ 50ms）→</div>
+    <div class="timing-row">
+      <div class="timing-name">幀1 LUT78</div>
+      <div class="timing-track">
+        <div class="timing-bar" style="left:0%;width:50%;background:rgba(74,222,128,.5);color:#dcfce7;border:1px solid #4ade80">DU 250ms</div>
+        <div style="position:absolute;right:0;top:0;height:100%;width:49%;display:flex;align-items:center;padding-left:8px;font-size:11px;color:#6b7280">（幀2~5 在暫存槽等待）</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="timing-name">幀5（最新）</div>
+      <div class="timing-track">
+        <div style="position:absolute;left:0;top:50%;width:51%;height:1px;border-top:2px dashed #334155"></div>
+        <div class="timing-bar" style="left:51%;width:49%;background:rgba(74,222,128,.5);color:#dcfce7;border:1px solid #4ade80">DU 250ms</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="timing-name">DRM 狀態</div>
+      <div class="timing-track">
+        <div class="timing-bar" style="left:0%;width:100%;background:rgba(96,165,250,.2);color:#bfdbfe;border:1px solid #60a5fa;font-size:10px">Completion 立刻 Signal → DRM 全速運行，不等波形</div>
+      </div>
+    </div>
+    <div class="timing-note cg">幀1 完全結束後，幀5 才開始 → 不重疊 → 不殘影 ｜ DRM 不等波形 → 不卡頓</div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 9: Wait vs Pending Slot ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">09 / 13</div>
+  <h2><span class="num">◎</span>Wait Mode vs Pending Slot：概念差在哪？</h2>
+  <div class="two-col" style="gap:18px;align-items:stretch">
+
+    <!-- Wait Mode -->
+    <div style="background:#1e2030;border:2px solid #fbbf24;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:15px;font-weight:700;color:#fbbf24">🟡 Wait Mode（等待模式）</div>
+      <p style="font-size:12.5px;color:#94a3b8;line-height:1.7">
+        DRM 每送一幀後，<strong style="color:#fbbf24">強制等 E-Ink 波形跑完（~250ms）</strong>，才能送下一幀。<br>
+        E-Ink 的慢速直接傳染給 UI 層。
+      </p>
+      <div style="background:#141720;border-radius:10px;padding:14px 12px">
+        <div style="font-size:10.5px;color:#475569;margin-bottom:8px;font-family:monospace">時間軸 →（每格 ≈ 50ms）</div>
+        <!-- DRM row -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:60px;font-size:11px;color:#6b7280;text-align:right;flex-shrink:0">DRM：</div>
+          <div style="flex:1;position:relative;height:20px">
+            <div style="position:absolute;left:0%;width:3.5%;height:100%;background:#fbbf24;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8.5px;color:#1e1e2e;font-weight:800">f1</div>
+            <div style="position:absolute;left:4%;width:43%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#ef4444;border-top:1px dashed #ef4444;border-bottom:1px dashed #ef4444">⏳ 等待波形…</div>
+            <div style="position:absolute;left:48%;width:3.5%;height:100%;background:#fbbf24;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8.5px;color:#1e1e2e;font-weight:800">f2</div>
+            <div style="position:absolute;left:52%;width:43%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#ef4444;border-top:1px dashed #ef4444;border-bottom:1px dashed #ef4444">⏳ 等待波形…</div>
+            <div style="position:absolute;left:96%;width:3.5%;height:100%;background:#fbbf24;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8.5px;color:#1e1e2e;font-weight:800">f3</div>
+          </div>
+        </div>
+        <!-- E-Ink row -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:60px;font-size:11px;color:#6b7280;text-align:right;flex-shrink:0">E-Ink：</div>
+          <div style="flex:1;position:relative;height:20px">
+            <div style="position:absolute;left:3.5%;width:43.5%;height:100%;background:rgba(251,191,36,.3);border:1px solid #fbbf24;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fde68a">波形 f1（250ms）</div>
+            <div style="position:absolute;left:51.5%;width:44%;height:100%;background:rgba(251,191,36,.3);border:1px solid #fbbf24;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fde68a">波形 f2（250ms）</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.75;border-top:1px solid #2d3148;padding-top:10px">
+        ✅ 波形不重疊 → <span style="color:#4ade80">無殘影</span><br>
+        ❌ DRM 每幀等 250ms → <span style="color:#f87171">UI 感覺嚴重卡頓</span><br>
+        500ms 內 E-Ink 只更新 <strong style="color:#fbbf24">2 次</strong>，DRM 也只送 <strong style="color:#fbbf24">2 幀</strong>
+      </div>
+    </div>
+
+    <!-- Pending Slot -->
+    <div style="background:#1e2030;border:2px solid #4ade80;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-size:15px;font-weight:700;color:#4ade80">✅ Pending Slot（暫存槽模式）</div>
+      <p style="font-size:12.5px;color:#94a3b8;line-height:1.7">
+        DRM 送幀後<strong style="color:#4ade80">立刻拿到回執</strong>，繼續全速送幀。<br>
+        E-Ink 有空時，從暫存槽取<strong style="color:#4ade80">最新那一幀</strong>來執行。
+      </p>
+      <div style="background:#141720;border-radius:10px;padding:14px 12px">
+        <div style="font-size:10.5px;color:#475569;margin-bottom:8px;font-family:monospace">時間軸 →（每格 ≈ 50ms）</div>
+        <!-- DRM row: continuous frames -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:60px;font-size:11px;color:#6b7280;text-align:right;flex-shrink:0">DRM：</div>
+          <div style="flex:1;display:flex;gap:2px;height:20px">
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f1</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f2</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f3</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f4</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f5</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f6</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f7</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f8</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f9</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">f10</div>
+            <div style="flex:1;background:#4ade80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#0f1117;font-weight:800">...</div>
+          </div>
+        </div>
+        <!-- Pending slot row -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:60px;font-size:11px;color:#6b7280;text-align:right;flex-shrink:0">暫存槽：</div>
+          <div style="flex:1;position:relative;height:20px">
+            <div style="position:absolute;left:0%;width:47%;height:100%;background:rgba(96,165,250,.2);border:1px solid #60a5fa;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#93c5fd">f2→f3→f4→f5（最新幀取代舊幀）</div>
+            <div style="position:absolute;left:50%;width:47%;height:100%;background:rgba(96,165,250,.2);border:1px solid #60a5fa;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#93c5fd">f7→f8→f9→f10…</div>
+          </div>
+        </div>
+        <!-- E-Ink row -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:60px;font-size:11px;color:#6b7280;text-align:right;flex-shrink:0">E-Ink：</div>
+          <div style="flex:1;position:relative;height:20px">
+            <div style="position:absolute;left:0%;width:47%;height:100%;background:rgba(74,222,128,.35);border:1px solid #4ade80;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#bbf7d0">波形 f1（250ms）</div>
+            <div style="position:absolute;left:50%;width:47%;height:100%;background:rgba(74,222,128,.35);border:1px solid #4ade80;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#bbf7d0">波形 f5（250ms）</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.75;border-top:1px solid #2d3148;padding-top:10px">
+        ✅ 波形不重疊 → <span style="color:#4ade80">無殘影</span><br>
+        ✅ DRM 不等 E-Ink → <span style="color:#4ade80">UI 全速 60fps 不卡頓</span><br>
+        500ms 內 DRM 送 <strong style="color:#4ade80">~30 幀</strong>，E-Ink 執行 <strong style="color:#4ade80">2 次</strong>（取最新位置）
+      </div>
+    </div>
+
+  </div>
+  <div class="hbox" style="margin-top:10px;font-size:12.5px">
+    <strong>一句話區別</strong>：Wait Mode 讓 DRM 跟著 E-Ink 慢；Pending Slot 讓 E-Ink 自己排隊，DRM 繼續跑。螢幕結果相同（都序列化），但 UI 體驗天差地別。
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 10: Demo ══════════ -->
+<div class="slide slide-content" style="padding:36px 56px 80px;">
+  <div class="slide-num">10 / 13</div>
+
+  <h2 style="margin-bottom:14px"><span class="num">★</span>實機 Demo 對比</h2>
+
+  <!-- Three video columns -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex:1;min-height:0;overflow:hidden;">
+
+    <div style="display:flex;flex-direction:column;gap:6px;min-height:0;">
+      <div style="flex:1;min-height:0;background:#1e2030;border:2px solid #ef4444;border-radius:10px;overflow:hidden;">
+        <iframe id="vid-normal"
+          src="https://drive.google.com/file/d/13o_sMdJZGjBu_3jANwEeTV2LKZ4prkvQ/preview"
+          style="width:100%;height:100%;border:none;" allow="autoplay"></iframe>
+      </div>
+      <div style="background:#1e2030;border:1px solid #ef4444;border-radius:10px;padding:10px 14px;">
+        <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:5px">❌ Normal（AUTO/GC16）</div>
+        <div style="font-size:11.5px;color:#94a3b8;line-height:1.6">
+          多個 LUT 同時跑 → 波形重疊<br>→ <span style="color:#f87171">嚴重殘影</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;min-height:0;">
+      <div style="flex:1;min-height:0;background:#1e2030;border:2px solid #fbbf24;border-radius:10px;overflow:hidden;">
+        <iframe id="vid-wait"
+          src="https://drive.google.com/file/d/1xehbjwxUEW1Kc4bdFC0wVrC5cc-6Jys_/preview"
+          style="width:100%;height:100%;border:none;" allow="autoplay"></iframe>
+      </div>
+      <div style="background:#1e2030;border:1px solid #fbbf24;border-radius:10px;padding:10px 14px;">
+        <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:5px">🟡 Wait Mode（同步等待）</div>
+        <div style="font-size:11.5px;color:#94a3b8;line-height:1.6">
+          DRM 每幀等波形跑完 → 序列化<br>
+          <span style="color:#4ade80">無殘影</span>，但 → <span style="color:#fbbf24">UI 嚴重卡頓</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:6px;min-height:0;">
+      <div style="flex:1;min-height:0;background:#1e2030;border:2px solid #4ade80;border-radius:10px;overflow:hidden;">
+        <iframe id="vid-pending"
+          src="https://drive.google.com/file/d/1SM3TwXLTy55W97mLpWgH1vQ0SB22zkOI/preview"
+          style="width:100%;height:100%;border:none;" allow="autoplay"></iframe>
+      </div>
+      <div style="background:#1e2030;border:1px solid #4ade80;border-radius:10px;padding:10px 14px;">
+        <div style="font-size:13px;font-weight:700;color:#4ade80;margin-bottom:5px">✅ Pending Slot（本次修復）</div>
+        <div style="font-size:11.5px;color:#94a3b8;line-height:1.6">
+          Completion 立刻 Signal → DRM 不等<br>Pending Slot 序列化波形<br>→ <span style="color:#4ade80">無殘影 + 無卡頓</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 10: Architecture & Broadcast ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">11 / 13</div>
+  <h2><span class="num">7</span>廣播控制架構與使用方式</h2>
+  <div class="two-col">
+    <div>
+      <pre style="font-size:12px">App / 使用者
+    │
+    │ <span class="cg">am broadcast -a ntx.eink_control.GLOBAL_REFRESH</span>
+    │ --ei waveformmode 1    <span class="cz">← DU 波形</span>
+    │ --ei flags 0x2000      <span class="cz">← 觸發 kernel pending slot</span>
+    │ --ei dithermode 0x301
+    │ --ei updatemode 0
+    │ --ei waitmode 1
+    ▼
+<span class="cp">PowerManagerService.java</span>
+    │
+    └─ <span class="cg">updateAuxRefreshMode()</span>
+          │
+          ▼
+    SurfaceFlinger → HWC
+    （套用 DU + dither 設定）
+          │ 每幀帶 HWTCON_FLAG_USE_DITHERING_Y1
+          ▼
+    <span class="cp">hwtcon kernel driver</span>
+    → Pending Slot 機制生效
+    → Completion 提前 Signal</pre>
+    </div>
+    <div>
+      <h3>啟用指令</h3>
+      <pre style="font-size:12px"><span class="cz"># 啟用（DU 模式，無殘影無卡頓）</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 \
+  --ei waitmode 1 \
+  --ei waveformmode 1 \
+  --ei flags 0x2000 \
+  --ei dithermode 0x301
+
+<span class="cz"># 恢復預設 AUTO/GC16</span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 \
+  --ei waitmode 0 \
+  --ei waveformmode 0 \
+  --ei flags 0x0 \
+  --ei dithermode 0x0</pre>
+      <div class="sbox" style="font-size:12.5px; margin-top:8px">
+        <strong>單一 broadcast 即可</strong>，不需要額外設定。重開機後需重新下指令。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 11: Files ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">12 / 13</div>
+  <h2><span class="num">8</span>修改檔案清單</h2>
+  <p style="font-size:12px;color:#475569;margin:-14px 0 14px">點擊任一檔案查看完整 diff</p>
+  <div class="two-col">
+    <div>
+      <h3>Kernel / Vendor（make krn_images）</h3>
+      <div class="file-item diff-item" onclick="showDiff('hwtcon_fb.h')">
+        <span>📄</span><span class="file-name">hwtcon_fb.h</span>
+        <span class="file-desc">新增 pending_task / spinlock / work 欄位</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+      <div class="file-item diff-item" onclick="showDiff('hwtcon_fb.c')">
+        <span>📄</span><span class="file-name">hwtcon_fb.c</span>
+        <span class="file-desc">初始化 pending slot 結構</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+      <div class="file-item diff-item" onclick="showDiff('hwtcon_core.h')">
+        <span>📄</span><span class="file-name">hwtcon_core.h</span>
+        <span class="file-desc">宣告 trigger_pending_task 函式</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+      <div class="file-item diff-item" style="border-color:rgba(124,58,237,.5)" onclick="showDiff('hwtcon_core.c')">
+        <span>⚙️</span><span class="file-name">hwtcon_core.c</span>
+        <span class="file-desc">Pending slot + Completion 提前 signal + clock_disable 保護</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+      <div class="file-item diff-item" onclick="showDiff('hwtcon_debug.c')">
+        <span>📄</span><span class="file-name">hwtcon_debug.c</span>
+        <span class="file-desc">新增 /proc/hwtcon/force_wfmode</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+      <div class="file-item diff-item" onclick="showDiff('hwtcon_state_manager.c')">
+        <span>📄</span><span class="file-name">hwtcon_state_manager.c</span>
+        <span class="file-desc">改善 merge 判斷邏輯（intersect/contain）</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+      <h3 style="margin-top:16px">System（make sys_images）</h3>
+      <div class="file-item diff-item" onclick="showDiff('PowerManagerService.java')">
+        <span>☕</span><span class="file-name">PowerManagerService.java</span>
+        <span class="file-desc">廣播新增 pendingmode 參數處理</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
+    </div>
+    <div>
+      <h3>hwtcon_core.c 主要改動（4 處）</h3>
+      <div class="card" style="font-size:12.5px;color:#94a3b8;line-height:2.1">
+        <div><span class="cg">①</span> 新增 <code style="color:#60a5fa">hwtcon_core_trigger_pending_task()</code></div>
+        <div><span class="cg">②</span> <code style="color:#60a5fa">submit_task_internal()</code> — pending slot + 提前 signal</div>
+        <div><span class="cg">③</span> <code style="color:#60a5fa">handle_release_lut()</code> — 波形完成後觸發 pending task</div>
+        <div><span class="cg">④</span> <code style="color:#60a5fa">handle_clock_disable()</code> — pending_task 存在則跳過 power-off</div>
+      </div>
+      <div class="hbox" style="margin-top:12px;font-size:12.5px">
+        <strong>影響範圍</strong>：僅限 hwtcon driver + PowerManagerService。<br>原有 GC16/AUTO 路徑完全不動。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 12: Summary ══════════ -->
+<div class="slide slide-cover" style="padding-bottom:52px">
+  <div class="slide-num">13 / 13</div>
+  <div style="text-align:center;width:100%">
+    <div class="cover-tag">修復成果總結</div>
+    <table style="max-width:820px;margin:24px auto 20px;font-size:13px">
+      <tr><th>問題</th><th>根因</th><th>修法</th><th>結果</th></tr>
+      <tr>
+        <td>殘影</td>
+        <td>多個 LUT 並行，波形電壓疊加</td>
+        <td>Pending Slot 序列化（一次一波形）</td>
+        <td><span class="badge badge-green">✓ 消除</span></td>
+      </tr>
+      <tr>
+        <td>間歇卡頓 250ms</td>
+        <td>IDLE 路徑未提前 signal Completion</td>
+        <td>任何 DU/A2 幀進來即 signal 三個 completion</td>
+        <td><span class="badge badge-green">✓ 消除</span></td>
+      </tr>
+      <tr>
+        <td>原有功能</td>
+        <td>—</td>
+        <td>GC16/AUTO 路徑完全不改動</td>
+        <td><span class="badge badge-green">✓ 不受影響</span></td>
+      </tr>
+    </table>
+    <div style="font-size:13px;color:#64748b;margin-bottom:12px">
+      觸發方式：<code style="color:#a78bfa">am broadcast … --ei waveformmode 1 --ei flags 0x2000 --ei dithermode 0x301</code>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:780px;margin:0 auto;text-align:left">
+      <div class="card" style="border-color:#ef4444">
+        <div class="card-title" style="color:#f87171">❌ 修復前</div>
+        <div class="card-body">嚴重殘影<br>多波形並行干擾</div>
+      </div>
+      <div class="card" style="border-color:#fbbf24">
+        <div class="card-title" style="color:#fbbf24">🟡 Wait Mode</div>
+        <div class="card-body">無殘影<br>但 UI 卡頓嚴重</div>
+      </div>
+      <div class="card" style="border-color:#4ade80">
+        <div class="card-title" style="color:#4ade80">✅ Pending Slot</div>
+        <div class="card-body">無殘影<br>UI 全速，不卡頓</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /slides -->
+
+<!-- ══ Diff data (type=text/x-diff → ignored by browser, readable via .textContent) ══ -->
+
+<script type="text/x-diff" id="diff-hwtcon_fb.h">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_fb.h b/drivers/misc/mediatek/hwtcon/hwtcon_fb.h
+index 4824d8276a23..9f9a76dfdd63 100644
+--- a/drivers/misc/mediatek/hwtcon/hwtcon_fb.h
++++ b/drivers/misc/mediatek/hwtcon/hwtcon_fb.h
+@@ -244,6 +244,11 @@ struct fb_private_info {
+ 	/* thread for handle wf_lut display done. */
+ 	struct workqueue_struct *wq_wf_lut_display_done;
+
++	/* pending slot: holds latest unprocessed task when waveform is busy */
++	struct hwtcon_task *pending_task;
++	spinlock_t pending_task_lock;
++	struct work_struct wk_pending_task_trigger;
++
+ 	struct mutex update_queue_mutex;
+ 	struct mutex image_buffer_access_mutex;
+</script>
+
+<script type="text/x-diff" id="diff-hwtcon_fb.c">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_fb.c b/drivers/misc/mediatek/hwtcon/hwtcon_fb.c
+index 5d0fff2d44d9..bc421aeea353 100644
+--- a/drivers/misc/mediatek/hwtcon/hwtcon_fb.c
++++ b/drivers/misc/mediatek/hwtcon/hwtcon_fb.c
+@@ -2120,6 +2120,12 @@ static int hwtcon_fb_init_private_fb_info(
+
+ 	spin_lock_init(&private_info->g_update_order_lock);
+
++	/* init pending slot */
++	spin_lock_init(&private_info->pending_task_lock);
++	private_info->pending_task = NULL;
++	INIT_WORK(&private_info->wk_pending_task_trigger,
++		hwtcon_core_trigger_pending_task);
++
+ 	private_info->wake_lock = wakeup_source_register(&pdev->dev, "hwtcon_wakelock");
+ 	private_info->wake_timeout_lock = wakeup_source_register(&pdev->dev,
+ 			"hwtcon_wake_timeout_lock");
+</script>
+
+<script type="text/x-diff" id="diff-hwtcon_core.h">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_core.h b/drivers/misc/mediatek/hwtcon/hwtcon_core.h
+index 94baf0ab361d..b95ce9d028dc 100644
+--- a/drivers/misc/mediatek/hwtcon/hwtcon_core.h
++++ b/drivers/misc/mediatek/hwtcon/hwtcon_core.h
+@@ -161,6 +161,7 @@ int hwtcon_core_dispatch_regal(void *ignore);
+ int hwtcon_core_dispatch_mdp(void *ignore);
+ void hwtcon_core_handle_mmsys_power_down_cb(struct timer_list *timer);
+ void hwtcon_core_handle_mmsys_power_down(struct work_struct *work_item);
++void hwtcon_core_trigger_pending_task(struct work_struct *work);
+ void hwtcon_core_handle_clock_disable(void);
+ void hwtcon_core_put_task(struct hwtcon_task *task);
+ void hwtcon_core_put_task_callback(struct hwtcon_task *task);
+</script>
+
+<script type="text/x-diff" id="diff-hwtcon_core.c">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_core.c b/drivers/misc/mediatek/hwtcon/hwtcon_core.c
+index 826bff40f8d9..0bd99eb52b95 100644
+--- a/drivers/misc/mediatek/hwtcon/hwtcon_core.c
++++ b/drivers/misc/mediatek/hwtcon/hwtcon_core.c
+@@ -409,6 +409,31 @@ void hwtcon_core_put_task_callback(struct hwtcon_task *task)
+ 		&task->work_display_done);
+ }
+
++void hwtcon_core_trigger_pending_task(struct work_struct *work)
++{
++	struct hwtcon_task *task = NULL;
++	unsigned long flags;
++
++	spin_lock_irqsave(&hwtcon_fb_info()->pending_task_lock, flags);
++	task = hwtcon_fb_info()->pending_task;
++	hwtcon_fb_info()->pending_task = NULL;
++	spin_unlock_irqrestore(&hwtcon_fb_info()->pending_task_lock, flags);
++
++	if (task == NULL)
++		return;
++
++	TCON_LOG("[pending slot] trigger pending task marker:%d",
++		task->update_data.update_marker);
++
++	mutex_lock(&hwtcon_fb_info()->update_queue_mutex);
++	hwtcon_state_manager_insert_to_wait_for_mdp_list(task);
++	if (timer_pending(&hwtcon_fb_info()->mmsys_power_timer))
++		del_timer(&hwtcon_fb_info()->mmsys_power_timer);
++	hwtcon_core_fiti_power_enable(true);
++	wake_up_interruptible(&hwtcon_fb_info()->mdp_trigger_wait_queue);
++	mutex_unlock(&hwtcon_fb_info()->update_queue_mutex);
++}
++
+ void hwtcon_core_put_task(struct hwtcon_task *task)
+ {
+@@ -754,6 +779,13 @@ void hwtcon_core_handle_clock_disable(void)
+ 	if (hwtcon_state_manager_check_hwtcon_idle() == false)
+ 		return;
+
++	/* Don't power down MMSYS+FITI while a pending slot task is waiting.
++	 * Powering off triggers the XON=0 GPIO timer (off_xon_0_day_delay_us,
++	 * ~5s) which makes DRM stop delivering frames for 5 seconds.
++	 */
++	if (hwtcon_fb_info()->pending_task != NULL)
++		return;
++
+ 	if (hwtcon_fb_info()->power_down_delay_ms == EINK_NO_POWER_DOWN)
+ 		return;
+
+@@ -1013,13 +1045,60 @@ int hwtcon_core_submit_task_internal(...)
+
+-	hwtcon_state_manager_insert_to_wait_for_mdp_list(task);
+-	if (timer_pending(&hwtcon_fb_info()->mmsys_power_timer))
+-		del_timer(&hwtcon_fb_info()->mmsys_power_timer);
+-	/* enable fiti power */
+-	hwtcon_core_fiti_power_enable(true);
+-	wake_up_interruptible(&hwtcon_fb_info()->mdp_trigger_wait_queue);
++	if (task->update_data.flags & HWTCON_FLAG_USE_DITHERING_Y1) {
++		struct update_marker_struct *pmarker, *ptmp;
++
++		/* Signal all completions immediately so DRM never blocks waiting
++		 * for a waveform (DU ~250ms, A2 ~120ms) to complete.
++		 * Applies to both the idle path and the pending-slot path.
++		 */
++		list_for_each_entry_safe(pmarker, ptmp,
++				&task->marker_info_list.list, task_list) {
++			complete(&pmarker->mdp_completion);
++			complete(&pmarker->submit_completion);
++			complete(&pmarker->update_completion);
++			TCON_LOG("[pending slot] signal completions marker:%d",
++				pmarker->update_marker);
++		}
++
++		if (!hwtcon_state_manager_check_hwtcon_idle()) {
++			struct hwtcon_task *old_pending = NULL;
++			unsigned long pending_flags;
++
++			spin_lock_irqsave(&hwtcon_fb_info()->pending_task_lock, pending_flags);
++			old_pending = hwtcon_fb_info()->pending_task;
++			hwtcon_fb_info()->pending_task = task;
++			spin_unlock_irqrestore(&hwtcon_fb_info()->pending_task_lock, pending_flags);
++
++			if (old_pending) {
++				list_splice_init(&old_pending->marker_info_list.list,
++						 &task->marker_info_list.list);
++				hwtcon_core_put_task_callback(old_pending);
++			}
++
++			TCON_LOG("[pending slot] store task marker:%d, waveform busy",
++				task->update_data.update_marker);
++
++			/* race fix: waveform may have completed between idle check and now */
++			if (hwtcon_state_manager_check_hwtcon_idle())
++				queue_work(hwtcon_fb_info()->wq_wf_lut_display_done,
++					   &hwtcon_fb_info()->wk_pending_task_trigger);
++		} else {
++			TCON_LOG("[pending slot] dispatch directly marker:%d, waveform idle",
++				task->update_data.update_marker);
++			hwtcon_state_manager_insert_to_wait_for_mdp_list(task);
++			if (timer_pending(&hwtcon_fb_info()->mmsys_power_timer))
++				del_timer(&hwtcon_fb_info()->mmsys_power_timer);
++			hwtcon_core_fiti_power_enable(true);
++			wake_up_interruptible(&hwtcon_fb_info()->mdp_trigger_wait_queue);
++		}
++	} else {
++		hwtcon_state_manager_insert_to_wait_for_mdp_list(task);
++		if (timer_pending(&hwtcon_fb_info()->mmsys_power_timer))
++			del_timer(&hwtcon_fb_info()->mmsys_power_timer);
++		hwtcon_core_fiti_power_enable(true);
++		wake_up_interruptible(&hwtcon_fb_info()->mdp_trigger_wait_queue);
++	}
+
+ 	mutex_unlock(&hwtcon_fb_info()->update_queue_mutex);
+
+@@ -2291,7 +2370,7 @@ void hwtcon_core_handle_release_lut(int lut_id)
+ 	while (1) {
+ 		task = hwtcon_state_manager_get_pipeline_done_task(lut_id);
+ 		if (task == NULL)
+-			return;
++			break;
+
+@@ -2338,6 +2417,12 @@ void hwtcon_core_handle_release_lut(int lut_id)
+ 		hwtcon_core_put_task_with_lut_release(task);
+ 	};
++
++	/* trigger pending task if waveform is now idle */
++	if (hwtcon_fb_info()->pending_task &&
++	    hwtcon_state_manager_check_hwtcon_idle())
++		queue_work(hwtcon_fb_info()->wq_wf_lut_display_done,
++			   &hwtcon_fb_info()->wk_pending_task_trigger);
+ }
+</script>
+
+<script type="text/x-diff" id="diff-hwtcon_debug.c">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_debug.c b/drivers/misc/mediatek/hwtcon/hwtcon_debug.c
+index e33c65974070..f8f0a2e8d945 100644
+--- a/drivers/misc/mediatek/hwtcon/hwtcon_debug.c
++++ b/drivers/misc/mediatek/hwtcon/hwtcon_debug.c
+@@ -2900,12 +2900,56 @@ static const struct proc_ops force_clock_on_fops = {
+ 	.proc_write = force_clock_on_proc_write,
+ };
+
++static ssize_t force_wfmode_proc_write(struct file *file, const char __user *buf,
++		size_t count, loff_t *ppos)
++{
++	char kbuf[16];
++	int val = 0;
++
++	if (count > sizeof(kbuf) - 1)
++		return -EINVAL;
++	if (copy_from_user(kbuf, buf, count))
++		return -EFAULT;
++	kbuf[count] = '\0';
++
++	if (kstrtoint(kbuf, 0, &val) != 0)
++		return -EINVAL;
++
++	if (val > 0)
++		g_debug_info.force_wfmode = val;
++	else
++		g_debug_info.force_wfmode = 0;
++
++	TCON_ERR("set force_wfmode to %d", g_debug_info.force_wfmode);
++	return count;
++}
++
++static int force_wfmode_proc_show(struct seq_file *m, void *v)
++{
++	seq_printf(m, "%d\n", g_debug_info.force_wfmode);
++	return 0;
++}
++
++static int force_wfmode_proc_open(struct inode *inode, struct file *file)
++{
++	return single_open(file, force_wfmode_proc_show, NULL);
++}
++
++static const struct proc_ops force_wfmode_fops = {
++	.proc_open    = force_wfmode_proc_open,
++	.proc_read    = seq_read,
++	.proc_lseek   = seq_lseek,
++	.proc_release = single_release,
++	.proc_write   = force_wfmode_proc_write,
++};
++
+ static struct proc_dir_entry *folder_ptr;
+ static struct proc_dir_entry *eink_folder_ptr;
+ static struct proc_dir_entry *waveform_folder_ptr;
+ static struct proc_dir_entry *file_ptr;
+ static struct proc_dir_entry *debug_ptr;
+ static struct proc_dir_entry *force_clk_ptr;
++static struct proc_dir_entry *force_wfmode_ptr;
+
+ int hwtcon_debug_create_procfs(struct platform_device *pdev)
+ {
+@@ -2986,6 +3030,13 @@ int hwtcon_debug_create_procfs(struct platform_device *pdev)
+ 			status = HWTCON_STATUS_CREATE_FS_FAIL;
+ 			break;
+ 		}
++
++		force_wfmode_ptr = proc_create("force_wfmode", 0666, folder_ptr, &force_wfmode_fops);
++		if (force_wfmode_ptr == NULL) {
++			TCON_ERR("create /proc/hwtcon/force_wfmode fail");
++			status = HWTCON_STATUS_CREATE_FS_FAIL;
++			break;
++		}
+ 	} while (0);
+</script>
+
+<script type="text/x-diff" id="diff-hwtcon_state_manager.c">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_state_manager.c b/drivers/misc/mediatek/hwtcon/hwtcon_state_manager.c
+index 2dae734210e5..e03982d4b4ba 100644
+--- a/drivers/misc/mediatek/hwtcon/hwtcon_state_manager.c
++++ b/drivers/misc/mediatek/hwtcon/hwtcon_state_manager.c
+@@ -289,11 +289,10 @@ static bool can_merge_wait_for_mdp_task(struct hwtcon_task *task, struct hwtcon_
+ {
+ 	struct rect task_region = hwtcon_core_get_task_native_region(task);
+ 	struct rect insert_task_region = hwtcon_core_get_task_native_region(insert_task);
++	struct rect merge_region = {0};
++	u32 relation = hwtcon_rect_check_relationship(&task_region, &insert_task_region, &merge_region);
+
+-	return ((task_region.x == insert_task_region.x)
+-			&& (task_region.y == insert_task_region.y)
+-			&& (task_region.width == insert_task_region.width)
+-			&& (task_region.height == insert_task_region.height)
++	return (((relation == RECT_RELATION_CONTAIN) || (relation == RECT_RELATION_INTERSECT))
+ 			&& (task->update_data.flags == insert_task->update_data.flags)
+ 			&& (task->update_data.update_mode == insert_task->update_data.update_mode)
+ 			&& (task->regal_status == insert_task->regal_status)
+@@ -412,10 +411,16 @@ static void merge_scrolling_task(struct hwtcon_task *task, struct hwtcon_task *i
+ static void merge_wait_for_mdp_task(struct hwtcon_task *task, struct hwtcon_task *insert_task)
+ {
+ 	unsigned long free_task_flags;
++	struct rect task_region = hwtcon_core_get_task_native_region(task);
++	struct rect insert_task_region = hwtcon_core_get_task_native_region(insert_task);
++	struct rect merge_region = {0};
+
+ 	TCON_LOG("dump merge marker");
+ 	hwtcon_core_dump_merge_marker(task, insert_task);
+
++	hwtcon_rect_union(&task_region, &insert_task_region, &merge_region);
++	task->update_data.update_region = hwtcon_core_map_region_native_to_user(merge_region);
++
+ 	task->update_order = MIN(insert_task->update_order, task->update_order);
+ 	task->pic_order = MAX(insert_task->pic_order, task->pic_order);
+</script>
+
+<script type="text/x-diff" id="diff-PowerManagerService.java">--- a/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java
++++ b/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java
+@@ -5864,8 +5864,19 @@ public void onReceive(Context context, Intent intent) {
+                     int flags = intent.getIntExtra("flags", 0);
+                     int dithermode = intent.getIntExtra("dithermode", 0);
+-                    Slog.d(TAG, "(SMode) UpdateModeReceiver : Globle Mode - updatemode("
+-                        + updatemode + ") wait(" + waitmode + ") waveform(" + waveformmode + ")...");
++                    int pendingmode = intent.getIntExtra("pendingmode", -1);
++                    Slog.d(TAG, "(SMode) UpdateModeReceiver : Globle Mode - updatemode("
++                        + updatemode + ") wait(" + waitmode + ") waveform(" + waveformmode
++                        + ") flags(" + Integer.toHexString(flags)
++                        + ") dithermode(" + Integer.toHexString(dithermode)
++                        + ") pendingmode(" + pendingmode + ")");
++                    if (pendingmode >= 0) {
++                        try {
++                            java.io.FileOutputStream fos =
++                                new java.io.FileOutputStream("/proc/hwtcon/force_wfmode");
++                            fos.write(String.valueOf(pendingmode).getBytes());
++                            fos.close();
++                        } catch (java.io.IOException e) {
++                            Slog.e(TAG, "Failed to set force_wfmode: " + e);
++                        }
++                    }
+                     mSurface.updateAuxRefreshMode(NTX_MODE_GLOBAL,
+                         updatemode, waitmode, waveformmode, flags, dithermode);
+</script>
+
+<!-- ══ Diff modal ══ -->
+<div id="diffModal" onclick="diffModalBgClick(event)"
+  style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:24px">
+  <div style="background:#0d1117;border:1px solid #30363d;border-radius:14px;width:92%;max-width:1080px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.7)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #21262d;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;color:#6b7280">diff</span>
+        <span id="diffTitle" style="font-size:14px;font-weight:700;color:#c9d1d9;font-family:'JetBrains Mono','Fira Code',monospace"></span>
+      </div>
+      <button onclick="closeDiffModal()"
+        style="background:rgba(255,255,255,.06);border:1px solid #30363d;color:#6b7280;border-radius:7px;padding:5px 14px;cursor:pointer;font-size:13px;transition:all .2s"
+        onmouseover="this.style.color='#e2e8f0'" onmouseout="this.style.color='#6b7280'">✕ 關閉 (Esc)</button>
+    </div>
+    <pre id="diffContent"
+      style="flex:1;overflow:auto;padding:18px 22px;margin:0;font-size:12px;line-height:1.65;font-family:'JetBrains Mono','Fira Code','Consolas',monospace;background:transparent;border:none;white-space:pre;tab-size:4"></pre>
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prevBtn" onclick="changeSlide(-1)" disabled>‹</button>
+  <div class="dots" id="dots"></div>
+  <div class="page-info" id="pageInfo">1 / 13</div>
+  <button id="nextBtn" onclick="changeSlide(1)">›</button>
+</div>
+
+<script>
+  /* ── Diff modal ── */
+  function renderDiff(raw) {
+    return raw.split('\n').map(line => {
+      const e = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      if (/^(diff |index |--- |[+]{3} )/.test(line))
+        return '<span style="color:#60a5fa">'+e+'</span>';
+      if (line.startsWith('+'))
+        return '<span style="color:#4ade80;background:rgba(74,222,128,.07)">'+e+'</span>';
+      if (line.startsWith('-'))
+        return '<span style="color:#f87171;background:rgba(248,113,113,.07)">'+e+'</span>';
+      if (line.startsWith('@@'))
+        return '<span style="color:#c084fc">'+e+'</span>';
+      return '<span style="color:#8b949e">'+e+'</span>';
+    }).join('\n');
+  }
+
+  function showDiff(name) {
+    const el = document.getElementById('diff-'+name);
+    if (!el) return;
+    document.getElementById('diffTitle').textContent = name;
+    document.getElementById('diffContent').innerHTML = renderDiff(el.textContent);
+    const modal = document.getElementById('diffModal');
+    modal.style.display = 'flex';
+    modal.querySelector('pre').scrollTop = 0;
+  }
+
+  function closeDiffModal() {
+    document.getElementById('diffModal').style.display = 'none';
+  }
+
+  function diffModalBgClick(e) {
+    if (e.target === document.getElementById('diffModal')) closeDiffModal();
+  }
+
+  /* ── Slide navigation ── */
+  let cur = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===0?' active':'');
+    d.onclick=()=>goTo(i);
+    dotsEl.appendChild(d);
+  });
+  function goTo(n){
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur=Math.max(0,Math.min(total-1,n));
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    document.getElementById('pageInfo').textContent=(cur+1)+' / '+total;
+    document.getElementById('prevBtn').disabled=cur===0;
+    document.getElementById('nextBtn').disabled=cur===total-1;
+  }
+  function changeSlide(d){goTo(cur+d);}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closeDiffModal();return;}
+    if(document.getElementById('diffModal').style.display==='flex') return;
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();changeSlide(1);}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();changeSlide(-1);}
+  });
+
+</script>
+</body>
+</html>
