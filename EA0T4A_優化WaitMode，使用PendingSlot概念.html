@@ -690,11 +690,11 @@ scrcpy（電腦鏡像）是正常的
       <pre style="font-size:12px">App / 使用者
     │
     │ <span class="cg">am broadcast -a ntx.eink_control.GLOBAL_REFRESH</span>
+    │ --ei updatemode 0
+    │ --ei waitmode 1
     │ --ei waveformmode 1    <span class="cz">← DU 波形</span>
     │ --ei flags 0x2000      <span class="cz">← 觸發 kernel pending slot</span>
     │ --ei dithermode 0x301
-    │ --ei updatemode 0
-    │ --ei waitmode 1
     ▼
 <span class="cp">PowerManagerService.java</span>
     │
@@ -710,26 +710,24 @@ scrcpy（電腦鏡像）是正常的
     → Completion 提前 Signal</pre>
     </div>
     <div>
-      <h3>啟用指令</h3>
-      <pre style="font-size:12px"><span class="cz"># 啟用（DU 模式，無殘影無卡頓）</span>
+      <h3>切換指令</h3>
+      <pre style="font-size:12px"><span class="wbox" style="display:block;margin-bottom:4px;padding:4px 8px;border-radius:6px"><span class="cy">🟡 Wait Mode（無殘影，但 UI 卡頓）</span></span>
 adb shell am broadcast \
   -a ntx.eink_control.GLOBAL_REFRESH \
-  --ei updatemode 0 \
-  --ei waitmode 1 \
-  --ei waveformmode 1 \
-  --ei flags 0x2000 \
-  --ei dithermode 0x301
+  --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1
 
-<span class="cz"># 恢復預設 AUTO/GC16</span>
+<span style="display:block;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:6px;padding:4px 8px;margin-bottom:4px"><span class="cr">❌ Normal（恢復預設 AUTO/GC16）</span></span>
 adb shell am broadcast \
   -a ntx.eink_control.GLOBAL_REFRESH \
-  --ei updatemode 0 \
-  --ei waitmode 0 \
-  --ei waveformmode 0 \
-  --ei flags 0x0 \
-  --ei dithermode 0x0</pre>
-      <div class="sbox" style="font-size:12.5px; margin-top:8px">
-        <strong>單一 broadcast 即可</strong>，不需要額外設定。重開機後需重新下指令。
+  --ei pendingmode 0
+
+<span class="sbox" style="display:block;margin-bottom:4px;padding:4px 8px;border-radius:6px"><span class="cg">✅ Pending Slot（無殘影 + 無卡頓）</span></span>
+adb shell am broadcast \
+  -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1 \
+  --ei flags 0x2000 --ei dithermode 0x301</pre>
+      <div class="hbox" style="font-size:12px;margin-top:8px">
+        重開機後需重新下指令
       </div>
     </div>
   </div>
@@ -822,7 +820,7 @@ adb shell am broadcast \
       </tr>
     </table>
     <div style="font-size:13px;color:#64748b;margin-bottom:12px">
-      觸發方式：<code style="color:#a78bfa">am broadcast … --ei waveformmode 1 --ei flags 0x2000 --ei dithermode 0x301</code>
+      觸發方式：<code style="color:#a78bfa">am broadcast … --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1 --ei flags 0x2000 --ei dithermode 0x301</code>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:780px;margin:0 auto;text-align:left">
       <div class="card" style="border-color:#ef4444">
