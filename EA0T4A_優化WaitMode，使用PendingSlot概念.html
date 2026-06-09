@@ -155,7 +155,7 @@ ul li::before { content:'▸'; position:absolute; left:0; color:#7c3aed; }
 
 <!-- ══════════ SLIDE 2: Original Problem ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">02 / 14</div>
+  <div class="slide-num">02 / 15</div>
   <h2><span class="num">1</span>原始問題：殘影</h2>
   <div class="two-col">
     <div>
@@ -200,7 +200,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 3: Architecture ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">03 / 14</div>
+  <div class="slide-num">03 / 15</div>
   <h2><span class="num">2</span>系統架構：幀是怎麼走到螢幕的</h2>
   <div class="two-col">
     <div>
@@ -255,7 +255,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 4: Full Pipeline ══════════ -->
 <div class="slide slide-content" style="padding:38px 60px 80px">
-  <div class="slide-num">04 / 14</div>
+  <div class="slide-num">04 / 15</div>
   <h2 style="margin-bottom:14px"><span class="num">◌</span>完整更新鏈路：從點按鈕到 E-Ink 像素</h2>
 
   <!-- 5-stage pipeline -->
@@ -340,7 +340,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 4: Ghosting Root Cause ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">05 / 14</div>
+  <div class="slide-num">05 / 15</div>
   <h2><span class="num">3</span>殘影根因：多個 LUT 同時執行</h2>
   <div class="two-col">
     <div>
@@ -388,7 +388,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 5: First Fix + Side Effect ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">06 / 14</div>
+  <div class="slide-num">06 / 15</div>
   <h2><span class="num">4</span>第一版修法與衍生問題</h2>
   <div class="two-col">
     <div>
@@ -437,7 +437,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 6: Complete Fix ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">07 / 14</div>
+  <div class="slide-num">07 / 15</div>
   <h2><span class="num">5</span>完整修法：兩個問題一起解決</h2>
   <div class="tl">
     <div class="tl-item">
@@ -486,14 +486,14 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 7: Core Code ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">08 / 14</div>
+  <div class="slide-num">08 / 15</div>
   <h2><span class="num">5</span>核心邏輯（技術細節）</h2>
   <div class="two-col" style="gap:20px;align-items:start">
 
     <!-- Left: code -->
     <pre style="font-size:11.5px;margin:0"><span class="cp">hwtcon_core_submit_task_internal()</span>  <span class="cz">← 每幀提交</span>
 
-<span class="cb">if</span> (此幀是 DU / A2 模式) {
+<span class="cb">if</span> (此幀帶 PENDING_SLOT 旗標) {
 
   <span class="cg">// ★ 關鍵：三個 completion 全部提前 signal</span>
   <span class="cg">// 不管 IDLE/BUSY，DRM 幀進來就立刻拿到回執</span>
@@ -559,7 +559,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 8: Before/After Timing ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">09 / 14</div>
+  <div class="slide-num">09 / 15</div>
   <h2><span class="num">6</span>修復前後時序對比</h2>
 
   <h3>修復前：AUTO / GC16 模式</h3>
@@ -615,7 +615,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 9: Wait vs Pending Slot ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">10 / 14</div>
+  <div class="slide-num">10 / 15</div>
   <h2><span class="num">◎</span>Wait Mode vs Pending Slot：概念差在哪？</h2>
   <div class="two-col" style="gap:18px;align-items:stretch">
 
@@ -713,7 +713,7 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 10: Demo ══════════ -->
 <div class="slide slide-content" style="padding:36px 56px 80px;">
-  <div class="slide-num">11 / 14</div>
+  <div class="slide-num">11 / 15</div>
 
   <h2 style="margin-bottom:14px"><span class="num">★</span>實機 Demo 對比</h2>
 
@@ -768,64 +768,180 @@ scrcpy（電腦鏡像）是正常的
 
 <!-- ══════════ SLIDE 10: Architecture & Broadcast ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">12 / 14</div>
+  <div class="slide-num">12 / 15</div>
   <h2><span class="num">7</span>廣播控制架構與使用方式</h2>
-  <div class="two-col">
+  <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:18px;flex:1;min-height:0;overflow:hidden">
     <div>
-      <pre style="font-size:12px">App / 使用者
+      <pre style="font-size:11.5px">App / 使用者
     │
     │ <span class="cg">am broadcast -a ntx.eink_control.GLOBAL_REFRESH</span>
     │ --ei updatemode 0
     │ --ei waitmode 1
     │ --ei waveformmode 1    <span class="cz">← DU 波形</span>
-    │ --ei flags 0x2000      <span class="cz">← 觸發 kernel pending slot</span>
+    │ --ei flags 0x2000      <span class="cz">← Y1 dithering</span>
     │ --ei dithermode 0x301
+    │ --ei pendingslot 1     <span class="cg">← 觸發 pending slot</span>
     ▼
 <span class="cp">PowerManagerService.java</span>
     │
+    ├─ pendingslot=1 → flags |= 0x20000
     └─ <span class="cg">updateAuxRefreshMode()</span>
           │
           ▼
     SurfaceFlinger → HWC
     （套用 DU + dither 設定）
-          │ 每幀帶 HWTCON_FLAG_USE_DITHERING_Y1
+          │ 每幀帶 HWTCON_FLAG_USE_PENDING_SLOT
           ▼
     <span class="cp">hwtcon kernel driver</span>
     → Pending Slot 機制生效
     → Completion 提前 Signal</pre>
     </div>
-    <div>
-      <h3>切換指令</h3>
-      <pre style="font-size:12px"><span class="wbox" style="display:block;margin-bottom:4px;padding:4px 8px;border-radius:6px"><span class="cy">🟡 Wait Mode（無殘影，但 UI 卡頓）</span></span>
-adb shell am broadcast \
-  -a ntx.eink_control.GLOBAL_REFRESH \
-  --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1
+    <div style="display:flex;flex-direction:column;gap:0;min-height:0;overflow:hidden">
+      <h3 style="margin-top:0;margin-bottom:8px">指令清單</h3>
 
-<span style="display:block;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:6px;padding:4px 8px;margin-bottom:4px"><span class="cr">❌ Normal（恢復預設 AUTO/GC16）</span></span>
-adb shell am broadcast \
-  -a ntx.eink_control.GLOBAL_REFRESH \
-  --ei pendingmode 0
-
-<span class="sbox" style="display:block;margin-bottom:4px;padding:4px 8px;border-radius:6px"><span class="cg">✅ Pending Slot（無殘影 + 無卡頓）</span></span>
-adb shell am broadcast \
-  -a ntx.eink_control.GLOBAL_REFRESH \
+      <div style="background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.28);border-radius:7px;padding:6px 10px;margin-bottom:5px">
+        <div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:3px">① Pending Slot + DU（最佳，無殘影無卡頓）</div>
+        <pre style="font-size:10.5px;margin:0;background:transparent;border:none;padding:0;line-height:1.55;color:#c9d1d9">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH \
   --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1 \
-  --ei flags 0x2000 --ei dithermode 0x301</pre>
-      <div class="hbox" style="font-size:12px;margin-top:8px">
-        重開機後需重新下指令
+  --ei flags 0x2000 --ei dithermode 0x301 <span class="cg">--ei pendingslot 1</span></pre>
       </div>
+
+      <div style="background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.28);border-radius:7px;padding:6px 10px;margin-bottom:5px">
+        <div style="font-size:11px;font-weight:700;color:#4ade80;margin-bottom:3px">② Pending Slot + A2（最流暢，純黑白）</div>
+        <pre style="font-size:10.5px;margin:0;background:transparent;border:none;padding:0;line-height:1.55;color:#c9d1d9">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 <span class="cb">--ei waveformmode 6</span> \
+  --ei flags 0x2000 --ei dithermode 0x301 <span class="cg">--ei pendingslot 1</span></pre>
+      </div>
+
+      <div style="background:rgba(100,116,139,.06);border:1px solid rgba(100,116,139,.22);border-radius:7px;padding:6px 10px;margin-bottom:5px">
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:3px">③ 還原預設（AUTO mode，回到原始行為）</div>
+        <pre style="font-size:10.5px;margin:0;background:transparent;border:none;padding:0;line-height:1.55;color:#c9d1d9">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 <span class="cr">--ei waitmode 0 --ei waveformmode 0</span></pre>
+      </div>
+
+      <div style="background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);border-radius:7px;padding:6px 10px;margin-bottom:5px">
+        <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:3px">④ 舊 Wait Mode（有卡頓，對比用）</div>
+        <pre style="font-size:10.5px;margin:0;background:transparent;border:none;padding:0;line-height:1.55;color:#c9d1d9">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1 \
+  --ei flags 0x2000 --ei dithermode 0x301 <span class="cy">--ei pendingslot 0</span></pre>
+      </div>
+
+      <div style="background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.2);border-radius:7px;padding:6px 10px;margin-bottom:5px">
+        <div style="font-size:11px;font-weight:700;color:#f87171;margin-bottom:3px">⑤ 原始狀態（有殘影，對比用）</div>
+        <pre style="font-size:10.5px;margin:0;background:transparent;border:none;padding:0;line-height:1.55;color:#c9d1d9">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH \
+  --ei updatemode 0 <span class="cr">--ei waitmode 0</span> --ei waveformmode 1 \
+  --ei flags 0x2000 --ei dithermode 0x301</pre>
+      </div>
+
+      <div class="hbox" style="font-size:11.5px;margin-top:2px;flex-shrink:0">重開機後需重新下指令</div>
     </div>
   </div>
 </div>
 
-<!-- ══════════ SLIDE 11: Files ══════════ -->
+<!-- ══════════ SLIDE 12b: Parameter Reference ══════════ -->
 <div class="slide slide-content">
-  <div class="slide-num">13 / 14</div>
+  <div class="slide-num">13 / 15</div>
+  <h2><span class="num" style="font-size:14px;letter-spacing:-1px">≡</span>指令參數對照表</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start">
+
+    <div>
+      <table>
+        <thead><tr><th>參數</th><th>值</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr style="background:rgba(96,165,250,.07)">
+            <td rowspan="2" style="font-family:monospace;font-weight:700;color:#60a5fa;vertical-align:middle;font-size:13px">updatemode</td>
+            <td style="font-family:monospace;color:#e2e8f0">0</td>
+            <td>Partial（局部刷新）</td>
+          </tr>
+          <tr style="background:rgba(96,165,250,.07)">
+            <td style="font-family:monospace;color:#e2e8f0">1</td>
+            <td>Full（全畫面刷新）</td>
+          </tr>
+          <tr style="height:6px"><td colspan="3" style="border:none;padding:0"></td></tr>
+          <tr style="background:rgba(96,165,250,.04)">
+            <td rowspan="2" style="font-family:monospace;font-weight:700;color:#60a5fa;vertical-align:middle;font-size:13px">waitmode</td>
+            <td style="font-family:monospace;color:#e2e8f0">0</td>
+            <td>不等待</td>
+          </tr>
+          <tr style="background:rgba(96,165,250,.04)">
+            <td style="font-family:monospace;color:#e2e8f0">1</td>
+            <td>Wait Mode 啟用</td>
+          </tr>
+          <tr style="height:6px"><td colspan="3" style="border:none;padding:0"></td></tr>
+          <tr style="background:rgba(167,139,250,.07)">
+            <td rowspan="3" style="font-family:monospace;font-weight:700;color:#a78bfa;vertical-align:middle;font-size:13px">waveformmode</td>
+            <td style="font-family:monospace;color:#e2e8f0">0</td>
+            <td>AUTO / GC16</td>
+          </tr>
+          <tr style="background:rgba(167,139,250,.07)">
+            <td style="font-family:monospace;color:#e2e8f0">1</td>
+            <td>DU（~250ms）</td>
+          </tr>
+          <tr style="background:rgba(167,139,250,.07)">
+            <td style="font-family:monospace;color:#e2e8f0">6</td>
+            <td>A2（~120ms）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <table>
+        <thead><tr><th>參數</th><th>值</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr style="background:rgba(251,191,36,.07)">
+            <td rowspan="2" style="font-family:monospace;font-weight:700;color:#fbbf24;vertical-align:middle;font-size:13px">flags</td>
+            <td style="font-family:monospace;color:#e2e8f0">0x2000</td>
+            <td>Y1 dithering（2色）</td>
+          </tr>
+          <tr style="background:rgba(251,191,36,.07)">
+            <td style="font-family:monospace;color:#e2e8f0">0x4000</td>
+            <td>Y4 dithering（16色）</td>
+          </tr>
+          <tr style="height:6px"><td colspan="3" style="border:none;padding:0"></td></tr>
+          <tr style="background:rgba(74,222,128,.07)">
+            <td rowspan="2" style="font-family:monospace;font-weight:700;color:#4ade80;vertical-align:middle;font-size:13px">pendingslot</td>
+            <td style="font-family:monospace;color:#e2e8f0">1</td>
+            <td>啟用 Pending Slot（OR 0x20000）</td>
+          </tr>
+          <tr style="background:rgba(74,222,128,.07)">
+            <td style="font-family:monospace;color:#e2e8f0">0</td>
+            <td>停用 Pending Slot</td>
+          </tr>
+          <tr style="height:6px"><td colspan="3" style="border:none;padding:0"></td></tr>
+          <tr style="background:rgba(34,211,238,.06)">
+            <td rowspan="3" style="font-family:monospace;font-weight:700;color:#22d3ee;vertical-align:middle;font-size:13px">dithermode</td>
+            <td style="font-family:monospace;color:#e2e8f0">0x300</td>
+            <td>Quantization</td>
+          </tr>
+          <tr style="background:rgba(34,211,238,.06)">
+            <td style="font-family:monospace;color:#e2e8f0">0x301</td>
+            <td>Blue Noise <span class="badge badge-green" style="font-size:11px;padding:2px 7px">推薦</span></td>
+          </tr>
+          <tr style="background:rgba(34,211,238,.06)">
+            <td style="font-family:monospace;color:#e2e8f0">0x302</td>
+            <td>Sierra</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ SLIDE 13: Files ══════════ -->
+<div class="slide slide-content">
+  <div class="slide-num">14 / 15</div>
   <h2><span class="num">8</span>修改檔案清單</h2>
   <p style="font-size:12px;color:#475569;margin:-14px 0 14px">點擊任一檔案查看完整 diff</p>
   <div class="two-col">
     <div>
       <h3>Kernel / Vendor（make krn_images）</h3>
+      <div class="file-item diff-item" onclick="showDiff('hwtcon_ioctl_cmd.h')">
+        <span>📄</span><span class="file-name">hwtcon_ioctl_cmd.h</span>
+        <span class="file-desc">新增 HWTCON_FLAG_USE_PENDING_SLOT (0x1&lt;&lt;17)</span>
+        <span class="diff-arrow">diff ›</span>
+      </div>
       <div class="file-item diff-item" onclick="showDiff('hwtcon_fb.h')">
         <span>📄</span><span class="file-name">hwtcon_fb.h</span>
         <span class="file-desc">新增 pending_task / spinlock / work 欄位</span>
@@ -843,7 +959,7 @@ adb shell am broadcast \
       </div>
       <div class="file-item diff-item" style="border-color:rgba(124,58,237,.5)" onclick="showDiff('hwtcon_core.c')">
         <span>⚙️</span><span class="file-name">hwtcon_core.c</span>
-        <span class="file-desc">Pending slot + Completion 提前 signal + clock_disable 保護</span>
+        <span class="file-desc">Pending slot + Completion 提前 signal + clock_disable 保護 + PENDING_SLOT 旗標觸發</span>
         <span class="diff-arrow">diff ›</span>
       </div>
       <div class="file-item diff-item" onclick="showDiff('hwtcon_debug.c')">
@@ -859,7 +975,7 @@ adb shell am broadcast \
       <h3 style="margin-top:16px">System（make sys_images）</h3>
       <div class="file-item diff-item" onclick="showDiff('PowerManagerService.java')">
         <span>☕</span><span class="file-name">PowerManagerService.java</span>
-        <span class="file-desc">廣播新增 pendingmode 參數處理</span>
+        <span class="file-desc">廣播新增 pendingslot 參數處理（OR 0x20000 進 flags）</span>
         <span class="diff-arrow">diff ›</span>
       </div>
     </div>
@@ -880,7 +996,7 @@ adb shell am broadcast \
 
 <!-- ══════════ SLIDE 12: Summary ══════════ -->
 <div class="slide slide-cover" style="padding-bottom:52px">
-  <div class="slide-num">14 / 14</div>
+  <div class="slide-num">15 / 15</div>
   <div style="text-align:center;width:100%">
     <div class="cover-tag">修復成果總結</div>
     <table style="max-width:820px;margin:24px auto 20px;font-size:13px">
@@ -905,7 +1021,7 @@ adb shell am broadcast \
       </tr>
     </table>
     <div style="font-size:13px;color:#64748b;margin-bottom:12px">
-      觸發方式：<code style="color:#a78bfa">am broadcast … --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1 --ei flags 0x2000 --ei dithermode 0x301</code>
+      觸發方式：<code style="color:#a78bfa">am broadcast … --ei updatemode 0 --ei waitmode 1 --ei waveformmode 1 --ei flags 0x2000 --ei dithermode 0x301 --ei pendingslot 1</code>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:780px;margin:0 auto;text-align:left">
       <div class="card" style="border-color:#ef4444">
@@ -927,6 +1043,18 @@ adb shell am broadcast \
 </div><!-- /slides -->
 
 <!-- ══ Diff data (type=text/x-diff → ignored by browser, readable via .textContent) ══ -->
+
+<script type="text/x-diff" id="diff-hwtcon_ioctl_cmd.h">diff --git a/drivers/misc/mediatek/hwtcon/include/hwtcon_ioctl_cmd.h b/drivers/misc/mediatek/hwtcon/include/hwtcon_ioctl_cmd.h
+--- a/drivers/misc/mediatek/hwtcon/include/hwtcon_ioctl_cmd.h
++++ b/drivers/misc/mediatek/hwtcon/include/hwtcon_ioctl_cmd.h
+@@ -28,6 +28,7 @@
+ #define HWTCON_FLAG_USE_DITHERING_Y1      (0x1 << 13)
+ #define HWTCON_FLAG_USE_DITHERING_Y4      (0x1 << 14)
+ #define HWTCON_FLAG_PAGEFLOW_MASK         (0x3 << 15)
+ #define HWTCON_FLAG_PAGEFLOW_NORMAL       (0x1 << 15)
+ #define HWTCON_FLAG_PAGEFLOW_NEON         (0x2 << 15)
++#define HWTCON_FLAG_USE_PENDING_SLOT      (0x1 << 17)
+</script>
 
 <script type="text/x-diff" id="diff-hwtcon_fb.h">diff --git a/drivers/misc/mediatek/hwtcon/hwtcon_fb.h b/drivers/misc/mediatek/hwtcon/hwtcon_fb.h
 index 4824d8276a23..9f9a76dfdd63 100644
@@ -1035,7 +1163,7 @@ index 826bff40f8d9..0bd99eb52b95 100644
 -	/* enable fiti power */
 -	hwtcon_core_fiti_power_enable(true);
 -	wake_up_interruptible(&hwtcon_fb_info()->mdp_trigger_wait_queue);
-+	if (task->update_data.flags & HWTCON_FLAG_USE_DITHERING_Y1) {
++	if (task->update_data.flags & HWTCON_FLAG_USE_PENDING_SLOT) {
 +		struct update_marker_struct *pmarker, *ptmp;
 +
 +		/* Signal all completions immediately so DRM never blocks waiting
@@ -1225,17 +1353,24 @@ index 2dae734210e5..e03982d4b4ba 100644
 
 <script type="text/x-diff" id="diff-PowerManagerService.java">--- a/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java
 +++ b/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java
-@@ -5864,8 +5864,19 @@ public void onReceive(Context context, Intent intent) {
+@@ -5864,8 +5864,28 @@ public void onReceive(Context context, Intent intent) {
                      int flags = intent.getIntExtra("flags", 0);
                      int dithermode = intent.getIntExtra("dithermode", 0);
 -                    Slog.d(TAG, "(SMode) UpdateModeReceiver : Globle Mode - updatemode("
 -                        + updatemode + ") wait(" + waitmode + ") waveform(" + waveformmode + ")...");
 +                    int pendingmode = intent.getIntExtra("pendingmode", -1);
++                    int pendingslot = intent.getIntExtra("pendingslot", -1);
++                    if (pendingslot == 1) {
++                        flags |= 0x20000; /* HWTCON_FLAG_USE_PENDING_SLOT */
++                    } else if (pendingslot == 0) {
++                        flags &= ~0x20000;
++                    }
 +                    Slog.d(TAG, "(SMode) UpdateModeReceiver : Globle Mode - updatemode("
 +                        + updatemode + ") wait(" + waitmode + ") waveform(" + waveformmode
 +                        + ") flags(" + Integer.toHexString(flags)
 +                        + ") dithermode(" + Integer.toHexString(dithermode)
-+                        + ") pendingmode(" + pendingmode + ")");
++                        + ") pendingmode(" + pendingmode + ")"
++                        + ") pendingslot(" + pendingslot + ")");
 +                    if (pendingmode >= 0) {
 +                        try {
 +                            java.io.FileOutputStream fos =
@@ -1271,7 +1406,7 @@ index 2dae734210e5..e03982d4b4ba 100644
 <div class="nav">
   <button id="prevBtn" onclick="changeSlide(-1)" disabled>‹</button>
   <div class="dots" id="dots"></div>
-  <div class="page-info" id="pageInfo">1 / 14</div>
+  <div class="page-info" id="pageInfo">1 / 15</div>
   <button id="nextBtn" onclick="changeSlide(1)">›</button>
 </div>
 
