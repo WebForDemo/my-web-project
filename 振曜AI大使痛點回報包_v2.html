@@ -1460,6 +1460,21 @@
   const FREQ_MULTI = { "每天多次":50, "每天":22, "每週":4.3, "每月":1 };
   const TIME_MID   = { "< 30 分":0.4, "30 分–1h":0.75, "1–2h":1.5, "2–4h":3, "4–8h":6, "> 8h":10 };
 
+  function parseHours(str) {
+    if (!str) return null;
+    str = str.trim().toLowerCase();
+    if (str.includes('半天')) return 4;
+    const dayM = str.match(/(\d+\.?\d*)\s*[天日]/);
+    if (dayM) return parseFloat(dayM[1]) * 8;
+    const hrM = str.match(/(\d+\.?\d*)\s*(小時|hr|h\b|hrs)/);
+    if (hrM) return parseFloat(hrM[1]);
+    const minM = str.match(/(\d+\.?\d*)\s*(分鐘|分\b|min)/);
+    if (minM) return parseFloat(minM[1]) / 60;
+    const numM = str.match(/^(\d+\.?\d*)$/);
+    if (numM) return parseFloat(numM[1]);
+    return null;
+  }
+
   function checkSignals(n) {
     const count = [1,2,3].filter(k => {
       const el = document.querySelector(`input[name="p${n}-s${k}"]`);
@@ -1478,11 +1493,14 @@
 
   function calcMonthly(n) {
     const freq = document.querySelector(`input[name="p${n}-freq"]:checked`);
-    const time = document.querySelector(`input[name="p${n}-time2"]:checked`);
+    const timeEl = document.querySelector(`input[name="p${n}-time2"]`);
     const el = document.getElementById(`monthly-${n}`);
-    if (!freq || !time || !FREQ_MULTI[freq.value]) { el.innerHTML = ""; return; }
-    const hrs = Math.round(FREQ_MULTI[freq.value] * TIME_MID[time.value]);
-    el.innerHTML = `<span class="monthly-badge">⏱ 每月預估約 ${hrs} 小時</span>`;
+    if (!el) return;
+    if (!freq || !timeEl || !FREQ_MULTI[freq.value]) { el.innerHTML = ""; return; }
+    const hrs = parseHours(timeEl.value);
+    if (!hrs) { el.innerHTML = ""; return; }
+    const monthly = Math.round(FREQ_MULTI[freq.value] * hrs * 10) / 10;
+    el.innerHTML = `<span class="monthly-badge">⏱ 每月預估約 ${monthly} 小時</span>`;
   }
 
   function painItemHTML(n) {
@@ -1543,12 +1561,12 @@
               </div>
             </div>
             <div class="form-row">
-              <div class="fr-label">⏱ 耗時</div>
+              <div class="fr-label">⏱ 每次耗時</div>
               <div class="fr-input">
-                <div class="time-row">
-                  ${TIME_OPTS2.map(t=>`<label class="time-chip"><input type="radio" name="p${n}-time2" value="${t}" onchange="calcMonthly(${n})">${t}</label>`).join("")}
-                </div>
-                <div id="monthly-${n}"></div>
+                <input type="text" name="p${n}-time2"
+                  placeholder="例：2h、30 分鐘、半天（4h）、1 天（8h）、2 天"
+                  oninput="calcMonthly(${n})">
+                <div id="monthly-${n}" style="margin-top:4px"></div>
               </div>
             </div>
             <div class="form-row">
@@ -1596,7 +1614,14 @@
           <div class="pb-row">
             <div class="pb-label">補充說明<br><span style="font-size:10px;font-weight:400;color:var(--muted)">選填</span></div>
             <div class="pb-content">
-              <input type="text" name="p${n}-note" placeholder="其他想補充的細節" style="margin:0">
+              <textarea name="p${n}-note" style="margin:0;min-height:90px"
+                placeholder="可以說說下面任何一點：
+・目前有用 Excel Macro / ChatGPT 輔助，但還是很慢
+・最希望 AI 做到「把 A 自動轉成 B」這件事
+・這件事只有我會做，主管不知道有多耗時
+・做到一半常被打斷，重來很費時
+・每次都要等別人回覆才能繼續，卡關很久
+・以前有人教過更快的做法但不穩定，希望能固定化"></textarea>
             </div>
           </div>
         </div>
@@ -1686,15 +1711,21 @@
       const source = f.querySelector(`input[name="p${i}-source"]`);
       const risk2  = f.querySelector(`input[name="p${i}-risk2"]`);
       const freq   = f.querySelector(`input[name="p${i}-freq"]:checked`);
-      const time2  = f.querySelector(`input[name="p${i}-time2"]:checked`);
       if (scene  && scene.value.trim())  lines.push(`  具體場景：${scene.value.trim()}`);
       lines.push(`  頻率：${freq ? freq.value : "（未選）"}`);
       if (source && source.value.trim()) lines.push(`  來源：${source.value.trim()}`);
-      lines.push(`  每次耗時：${time2 ? time2.value : "（未選）"}`);
-      if (freq && time2 && FREQ_MULTI[freq.value]) {
-        const hrs = Math.round(FREQ_MULTI[freq.value] * TIME_MID[time2.value]);
-        lines.push(`  每月預估耗時：約 ${hrs} 小時`);
-        totalMonthlyHrs += hrs;
+      const time2El = f.querySelector(`input[name="p${i}-time2"]`);
+      const timeVal = time2El ? time2El.value.trim() : "";
+      if (timeVal) {
+        lines.push(`  每次耗時：${timeVal}`);
+        if (freq && FREQ_MULTI[freq.value]) {
+          const hrs = parseHours(timeVal);
+          if (hrs) {
+            const monthly = Math.round(FREQ_MULTI[freq.value] * hrs * 10) / 10;
+            lines.push(`  每月預估耗時：約 ${monthly} 小時`);
+            totalMonthlyHrs += monthly;
+          }
+        }
       }
       if (risk2  && risk2.value.trim())  lines.push(`  風險：${risk2.value.trim()}`);
       const aiChars = [...f.querySelectorAll(`input[name="p${i}-ai"]:checked`)].map(el => el.value);
@@ -1703,7 +1734,7 @@
       const tl    = f.querySelector(`input[name="p${i}-tl"]:checked`);
       lines.push(`  影響人數：${scope ? scope.value : "（未選）"}`);
       lines.push(`  AI 燈號：${tl ? tl.value : "（未選）"}`);
-      const note = f.querySelector(`input[name="p${i}-note"]`);
+      const note = f.querySelector(`textarea[name="p${i}-note"]`);
       if (note && note.value.trim()) lines.push(`  補充：${note.value.trim()}`);
       lines.push("");
     }
