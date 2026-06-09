@@ -1496,8 +1496,17 @@
     const timeEl = document.querySelector(`input[name="p${n}-time2"]`);
     const el = document.getElementById(`monthly-${n}`);
     if (!el) return;
-    if (!freq || !timeEl || !FREQ_MULTI[freq.value]) { el.innerHTML = ""; return; }
-    const hrs = parseHours(timeEl.value);
+    if (!freq) { el.innerHTML = ""; return; }
+
+    if (freq.value === "不定期") {
+      const hrs = parseHours(timeEl ? timeEl.value : "");
+      if (!hrs) { el.innerHTML = ""; return; }
+      el.innerHTML = `<span class="monthly-badge">⏱ 總時程預估 ${hrs} 小時</span>`;
+      return;
+    }
+
+    if (!FREQ_MULTI[freq.value]) { el.innerHTML = ""; return; }
+    const hrs = parseHours(timeEl ? timeEl.value : "");
     if (!hrs) { el.innerHTML = ""; return; }
     const monthly = Math.round(FREQ_MULTI[freq.value] * hrs * 10) / 10;
     el.innerHTML = `<span class="monthly-badge">⏱ 每月預估約 ${monthly} 小時</span>`;
@@ -1716,15 +1725,16 @@
       if (source && source.value.trim()) lines.push(`  來源：${source.value.trim()}`);
       const time2El = f.querySelector(`input[name="p${i}-time2"]`);
       const timeVal = time2El ? time2El.value.trim() : "";
-      if (timeVal) {
-        lines.push(`  每次耗時：${timeVal}`);
-        if (freq && FREQ_MULTI[freq.value]) {
-          const hrs = parseHours(timeVal);
-          if (hrs) {
-            const monthly = Math.round(FREQ_MULTI[freq.value] * hrs * 10) / 10;
-            lines.push(`  每月預估耗時：約 ${monthly} 小時`);
-            totalMonthlyHrs += monthly;
-          }
+      if (timeVal) lines.push(`  每次耗時：${timeVal}`);
+      if (freq && freq.value === "不定期" && timeVal) {
+        const hrs = parseHours(timeVal);
+        if (hrs) lines.push(`  總時程預估：${hrs} 小時`);
+      } else if (freq && FREQ_MULTI[freq.value] && timeVal) {
+        const hrs = parseHours(timeVal);
+        if (hrs) {
+          const monthly = Math.round(FREQ_MULTI[freq.value] * hrs * 10) / 10;
+          lines.push(`  每月預估耗時：約 ${monthly} 小時`);
+          totalMonthlyHrs += monthly;
         }
       }
       if (risk2  && risk2.value.trim())  lines.push(`  風險：${risk2.value.trim()}`);
