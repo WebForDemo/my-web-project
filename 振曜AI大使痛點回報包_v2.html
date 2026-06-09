@@ -360,6 +360,180 @@
     .ex-card .ex-body { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 6px; }
     .ex-card .ex-dept { font-size: 11px; color: var(--muted); font-style: italic; }
 
+    /* ── Dept hint popup ── */
+    .dept-hint { display: none; margin-top: 12px; }
+    .dept-hint.show { display: block; animation: popIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.94) translateY(-10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes iconBounce {
+      0%   { transform: scale(0) rotate(-10deg); }
+      65%  { transform: scale(1.25) rotate(4deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .dept-hint-inner {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 16px 18px;
+      border-left: 4px solid;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(30,58,95,0.10);
+      position: relative;
+      overflow: hidden;
+    }
+    .dept-hint-inner::after {
+      content: '';
+      position: absolute; top: 0; right: 0;
+      width: 100px; height: 100%;
+      background: linear-gradient(to left, rgba(255,255,255,0.45), transparent);
+      pointer-events: none;
+    }
+    .dept-hint-inner.green  { background: linear-gradient(135deg,#f0fdf4,#ecfdf5); border-color: var(--ok); }
+    .dept-hint-inner.yellow { background: linear-gradient(135deg,#fffbeb,#fef3c7); border-color: var(--warn); }
+    .dept-hint-inner.red    { background: linear-gradient(135deg,#fef2f2,#fee2e2); border-color: var(--danger); }
+    .dept-hint-inner.mixed  { background: linear-gradient(135deg,#fffbeb,#fef3c7); border-color: var(--warn); }
+    .dept-hint .dh-icon  { font-size: 26px; flex-shrink: 0; animation: iconBounce 0.42s 0.08s both; }
+    .dept-hint .dh-meta  { font-size: 10px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    .dept-hint .dh-body  { font-size: 13px; line-height: 1.65; color: var(--text); margin-bottom: 6px; }
+    .dept-hint .dh-foot  { font-size: 12px; font-weight: 700; color: var(--primary); }
+
+    /* ── Five elements ── */
+    .five-el-box {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .five-el-box .box-title {
+      font-size: 11px; font-weight: 800; color: #fff;
+      letter-spacing: 0.6px; text-transform: uppercase;
+      background: var(--primary);
+      padding: 8px 14px;
+    }
+    .form-rows { display: flex; flex-direction: column; }
+    .form-row {
+      display: flex; align-items: flex-start; gap: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .form-row:last-child { border-bottom: none; }
+    .fr-label {
+      width: 96px; flex-shrink: 0;
+      font-size: 12px; font-weight: 700; color: var(--primary);
+      padding: 10px 12px;
+      background: #edf2f7;
+      border-right: 1px solid var(--line);
+      display: flex; align-items: flex-start; gap: 4px;
+      line-height: 1.4;
+    }
+    .fr-input { flex: 1; padding: 8px 12px; }
+    .fr-input input[type="text"] { margin: 0; }
+    .monthly-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--ok); color: #fff;
+      font-size: 12px; font-weight: 700;
+      padding: 4px 12px; border-radius: 99px; margin-top: 6px;
+      animation: badgePop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes badgePop {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ── Bottom section ── */
+    .pain-bottom {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .pb-row {
+      display: flex; align-items: flex-start; gap: 0;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 14px;
+    }
+    .pb-row:last-child { border-bottom: none; }
+    .pb-label {
+      width: 110px; flex-shrink: 0;
+      font-size: 12px; font-weight: 700; color: var(--primary);
+      padding-top: 2px;
+    }
+    .pb-content { flex: 1; }
+    .ai-chars .opt-item span { font-size: 13px; }
+
+    /* ── 3-signal check in Q3 ── */
+    .signal-check {
+      background: linear-gradient(135deg,#fffbeb,#fef9ec);
+      border: 1.5px solid #fcd34d;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .sc-title { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
+    .sc-title span { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 6px; }
+    .sc-items { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 10px; }
+    .sc-item {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 10px 8px;
+      background: #fff; border: 1.5px solid var(--line); border-radius: 8px;
+      cursor: pointer; text-align: center; transition: all 0.13s;
+    }
+    .sc-item:hover { border-color: var(--accent); }
+    .sc-item:has(input:checked) { border-color: var(--accent); background: var(--accent-bg); }
+    .sc-item input { display: none; }
+    .sc-icon { font-size: 22px; }
+    .sc-text strong { display: block; font-size: 13px; color: var(--primary); margin-bottom: 2px; }
+    .sc-text span { font-size: 11px; color: var(--muted); line-height: 1.4; display: block; }
+    .sc-result { min-height: 26px; }
+    .sc-gold {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff;
+      font-size: 13px; font-weight: 700; padding: 5px 14px; border-radius: 99px;
+      animation: badgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .sc-good { font-size: 13px; font-weight: 700; color: var(--ok); }
+    .sc-weak { font-size: 13px; color: var(--muted); }
+
+    /* ── Venn card in Tab 1 ── */
+    .venn-row { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 14px; }
+    .venn-vis { position: relative; width: 172px; height: 162px; flex-shrink: 0; }
+    .vc { position: absolute; width: 108px; height: 108px; border-radius: 50%; opacity: 0.6; }
+    .vc-1 { background: #93c5fd; top: 0; left: 0; }
+    .vc-2 { background: #fde68a; top: 0; right: 0; }
+    .vc-3 { background: #fca5a5; bottom: 0; left: 50%; transform: translateX(-50%); }
+    .vc-lbl {
+      position: absolute; font-size: 12px; font-weight: 800;
+      color: #1e3a5f; text-align: center; line-height: 1.3; pointer-events: none;
+    }
+    .vc-lbl-1 { top: 10px; left: 10px; }
+    .vc-lbl-2 { top: 10px; right: 8px; }
+    .vc-lbl-3 { bottom: 7px; left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    .vc-gold {
+      position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%);
+      background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff;
+      font-size: 11px; font-weight: 800; padding: 6px 10px; border-radius: 8px;
+      text-align: center; line-height: 1.4; z-index: 10; white-space: nowrap;
+      box-shadow: 0 3px 12px rgba(245,158,11,0.5);
+    }
+    .venn-signals { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    .vs-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.5; }
+    .vs-ico { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .vs-tag { display: inline-block; background: var(--accent-bg); color: var(--primary); font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 4px; margin-right: 5px; }
+
+    /* ── Good vs bad ── */
+    .goodbad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .gb-bad { padding: 12px 14px; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; }
+    .gb-good { padding: 12px 14px; background: #f0fdf4; border: 1.5px solid var(--ok); border-radius: 8px; }
+    .gb-tag { font-size: 11px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+    .gb-bad .gb-tag { color: var(--danger); }
+    .gb-good .gb-tag { color: var(--ok); }
+    .gb-quote { font-size: 13px; line-height: 1.6; color: var(--text); }
+
+    /* ── Sentence template ── */
+    .sent-tpl { background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.7; }
+    .sent-tpl .st-label { font-size: 11px; font-weight: 700; color: #1d4ed8; margin-bottom: 5px; }
+
     /* ── Bridge callout ── */
     .bridge-box {
       background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
@@ -573,6 +747,10 @@
       .tl-row { flex-direction: column; }
       .ex-grid { grid-template-columns: 1fr; }
       .bridge-box .b-steps { gap: 8px; }
+      .sc-items { grid-template-columns: 1fr; }
+      .goodbad { grid-template-columns: 1fr; }
+      .venn-row { flex-direction: column; }
+      .five-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -668,6 +846,49 @@
             <div class="cat-desc">真正知道哪件事最磨人、最該先被解決的，只有每天親手在做的你——不是主管，不是 IT。</div>
             <div class="cat-hint">→ 如果只能解一件事，你最想解哪件？</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>三個訊號交叉，抓出你的黃金痛點</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="venn-row">
+          <div class="venn-vis">
+            <div class="vc vc-1"></div>
+            <div class="vc vc-2"></div>
+            <div class="vc vc-3"></div>
+            <div class="vc-lbl vc-lbl-1">🔄<br>重複</div>
+            <div class="vc-lbl vc-lbl-2">😮‍💨<br>煩躁</div>
+            <div class="vc-lbl vc-lbl-3">⚠️ 易錯</div>
+            <div class="vc-gold">✦ 黃金<br>痛點</div>
+          </div>
+          <div class="venn-signals">
+            <div class="vs-item"><span class="vs-ico">🔄</span><div><span class="vs-tag">重複</span>這件事一週要做超過 3 次嗎？<strong> ＝ 頻率</strong></div></div>
+            <div class="vs-item"><span class="vs-ico">😮‍💨</span><div><span class="vs-tag">煩躁</span>做的時候會嘆氣「怎麼又要弄」嗎？<strong> ＝ 磨人</strong></div></div>
+            <div class="vs-item"><span class="vs-ico">⚠️</span><div><span class="vs-tag">易錯</span>要很小心、做完還得再檢查一遍嗎？<strong> ＝ 風險</strong></div></div>
+          </div>
+        </div>
+        <div class="callout success" style="margin-bottom:14px">三個都有 = <strong>黃金痛點</strong>——最磨人、最重複、最容易出錯，就是最值得 AI 先解決的。</div>
+
+        <p style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px">什麼叫說清楚？好壞對比：</p>
+        <div class="goodbad">
+          <div class="gb-bad">
+            <div class="gb-tag">✗ 這樣講・AI 接不住</div>
+            <div class="gb-quote">「報表很煩。」</div>
+          </div>
+          <div class="gb-good">
+            <div class="gb-tag">✓ 這樣講・AI 馬上能評估</div>
+            <div class="gb-quote">「每週一早上，我要從 <strong>3 個系統</strong>各拉一次數據、手動合併成週報，約花 <strong>2 小時</strong>，而且常複製貼上貼錯欄位。」</div>
+          </div>
+        </div>
+
+        <div class="sent-tpl">
+          <div class="st-label">找到後，套這個句型講具體 ↓</div>
+          「我每 <strong>___（頻率）</strong> 要做 <strong>___（工作）</strong>，約花 <strong>___（耗時）</strong>，最卡在 <strong>___（風險）</strong>。」
         </div>
       </div>
     </div>
@@ -1016,6 +1237,16 @@
               <label class="field-label">其他部門名稱：</label>
               <input type="text" name="dept-other" id="dept-other-input" placeholder="請填寫">
             </div>
+            <div class="dept-hint" id="dept-hint">
+              <div class="dept-hint-inner" id="dept-hint-inner">
+                <div class="dh-icon" id="dept-hint-icon"></div>
+                <div>
+                  <div class="dh-meta">今天說明會你們部門提到的例子 ↓</div>
+                  <div class="dh-body" id="dept-hint-body"></div>
+                  <div class="dh-foot" id="dept-hint-foot"></div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="q-block">
             <div class="q-title">1-2　你的角色 <span class="q-sub">單選</span></div>
@@ -1052,14 +1283,14 @@
         </div>
         <div class="card-body">
           <div class="bridge-box">
-            <div class="b-title">填之前，先用這三個問題找出你的痛點：</div>
+            <div class="b-title">先想好你的痛點，再來填——用這三個問題找到它：</div>
             <div class="b-steps">
-              <div class="b-step"><span class="b-num">1</span><span>上週做了哪件事讓你心裡嘆氣說「又要做這個」？</span></div>
+              <div class="b-step"><span class="b-num">1</span><span>上週做了哪件事讓你嘆氣說「又要做這個」？</span></div>
               <div class="b-step"><span class="b-num">2</span><span>哪件事你做完同事沒感覺，但你知道有多耗時？</span></div>
-              <div class="b-step"><span class="b-num">3</span><span>如果 AI 今天就能幫你做一件事，你最想讓它做哪件？</span></div>
+              <div class="b-step"><span class="b-num">3</span><span>如果只能解一件事，你最想解哪件？</span></div>
             </div>
           </div>
-          <p class="q-desc">找到了就往下填，<strong>1–3 項</strong>即可。描述得越具體，AI 團隊越能快速開發出來。</p>
+          <p class="q-desc">找到了就往下填，<strong>1–3 項</strong>即可。每個痛點要填 5 要素（場景、頻率、來源、耗時、風險），填越完整、每月預估時數就越準確。</p>
           <div id="pain-container"></div>
           <button type="button" class="add-pain-btn" id="add-pain-btn" onclick="addPain()">＋ 新增第二個痛點</button>
         </div>
@@ -1090,30 +1321,6 @@
         </div>
       </div>
 
-      <!-- Q5 -->
-      <div class="card">
-        <div class="card-head no-toggle">
-          <h2>Q5　神燈題 <span class="q-sub">2 分鐘，這題最珍貴</span></h2>
-        </div>
-        <div class="card-body">
-          <div class="callout info" style="margin-bottom:16px">這兩題沒有選項——因為<strong>你的答案，可能就是別人沒想到的金礦</strong>。越具體越好，「每月把 4 家子公司 ERP 手動整合成同格式花 10 小時」比「資料很多」有用 10 倍。</div>
-          <div class="q-block">
-            <div class="q-title">5-1　如果 AI 今天就能幫你做一件事，你最想讓它做什麼？</div>
-            <p class="q-desc">再小、再瑣碎都值得說。試著寫出：<strong>什麼時候・從哪裡・做什麼・到哪裡</strong>。不需要說怎麼技術實現，只說你的期待。</p>
-            <textarea name="wish" placeholder="例 A（整合型）：每月底要把子公司 ERP 報表逐一手工整合，希望 AI 能自動抓資料、統一格式、直接出報表。&#10;例 B（問答型）：HR 規章每天被同仁問，希望 AI 能自動查規章回覆，不用每次我手工找。&#10;例 C（數據型）：測試後要手工從儀器抓電壓電流數據，希望 AI 能自動選時段、整理成表格。"></textarea>
-          </div>
-          <div class="q-block">
-            <div class="q-title">5-2　你現在有沒有自己發明的省時小撇步？<span class="q-sub">選填</span></div>
-            <p class="q-desc">Excel Macro、自己做的公式、固定的複製貼上流程……這些「人工自動化」通常是 AI 能直接接手的線索。</p>
-            <textarea name="tricks" placeholder="例：我用 Excel VBA 寫了一個 Macro，每月把三張報表合在一起，但還是要手動調整欄位對齊，大概省了一半時間…"></textarea>
-          </div>
-          <div class="q-block">
-            <div class="q-title">5-3　你有沒有在用 AI 工具（ChatGPT、Claude 等）？<span class="q-sub">選填，分享用法</span></div>
-            <p class="q-desc">不管是公司核准或個人使用，說說你怎麼用的——這幫我們知道你的起點在哪。</p>
-            <textarea name="aiuse" style="min-height:60px" placeholder="例：我有用免費版 ChatGPT 算 Excel 平均值、整理文字；PM 有用來做新客戶分析，帶入 PM 角色比較有用；SW 用 Claude Debug…"></textarea>
-          </div>
-        </div>
-      </div>
 
     </form>
 
@@ -1203,6 +1410,43 @@
   const LABELS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
   const NUM_ZH = ["","二","三","四","五","六","七","八","九","十"];
 
+  const DEPT_EXAMPLES = {
+    "成控中心":   { light:"red",    icon:"🔴", body:"報價資料需不斷更新，靠 Excel 全人工維護；使用 AI 時擔心資安，不確定哪些環節可以用。", foot:"→ 報價本身屬紅燈，流程管理輔助可以討論" },
+    "文件管制":   { light:"green",  icon:"🟢", body:"原本用 Excel 函式做計算，已自己用免費 ChatGPT 算平均值，希望有更系統化的公司核准方案。", foot:"→ 數據計算、Excel 輔助屬綠燈" },
+    "資材處":     { light:"green",  icon:"🟢", body:"ERP 資料整合需額外配合，靠 ERP + Excel Macro 處理，需 IT 協助，整合流程繁瑣。", foot:"→ ERP + Excel 整合自動化屬綠燈" },
+    "財務部":     { light:"green",  icon:"🟢", body:"每月從各子公司系統抓資料，各公司格式不一致，手工做 Data Exchange 約 10 小時／月。", foot:"→ 跨子公司格式整合屬綠燈" },
+    "會計部":     { light:"green",  icon:"🟢", body:"會計工作中，對帳核對、發票資料整理、報表彙整通常每月都要做一輪，來源系統多、格式不一，手工整合耗時。", foot:"→ 對帳輔助、報表彙整屬綠燈", attended:false },
+    "人力資源部": { light:"green",  icon:"🟢", body:"出勤異常、加班申請需人工逐筆查看；HR 規章被同仁反覆詢問，每次手動查找回覆。", foot:"→ 規章問答機器人、出勤異常偵測屬綠燈" },
+    "廠務工程部": { light:"green",  icon:"🟢", body:"廠務工作中，設備巡檢紀錄、工單彙整、異常狀況通報等反覆性作業，通常每天都要處理，適合 AI 輔助整理與提醒。", foot:"→ 紀錄彙整、異常提醒屬綠燈", attended:false },
+    "市場開發處": { light:"mixed",  icon:"🟡", body:"新客戶背景調查已用 ChatGPT（帶入 PM 角色效果較好）；認證法規原文查詢耗時；PPT 製作工具點數不足。", foot:"→ 客戶分析屬綠燈；法規查詢輔助屬黃燈" },
+    "業務處":     { light:"mixed",  icon:"🟡", body:"出貨文件種類多量大、Routine 重、全靠人工；報價需不斷更新但屬公司機密。", foot:"→ 出貨文件處理屬綠燈；報價屬紅燈" },
+    "資訊部":     { light:"yellow", icon:"🟡", body:"常需跨部門統整需求、整理邏輯、調整後實作除錯，溝通來回耗時。曾主導把紙本訂便當改為線上表單。", foot:"→ 需求整理輔助屬黃燈；流程自動化屬綠燈" },
+    "品保部":     { light:"red",    icon:"🔴", body:"進料與成品檢驗需資深同仁每天 8 小時，透過 X-Ray 辨識材料是否合格，高度仰賴人工專業判斷。", foot:"→ X-Ray 判斷屬紅燈；檢驗紀錄彙整屬綠燈" },
+    "機構設計部": { light:"green",  icon:"🟢", body:"規格書比對、datasheet 查詢、技術文件整理、debug 輔助，都是反覆耗時的典型痛點。", foot:"→ 技術文件處理、規格比對屬綠燈" },
+    "研發（HW）": { light:"green",  icon:"🟢", body:"測試後要從量測儀器手工選取特定時段的電壓電流數據，光抓數據就要 2 小時，整理表格再要好幾天。", foot:"→ 數據抓取整理、報表自動化屬綠燈" },
+    "研發（SW）": { light:"yellow", icon:"🟡", body:"已在用 GPT 寫架構、Claude Debug，效果不錯；主要痛點是跨部門溝通，希望結合 RAG + Teams 整合。", foot:"→ Debug 輔助屬綠燈；RAG 知識庫屬黃燈" },
+    "系統驗證部": { light:"yellow", icon:"🟡", body:"Test Plan 靠資深工程師手動思考約需 3 天，新產品無標準；測試報告 Word 排版耗時；產線重複問相同問題。", foot:"→ 報告排版、重複問答屬綠燈；Test Plan 屬黃燈" },
+    "製造處":     { light:"green",  icon:"🟢", body:"生產數據彙整、工單整理、異常即時提醒等重複性工作，是 AI 的好起點。", foot:"→ 生產數據彙整、異常偵測屬綠燈" },
+    "製造工程部": { light:"green",  icon:"🟢", body:"生產數據彙整、工單整理、異常即時提醒等重複性工作，是 AI 的好起點。", foot:"→ 生產數據彙整、異常偵測屬綠燈" },
+  };
+
+  function showDeptHint(dept) {
+    const hint = document.getElementById("dept-hint");
+    const ex = DEPT_EXAMPLES[dept];
+    if (!ex) { hint.classList.remove("show"); return; }
+    document.getElementById("dept-hint-inner").className = "dept-hint-inner " + ex.light;
+    document.getElementById("dept-hint-icon").textContent = ex.icon;
+    document.getElementById("dept-hint-body").textContent = ex.body;
+    document.getElementById("dept-hint-foot").textContent = ex.foot;
+    const meta = hint.querySelector(".dh-meta");
+    meta.textContent = ex.attended === false
+      ? "這類部門常見的 AI 痛點 ↓"
+      : "今天說明會你們部門提到的例子 ↓";
+    hint.classList.remove("show");
+    void hint.offsetWidth;
+    hint.classList.add("show");
+  }
+
   let painCount = 1;
 
   function buildDepts() {
@@ -1215,6 +1459,7 @@
     g.querySelectorAll("input").forEach(el => {
       el.addEventListener("change", () => {
         document.getElementById("dept-other-wrap").classList.toggle("show", el.value === "其他");
+        showDeptHint(el.value);
       });
     });
   }
@@ -1234,6 +1479,36 @@
     });
   }
 
+  const FREQ_OPTS = ["每天多次","每天","每週","每月","不定期"];
+  const TIME_OPTS2 = ["< 30 分","30 分–1h","1–2h","2–4h","4–8h","> 8h"];
+  const FREQ_MULTI = { "每天多次":50, "每天":22, "每週":4.3, "每月":1 };
+  const TIME_MID   = { "< 30 分":0.4, "30 分–1h":0.75, "1–2h":1.5, "2–4h":3, "4–8h":6, "> 8h":10 };
+
+  function checkSignals(n) {
+    const count = [1,2,3].filter(k => {
+      const el = document.querySelector(`input[name="p${n}-s${k}"]`);
+      return el && el.checked;
+    }).length;
+    const el = document.getElementById(`sc-result-${n}`);
+    if (!el) return;
+    const msgs = {
+      3: '<span class="sc-gold">✦ 黃金痛點！三個訊號全中——這就是最值得 AI 先解決的</span>',
+      2: '<span class="sc-good">👍 好痛點，兩個訊號，繼續往下填</span>',
+      1: '<span class="sc-weak">只有一個訊號——還有更磨人的工作嗎？可以繼續找找</span>',
+      0: ''
+    };
+    el.innerHTML = msgs[count] || '';
+  }
+
+  function calcMonthly(n) {
+    const freq = document.querySelector(`input[name="p${n}-freq"]:checked`);
+    const time = document.querySelector(`input[name="p${n}-time2"]:checked`);
+    const el = document.getElementById(`monthly-${n}`);
+    if (!freq || !time || !FREQ_MULTI[freq.value]) { el.innerHTML = ""; return; }
+    const hrs = Math.round(FREQ_MULTI[freq.value] * TIME_MID[time.value]);
+    el.innerHTML = `<span class="monthly-badge">⏱ 每月預估約 ${hrs} 小時</span>`;
+  }
+
   function painItemHTML(n) {
     const lbl = LABELS[n - 1];
     return `
@@ -1242,77 +1517,113 @@
           <div class="pain-num">${lbl}</div>
           <div class="pain-title-wrap">
             <label class="field-label">工作名稱（5–10 字）：</label>
-            <input type="text" name="pain-name-${n}" placeholder="例：每月子公司報表整合、出貨文件製作、測試報告排版">
-          </div>
-        </div>
-        <div style="margin-bottom:14px">
-          <label class="field-label">具體說說這件事 <span style="font-size:11px;font-weight:400;color:var(--muted)">格式：「每___(頻率)，我需要___，大約花___，最煩的是___」</span></label>
-          <textarea name="p${n}-desc" style="min-height:68px" placeholder="例：每月底要把 4 家子公司的 ERP 數據手動整合成同一格式，因為各家系統不同欄位不一致，需要逐一手工轉換，大約花 10 小時，最煩的是每次格式都對不上要重做。"></textarea>
-        </div>
-
-        <div class="q-block" style="margin-bottom:12px">
-          <div class="field-label">這是哪種痛？<span style="font-size:11px;font-weight:400;color:var(--muted)"> 選最像的</span></div>
-          <div class="opt-grid cols-1" style="gap:5px">
-            <label class="opt-item">
-              <input type="radio" name="p${n}-type" value="別人感受不到的累">
-              <span><strong>別人感受不到的累</strong>——重複、每次都要手動的那種，別人不知道有多磨</span>
-            </label>
-            <label class="opt-item">
-              <input type="radio" name="p${n}-type" value="主管看不到的細節">
-              <span><strong>主管看不到的細節</strong>——明明很煩、說不出口的細節工作，結果看起來還好</span>
-            </label>
-            <label class="opt-item">
-              <input type="radio" name="p${n}-type" value="最磨人最該先解">
-              <span><strong>你知道這是最該先解的</strong>——最拖慢效率、最影響整體，你知道要解它</span>
-            </label>
+            <input type="text" name="pain-name-${n}" placeholder="例：每月子公司報表整合、出貨文件製作">
           </div>
         </div>
 
-        <div class="q-block" style="margin-bottom:12px">
-          <div class="field-label">如果交給 AI，你覺得是幾號燈？<span style="font-size:11px;font-weight:400;color:var(--muted)"> 判準：「錯了會不會傷到別人、又收不回來？」</span></div>
-          <div class="tl-row">
-            <label class="tl-chip tl-green">
-              <input type="radio" name="p${n}-tl" value="綠燈">
-              🟢 綠燈——低風險，出錯一眼看穿
+        <div class="signal-check">
+          <div class="sc-title">⚡ 先確認：這是「黃金痛點」嗎？<span>三個訊號全中 = 最值得解決</span></div>
+          <div class="sc-items">
+            <label class="sc-item">
+              <input type="checkbox" name="p${n}-s1" onchange="checkSignals(${n})">
+              <div class="sc-icon">🔄</div>
+              <div class="sc-text"><strong>重複</strong><span>一週做超過 3 次？</span></div>
             </label>
-            <label class="tl-chip tl-yellow">
-              <input type="radio" name="p${n}-tl" value="黃燈">
-              🟡 黃燈——有點重要，AI 做我來查
+            <label class="sc-item">
+              <input type="checkbox" name="p${n}-s2" onchange="checkSignals(${n})">
+              <div class="sc-icon">😮‍💨</div>
+              <div class="sc-text"><strong>煩躁</strong><span>嘆氣「怎麼又要弄」？</span></div>
             </label>
-            <label class="tl-chip tl-red">
-              <input type="radio" name="p${n}-tl" value="紅燈">
-              🔴 紅燈——高風險，這個得人來
+            <label class="sc-item">
+              <input type="checkbox" name="p${n}-s3" onchange="checkSignals(${n})">
+              <div class="sc-icon">⚠️</div>
+              <div class="sc-text"><strong>易錯</strong><span>做完還得再檢查一遍？</span></div>
             </label>
+          </div>
+          <div class="sc-result" id="sc-result-${n}"></div>
+        </div>
+
+        <div class="five-el-box">
+          <div class="box-title">好痛點 5 要素　具體場景 ＋ 頻率 ＋ 來源 ＋ 耗時 ＋ 風險</div>
+          <div class="form-rows">
+            <div class="form-row">
+              <div class="fr-label">🚩 具體場景</div>
+              <div class="fr-input">
+                <input type="text" name="p${n}-scene" placeholder="這項工作在做什麼？（例：每週一從 ERP 拉數據手動合併成週報）">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="fr-label">🔄 頻率</div>
+              <div class="fr-input">
+                <div class="time-row">
+                  ${FREQ_OPTS.map(t=>`<label class="time-chip"><input type="radio" name="p${n}-freq" value="${t}" onchange="calcMonthly(${n})">${t}</label>`).join("")}
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="fr-label">📥 來源</div>
+              <div class="fr-input">
+                <input type="text" name="p${n}-source" placeholder="資料從哪來？（例：ERP、Excel、客戶 Email）">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="fr-label">⏱ 耗時</div>
+              <div class="fr-input">
+                <div class="time-row">
+                  ${TIME_OPTS2.map(t=>`<label class="time-chip"><input type="radio" name="p${n}-time2" value="${t}" onchange="calcMonthly(${n})">${t}</label>`).join("")}
+                </div>
+                <div id="monthly-${n}"></div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="fr-label">⚠️ 風險</div>
+              <div class="fr-input">
+                <input type="text" name="p${n}-risk2" placeholder="容易出什麼錯？（例：格式不符、貼錯欄位）">
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="tbl-wrap">
-          <table class="rating-tbl">
-            <thead>
-              <tr>
-                <th>評分維度</th>
-                ${[1,2,3,4,5].map(s=>`<th>${s}</th>`).join("")}
-              </tr>
-            </thead>
-            <tbody>
-              ${RATINGS.map(([key,label,min,max])=>`
-                <tr>
-                  <td>${label}<br><span style="font-size:11px;color:var(--muted)">${min} → ${max}</span></td>
-                  ${[1,2,3,4,5].map(s=>`<td><input type="radio" name="p${n}-${key}" value="${s}"></td>`).join("")}
-                </tr>`).join("")}
-            </tbody>
-          </table>
+        <div class="pain-bottom">
+          <div class="pb-row">
+            <div class="pb-label">可 AI 化特徵<br><span style="font-size:10px;font-weight:400;color:var(--muted)">符合越多越適合</span></div>
+            <div class="pb-content">
+              <div class="opt-grid cols-2" style="gap:5px">
+                <label class="opt-item"><input type="checkbox" name="p${n}-ai" value="重複性"><span>① 重複性——同樣步驟一直重複</span></label>
+                <label class="opt-item"><input type="checkbox" name="p${n}-ai" value="規則明確"><span>② 規則明確——固定步驟、少臨場判斷</span></label>
+                <label class="opt-item"><input type="checkbox" name="p${n}-ai" value="有數據"><span>③ 有數據——處理表格、數字、欄位</span></label>
+                <label class="opt-item"><input type="checkbox" name="p${n}-ai" value="需多源整合"><span>④ 需多源整合——從好幾處拉資料再湊</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="pb-row">
+            <div class="pb-label">影響幾人<br><span style="font-size:10px;font-weight:400;color:var(--muted)">越多優先度越高</span></div>
+            <div class="pb-content">
+              <div class="tl-row">
+                <label class="tl-chip tl-green"><input type="radio" name="p${n}-scope" value="只有我">只有我</label>
+                <label class="tl-chip tl-green"><input type="radio" name="p${n}-scope" value="部門 2–3 人">部門 2–3 人</label>
+                <label class="tl-chip tl-yellow"><input type="radio" name="p${n}-scope" value="整個部門">整個部門</label>
+                <label class="tl-chip tl-yellow"><input type="radio" name="p${n}-scope" value="跨部門都有">跨部門都有</label>
+              </div>
+            </div>
+          </div>
+          <div class="pb-row">
+            <div class="pb-label">幾號燈<br><span style="font-size:10px;font-weight:400;color:var(--muted)">錯了收不回來？</span></div>
+            <div class="pb-content">
+              <div class="tl-row">
+                <label class="tl-chip tl-green"><input type="radio" name="p${n}-tl" value="綠燈">🟢 綠燈——低風險</label>
+                <label class="tl-chip tl-yellow"><input type="radio" name="p${n}-tl" value="黃燈">🟡 黃燈——AI做我查</label>
+                <label class="tl-chip tl-red"><input type="radio" name="p${n}-tl" value="紅燈">🔴 紅燈——得人來</label>
+              </div>
+            </div>
+          </div>
+          <div class="pb-row">
+            <div class="pb-label">補充說明<br><span style="font-size:10px;font-weight:400;color:var(--muted)">選填</span></div>
+            <div class="pb-content">
+              <input type="text" name="p${n}-note" placeholder="其他想補充的細節" style="margin:0">
+            </div>
+          </div>
         </div>
-        <div class="field-label">每次大約花多少時間：</div>
-        <div class="time-row">
-          ${TIME_OPTS.map(t=>`
-            <label class="time-chip">
-              <input type="radio" name="p${n}-time" value="${t}">
-              ${t}
-            </label>`).join("")}
-        </div>
-        <label class="field-label">💬 想補充這項的細節嗎？（選填）</label>
-        <input type="text" name="p${n}-note" placeholder="補充說明，越具體越好">
       </div>`;
   }
 
@@ -1382,25 +1693,46 @@
     lines.push("");
 
     lines.push("【Q3 痛點評分】");
+    let totalMonthlyHrs = 0;
     for (let i = 1; i <= painCount; i++) {
       const nameEl = f.querySelector(`input[name="pain-name-${i}"]`);
       const name = nameEl ? nameEl.value.trim() : "";
-      if (!name) { lines.push(`▎工作${LABELS[i-1]}：（未填）`); lines.push(""); continue; }
-      lines.push(`▎工作${LABELS[i-1]}：${name}`);
-      const descEl = f.querySelector(`textarea[name="p${i}-desc"]`);
-      if (descEl && descEl.value.trim()) lines.push(`  具體情境：${descEl.value.trim()}`);
-      const painType = f.querySelector(`input[name="p${i}-type"]:checked`);
-      const trafficLight = f.querySelector(`input[name="p${i}-tl"]:checked`);
-      lines.push(`  痛點類型：${painType ? painType.value : "（未選）"}`);
-      lines.push(`  AI 燈號：${trafficLight ? trafficLight.value : "（未選）"}`);
-      RATINGS.forEach(([key, label]) => {
-        const r = f.querySelector(`input[name="p${i}-${key}"]:checked`);
-        lines.push(`  ${label}：${r ? r.value + " 分" : "（未評）"}`);
+      lines.push(`▎工作${LABELS[i-1]}：${name || "（工作名稱未填）"}`);
+      const sigs = [1,2,3].map(k => {
+        const el = f.querySelector(`input[name="p${i}-s${k}"]`);
+        return el && el.checked;
       });
-      const t = f.querySelector(`input[name="p${i}-time"]:checked`);
-      lines.push(`  每次花費時間：${t ? t.value : "（未填）"}`);
+      const sigNames = ["重複","煩躁","易錯"];
+      const sigHit = sigNames.filter((_,k) => sigs[k]);
+      const isGold = sigs.every(Boolean);
+      lines.push(`  訊號：${sigHit.length > 0 ? sigHit.join("、") : "（未勾選）"}${isGold ? "　★ 黃金痛點" : ""}`);
+      const scene  = f.querySelector(`input[name="p${i}-scene"]`);
+      const source = f.querySelector(`input[name="p${i}-source"]`);
+      const risk2  = f.querySelector(`input[name="p${i}-risk2"]`);
+      const freq   = f.querySelector(`input[name="p${i}-freq"]:checked`);
+      const time2  = f.querySelector(`input[name="p${i}-time2"]:checked`);
+      if (scene  && scene.value.trim())  lines.push(`  具體場景：${scene.value.trim()}`);
+      lines.push(`  頻率：${freq ? freq.value : "（未選）"}`);
+      if (source && source.value.trim()) lines.push(`  來源：${source.value.trim()}`);
+      lines.push(`  每次耗時：${time2 ? time2.value : "（未選）"}`);
+      if (freq && time2 && FREQ_MULTI[freq.value]) {
+        const hrs = Math.round(FREQ_MULTI[freq.value] * TIME_MID[time2.value]);
+        lines.push(`  每月預估耗時：約 ${hrs} 小時`);
+        totalMonthlyHrs += hrs;
+      }
+      if (risk2  && risk2.value.trim())  lines.push(`  風險：${risk2.value.trim()}`);
+      const aiChars = [...f.querySelectorAll(`input[name="p${i}-ai"]:checked`)].map(el => el.value);
+      if (aiChars.length) lines.push(`  可 AI 化特徵：${aiChars.join("、")}`);
+      const scope = f.querySelector(`input[name="p${i}-scope"]:checked`);
+      const tl    = f.querySelector(`input[name="p${i}-tl"]:checked`);
+      lines.push(`  影響人數：${scope ? scope.value : "（未選）"}`);
+      lines.push(`  AI 燈號：${tl ? tl.value : "（未選）"}`);
       const note = f.querySelector(`input[name="p${i}-note"]`);
       if (note && note.value.trim()) lines.push(`  補充：${note.value.trim()}`);
+      lines.push("");
+    }
+    if (totalMonthlyHrs > 0) {
+      lines.push(`★ 所有痛點每月合計預估耗時：約 ${totalMonthlyHrs} 小時`);
       lines.push("");
     }
 
@@ -1411,14 +1743,6 @@
     lines.push(saves.length ? saves.join("、") : "（未填）");
     lines.push("");
 
-    const wish = f.querySelector('textarea[name="wish"]').value.trim();
-    const tricks = f.querySelector('textarea[name="tricks"]').value.trim();
-    const aiuse = f.querySelector('textarea[name="aiuse"]').value.trim();
-    lines.push("【Q5 神燈題】");
-    lines.push(`5-1 最希望 AI 幫我做掉：${wish || "（未填）"}`);
-    lines.push(`5-2 省時小撇步：${tricks || "（未填）"}`);
-    lines.push(`5-3 目前 AI 工具使用情況：${aiuse || "（未填）"}`);
-    lines.push("");
 
     lines.push("════════════════════════════════");
 
