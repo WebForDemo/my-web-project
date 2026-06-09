@@ -1296,30 +1296,6 @@
         </div>
       </div>
 
-      <!-- Q4 -->
-      <div class="card">
-        <div class="card-head no-toggle">
-          <h2>Q4　AI 幫你做了，你最期待省下什麼？<span class="q-sub">1 分鐘</span></h2>
-        </div>
-        <div class="card-body">
-          <div class="q-title">4-1　如果 Q3 的痛點被 AI 解決了，你最期待省下的是？<span class="q-sub">可複選</span></div>
-          <p class="q-desc">這幫 AI 團隊判斷「做出來之後，你拿到的真正價值是什麼」。</p>
-          <div class="opt-grid">
-            <label class="opt-item"><input type="checkbox" name="save" value="重複手工輸入的時間"><span>重複手工輸入的時間</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="跨系統搬資料、格式轉換的工時"><span>跨系統搬資料、格式轉換</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="回覆同類問題的腦力消耗"><span>回覆同類問題的腦力消耗</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="文件排版 / 整理的時間"><span>文件排版 / 整理的時間</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="人工從大量數據找關鍵的時間"><span>大量數據中人工找關鍵</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="出錯後重查、重做的時間"><span>出錯後重查、重做的時間</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="等待確認 / 簽核的等待時間"><span>等待確認 / 簽核的等待</span></label>
-            <label class="opt-item"><input type="checkbox" name="save" value="跨部門溝通協調的來回成本"><span>跨部門溝通協調成本</span></label>
-          </div>
-          <div style="margin-top:8px">
-            <label class="field-label">其他：</label>
-            <input type="text" name="save-other" placeholder="選填">
-          </div>
-        </div>
-      </div>
 
 
     </form>
@@ -1736,12 +1712,6 @@
       lines.push("");
     }
 
-    const saves = [...f.querySelectorAll('input[name="save"]:checked')].map(el => el.value);
-    const saveOther = f.querySelector('input[name="save-other"]').value.trim();
-    if (saveOther) saves.push(`其他：${saveOther}`);
-    lines.push("【Q4 AI 幫你後最期待省下】");
-    lines.push(saves.length ? saves.join("、") : "（未填）");
-    lines.push("");
 
 
     lines.push("════════════════════════════════");
