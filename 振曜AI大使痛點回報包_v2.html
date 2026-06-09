@@ -1,0 +1,1487 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 大使痛點回報包 v2.0</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1e3a5f;
+      --primary-2: #2d5282;
+      --accent: #f59e0b;
+      --accent-bg: #fef3c7;
+      --bg: #f0f4f8;
+      --panel: #ffffff;
+      --text: #1a202c;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --ok: #059669;
+      --ok-bg: #ecfdf5;
+      --warn: #d97706;
+      --warn-bg: #fffbeb;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --radius: 10px;
+      --shadow: 0 4px 18px rgba(30,58,95,0.09);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .site-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 28px 24px 22px;
+      border-bottom: 4px solid var(--accent);
+    }
+    .site-header-inner { max-width: 880px; margin: 0 auto; }
+    .site-header h1 {
+      font-size: clamp(22px, 3.5vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 18px;
+      font-size: 13px;
+      color: #a8c0d6;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #1a202c;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      margin-bottom: 10px;
+    }
+    .badge-round2 {
+      display: inline-block;
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      margin-bottom: 10px;
+      margin-left: 6px;
+    }
+
+    .step-nav {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 2px 8px rgba(30,58,95,0.07);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      overflow-x: auto;
+    }
+    .step-nav-inner {
+      max-width: 880px;
+      margin: 0 auto;
+      display: flex;
+    }
+    .step-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 20px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .step-btn:hover { color: var(--primary); background: #f0f4f8; }
+    .step-btn.active { color: var(--primary); border-bottom-color: var(--accent); }
+    .step-btn.done { color: var(--ok); }
+    .step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--line);
+      color: var(--muted);
+      font-size: 12px; font-weight: 700;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .step-btn.active .step-num { background: var(--accent); color: #1a202c; }
+    .step-btn.done .step-num { background: var(--ok); color: #fff; }
+
+    .main-wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 28px 16px 64px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+      user-select: none;
+      gap: 12px;
+    }
+    .card-head:hover { background: #edf2f7; }
+    .card-head.no-toggle { cursor: default; }
+    .card-head.no-toggle:hover { background: #f8fafc; }
+    .card-head h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .chevron {
+      font-size: 11px;
+      color: var(--muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .card.collapsed .chevron { transform: rotate(-90deg); }
+    .card.collapsed .card-body { display: none; }
+    .card-body { padding: 20px; }
+
+    .card-body p { margin-bottom: 12px; }
+    .card-body p:last-child { margin-bottom: 0; }
+    .card-body h3 { font-size: 14px; font-weight: 700; color: var(--primary); margin: 16px 0 7px; }
+    .card-body h3:first-child { margin-top: 0; }
+    .card-body ul, .card-body ol { padding-left: 20px; margin-bottom: 12px; }
+    .card-body li { margin-bottom: 6px; }
+
+    .callout {
+      padding: 11px 15px;
+      border-radius: 7px;
+      margin-bottom: 14px;
+      font-size: 14px;
+      line-height: 1.65;
+      border-left: 4px solid;
+    }
+    .callout:last-child { margin-bottom: 0; }
+    .callout.info    { background: #eff6ff; border-color: #3b82f6; color: #1e3a8a; }
+    .callout.success { background: var(--ok-bg); border-color: var(--ok); color: #065f46; }
+    .callout.warn    { background: var(--warn-bg); border-color: var(--warn); color: #78350f; }
+    .callout.danger  { background: var(--danger-bg); border-color: var(--danger); color: #7f1d1d; }
+
+    .tbl-wrap { overflow-x: auto; margin-bottom: 14px; }
+    .tbl-wrap:last-child { margin-bottom: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th {
+      background: #f0f4f8;
+      color: var(--primary);
+      font-weight: 700;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 2px solid var(--line);
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    .q-block { margin-bottom: 26px; }
+    .q-block:last-child { margin-bottom: 0; }
+    .q-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+      padding-bottom: 7px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .q-sub { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 5px; }
+    .q-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+
+    .opt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+    .opt-grid.cols-1 { grid-template-columns: 1fr; }
+    .opt-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+
+    .opt-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: border-color 0.13s, background 0.13s;
+    }
+    .opt-item:hover { border-color: var(--primary); background: #f0f4f8; }
+    .opt-item:has(input:checked) { border-color: var(--primary); background: #eff6ff; }
+    .opt-item input { accent-color: var(--primary); width: 15px; height: 15px; flex-shrink: 0; }
+
+    .field-label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 5px; display: block; }
+
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.13s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      outline: 3px solid rgba(30,58,95,0.12);
+      border-color: var(--primary);
+    }
+    textarea { min-height: 80px; resize: vertical; }
+
+    .other-field { margin-top: 8px; display: none; }
+    .other-field.show { display: block; }
+
+    /* ── Pain item ── */
+    .pain-item {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .pain-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .pain-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 13px; font-weight: 700;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .pain-title-wrap { flex: 1; }
+
+    /* ── Traffic light ── */
+    .tl-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .tl-chip {
+      flex: 1; min-width: 170px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      line-height: 1.4;
+      transition: all 0.13s;
+      background: #fff;
+    }
+    .tl-chip:hover { border-color: var(--primary); }
+    .tl-chip input { display: none; }
+    .tl-chip.tl-green:has(input:checked) { border-color: var(--ok); background: var(--ok-bg); color: #065f46; font-weight: 700; }
+    .tl-chip.tl-yellow:has(input:checked) { border-color: var(--warn); background: var(--warn-bg); color: #78350f; font-weight: 700; }
+    .tl-chip.tl-red:has(input:checked) { border-color: var(--danger); background: var(--danger-bg); color: #7f1d1d; font-weight: 700; }
+
+    /* ── Journey timeline ── */
+    .journey {
+      display: flex;
+      gap: 0;
+      margin: 14px 0;
+    }
+    .journey-step {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-right: none;
+      font-size: 13px;
+      background: #fff;
+    }
+    .journey-step:first-child { border-radius: 8px 0 0 8px; }
+    .journey-step:last-child { border-right: 1px solid var(--line); border-radius: 0 8px 8px 0; }
+    .journey-step.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .journey-step.active .j-label { color: var(--accent); }
+    .journey-step .j-label { font-size: 11px; font-weight: 700; margin-bottom: 3px; color: var(--muted); }
+    .journey-step .j-title { font-weight: 700; font-size: 13px; }
+    .journey-step .j-desc { font-size: 11px; margin-top: 3px; opacity: 0.75; }
+
+    /* ── Pain category cards ── */
+    .pain-cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .pain-cat {
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .pain-cat .cat-num { font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+    .pain-cat .cat-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 5px; }
+    .pain-cat .cat-desc { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 8px; }
+    .pain-cat .cat-hint { font-size: 12px; color: var(--primary); font-weight: 600; padding: 6px 10px; background: var(--accent-bg); border-radius: 5px; }
+
+    /* ── Real example cards ── */
+    .ex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .ex-card { padding: 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+    .ex-card .ex-tag { font-size: 11px; font-weight: 700; color: #1d4ed8; background: #eff6ff; padding: 2px 8px; border-radius: 99px; display: inline-block; margin-bottom: 8px; }
+    .ex-card .ex-body { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 6px; }
+    .ex-card .ex-dept { font-size: 11px; color: var(--muted); font-style: italic; }
+
+    /* ── Bridge callout ── */
+    .bridge-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+      border: 1.5px solid #93c5fd;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .bridge-box .b-title { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .bridge-box .b-steps { display: flex; flex-direction: column; gap: 5px; }
+    .bridge-box .b-step { display: flex; gap: 8px; align-items: flex-start; }
+    .bridge-box .b-num { background: var(--primary); color: #fff; font-size: 11px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; margin-top: 1px; }
+
+    .rating-tbl { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+    .rating-tbl th { padding: 7px 8px; font-size: 12px; background: #edf2f7; text-align: center; border-bottom: 1px solid var(--line); }
+    .rating-tbl th:first-child { text-align: left; width: 52%; }
+    .rating-tbl td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #eef1f5; }
+    .rating-tbl td:first-child { text-align: left; }
+    .rating-tbl tr:last-child td { border-bottom: none; }
+    .rating-tbl input[type="radio"] { accent-color: var(--primary); }
+
+    .time-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .time-chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px;
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.13s;
+    }
+    .time-chip:hover { border-color: var(--primary); }
+    .time-chip:has(input:checked) { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .time-chip input { display: none; }
+
+    .add-pain-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px;
+      border: 2px dashed var(--line);
+      border-radius: 8px;
+      background: none;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      color: var(--muted);
+      transition: all 0.13s;
+    }
+    .add-pain-btn:hover { border-color: var(--primary); color: var(--primary); background: #f0f4f8; }
+
+    /* ── Traffic light summary card in Tab 2 ── */
+    .tl-summary { display: grid; gap: 10px; margin-bottom: 14px; }
+    .tl-band {
+      display: flex;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      align-items: flex-start;
+      border: 1.5px solid;
+    }
+    .tl-band.green { background: var(--ok-bg); border-color: var(--ok); }
+    .tl-band.yellow { background: var(--warn-bg); border-color: var(--warn); }
+    .tl-band.red { background: var(--danger-bg); border-color: var(--danger); }
+    .tl-band .tl-dot { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .tl-band .tl-content { flex: 1; }
+    .tl-band .tl-label { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .tl-band.green .tl-label { color: #065f46; }
+    .tl-band.yellow .tl-label { color: #78350f; }
+    .tl-band.red .tl-label { color: #7f1d1d; }
+    .tl-band .tl-examples { font-size: 12px; opacity: 0.8; }
+
+    /* ── Quiz answers ── */
+    .quiz-answers {
+      display: none;
+      margin-top: 12px;
+      padding: 14px 16px;
+      background: var(--ok-bg);
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+    .quiz-answers.show { display: block; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.13s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-2); border-color: var(--primary-2); }
+    .btn-accent { background: var(--accent); color: #1a202c; border-color: var(--accent); }
+    .btn-accent:hover { background: #d97706; border-color: #d97706; }
+    .btn-outline { background: #fff; border-color: var(--line); color: var(--text); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+    .nav-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 20px;
+      margin-top: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .summary-out {
+      display: none;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 13px;
+      font-family: "Courier New", monospace;
+      white-space: pre-wrap;
+      max-height: 420px;
+      overflow-y: auto;
+      margin: 12px 0;
+    }
+    .summary-out.show { display: block; }
+
+    .divider { height: 1px; background: var(--line); margin: 18px 0; }
+
+    .footer-card {
+      background: var(--primary);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .float-reset {
+      position: fixed;
+      bottom: 28px;
+      right: 24px;
+      z-index: 200;
+      display: none;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 20px;
+      background: #fff;
+      border: 1.5px solid var(--line);
+      border-radius: 99px;
+      box-shadow: 0 4px 18px rgba(30,58,95,0.15);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .float-reset:hover {
+      border-color: var(--danger);
+      color: var(--danger);
+      box-shadow: 0 6px 22px rgba(30,58,95,0.20);
+      transform: translateY(-1px);
+    }
+    .float-reset.show { display: flex; }
+
+    /* ── Analogy grid ── */
+    .analogy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .analogy-card { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; }
+    .analogy-card .a-tag { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+    .analogy-card .a-title { font-size: 15px; font-weight: 700; color: var(--primary); margin-bottom: 5px; }
+    .analogy-card .a-desc { font-size: 12px; color: var(--muted); margin-bottom: 8px; line-height: 1.5; }
+    .analogy-card .a-key { font-size: 12px; font-weight: 700; color: #1d4ed8; }
+
+    /* ── Four rules ── */
+    .four-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .rule-item { display: flex; align-items: flex-start; gap: 8px; padding: 9px 12px; background: #f0f4f8; border-radius: 6px; font-size: 13px; }
+    .rule-item .r-num { font-size: 11px; font-weight: 800; color: var(--accent); background: var(--primary); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Security items ── */
+    .sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .sec-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--danger-bg); border: 1px solid #fca5a5; border-radius: 8px; }
+    .sec-item .sec-num { width: 24px; height: 24px; border-radius: 50%; background: var(--danger); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; flex-shrink: 0; }
+    .sec-item .sec-label { font-size: 13px; font-weight: 700; color: #7f1d1d; }
+    .sec-item .sec-sub { font-size: 11px; color: #991b1b; }
+
+    @media print {
+      .step-nav, .nav-footer { display: none; }
+      .tab-panel { display: block !important; }
+      .card.collapsed .card-body { display: block; }
+      body { background: #fff; }
+      .card { box-shadow: none; break-inside: avoid; }
+    }
+
+    @media (max-width: 600px) {
+      .step-btn { padding: 11px 12px; font-size: 13px; }
+      .step-label { display: none; }
+      .opt-grid { grid-template-columns: 1fr 1fr; }
+      .opt-grid.cols-1 { grid-template-columns: 1fr; }
+      .nav-footer { flex-wrap: wrap; gap: 10px; }
+      .journey { flex-direction: column; }
+      .journey-step { border-right: 1px solid var(--line) !important; border-bottom: none; border-radius: 0 !important; }
+      .journey-step:first-child { border-radius: 8px 8px 0 0 !important; }
+      .journey-step:last-child { border-bottom: 1px solid var(--line) !important; border-radius: 0 0 8px 8px !important; }
+      .four-rules { grid-template-columns: 1fr; }
+      .sec-grid { grid-template-columns: 1fr; }
+      .tl-row { flex-direction: column; }
+      .ex-grid { grid-template-columns: 1fr; }
+      .bridge-box .b-steps { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ Header ══ -->
+<header class="site-header">
+  <div class="site-header-inner">
+    <div><span class="badge">v2.0</span><span class="badge-round2">第二輪調研</span></div>
+    <h1>AI 大使痛點回報包</h1>
+    <div class="header-meta">
+      <span>📬 致：各部門 AI 大使</span>
+      <span>📅 回傳期限：2026 年 6 月 15 日（一）前</span>
+      <span>📮 回傳：<a href="mailto:alan@netronixinc.com" style="color:#fcd34d;font-weight:700">alan@netronixinc.com</a></span>
+    </div>
+  </div>
+</header>
+
+<!-- ══ Step Nav ══ -->
+<nav class="step-nav">
+  <div class="step-nav-inner">
+    <button class="step-btn active" data-tab="0" onclick="goTab(0)">
+      <span class="step-num">1</span><span class="step-label">找好痛點</span>
+    </button>
+    <button class="step-btn" data-tab="1" onclick="goTab(1)">
+      <span class="step-num">2</span><span class="step-label">AI 複習</span>
+    </button>
+    <button class="step-btn" data-tab="2" onclick="goTab(2)">
+      <span class="step-num">3</span><span class="step-label">填寫問卷</span>
+    </button>
+    <button class="step-btn" data-tab="3" onclick="goTab(3)">
+      <span class="step-num">4</span><span class="step-label">回傳</span>
+    </button>
+  </div>
+</nav>
+
+<main class="main-wrap">
+
+  <!-- ════════════ TAB 1 找好痛點 ════════════ -->
+  <div class="tab-panel active" id="tab-0">
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>第一場說明會完成了，現在換你上場</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p>你參加了振曜 AI 大使說明會第一場（6/9）。今天的重點不是立刻交出完美答案——而是<strong>學會怎麼找出好痛點</strong>。</p>
+        <p>現在請帶著今天的方法，回去想你部門最磨人的工作，完成這份問卷，<strong>6/15（一）前回傳</strong>。</p>
+        <div class="journey">
+          <div class="journey-step active">
+            <div class="j-label">● 第一場・6/9 完成</div>
+            <div class="j-title">學會找好痛點</div>
+            <div class="j-desc">帶著方法填這份問卷，6/15 前回傳</div>
+          </div>
+          <div class="journey-step">
+            <div class="j-label">○ 第二場・6/17（二）</div>
+            <div class="j-title">看見全公司調研結果</div>
+            <div class="j-desc">公布問卷分析，個別輔導</div>
+          </div>
+          <div class="journey-step">
+            <div class="j-label">○ 第三場・6/24（二）</div>
+            <div class="j-title">把痛點說得更精準</div>
+            <div class="j-desc">深化回報，往選題收斂</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>只有你知道的三件事——這就是「好痛點」的所在</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="q-desc" style="margin-bottom:14px">你最懂部門的日常。這三種「只有你知道」的訊息，就是 AI 最能幫上忙的地方。</p>
+        <div class="pain-cat-grid">
+          <div class="pain-cat">
+            <div class="cat-num">01</div>
+            <div class="cat-title">別人感受不到的累</div>
+            <div class="cat-desc">每週一早上要從三個系統各拉一次數據、手動合併成週報的那種累。你做的時候，腦中在想什麼？</div>
+            <div class="cat-hint">→ 重複、每次都要手動、做完沒成就感</div>
+          </div>
+          <div class="pain-cat">
+            <div class="cat-num">02</div>
+            <div class="cat-title">主管看不到的細節</div>
+            <div class="cat-desc">主管看得到結果，卻看不到那些「明明很煩、卻說不出口」的細節——資料搬來搬去、格式改來改去。</div>
+            <div class="cat-hint">→ 上次讓你嘆氣說「又要做這個」是什麼？</div>
+          </div>
+          <div class="pain-cat">
+            <div class="cat-num">03</div>
+            <div class="cat-title">只有你知道該先解誰</div>
+            <div class="cat-desc">真正知道哪件事最磨人、最該先被解決的，只有每天親手在做的你——不是主管，不是 IT。</div>
+            <div class="cat-hint">→ 如果只能解一件事，你最想解哪件？</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>什麼是「適合給 AI 的好痛點」？——紅綠燈判準</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="callout info" style="margin-bottom:16px">
+          <strong>一句話判準：「錯了會不會傷到別人、又收不回來？」</strong><br>
+          不會 → 越往綠燈靠 ✓ 適合 AI 的好痛點<br>
+          會，而且收不回來 → 紅燈，這個得人來
+        </div>
+        <div class="tl-summary">
+          <div class="tl-band green">
+            <div class="tl-dot">🟢</div>
+            <div class="tl-content">
+              <div class="tl-label">綠燈・放手給 AI 做 — 最好的痛點</div>
+              <div class="tl-examples">整理報表・彙整資料・打草稿・摘要文件・分類 SOP<br>低風險，出錯一眼看穿，這類工作是 AI 的甜蜜點</div>
+            </div>
+          </div>
+          <div class="tl-band yellow">
+            <div class="tl-dot">🟡</div>
+            <div class="tl-content">
+              <div class="tl-label">黃燈・AI 做、你來查 — 也值得說</div>
+              <div class="tl-examples">翻譯順稿・解釋概念・摘要會議・初步比價<br>有點重要，先讓 AI 跑，你確認後再用</div>
+            </div>
+          </div>
+          <div class="tl-band red">
+            <div class="tl-dot">🔴</div>
+            <div class="tl-content">
+              <div class="tl-label">紅燈・一定要人來 — 先標記，不急</div>
+              <div class="tl-examples">回客戶報價・簽合約・做最終決定・改系統數據<br>高風險不可逆，現階段 AI 不接這類，先記下來</div>
+            </div>
+          </div>
+        </div>
+        <div class="callout success">💡 <strong>最好的痛點</strong>：很重複、很耗時、但錯了一眼就能看出來的工作。這種工作說得越具體，AI 團隊就越能快速做出來。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>填寫步驟（共約 15 分鐘）</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th style="width:52px">步驟</th><th>事項</th><th>時間</th><th>期限</th></tr></thead>
+            <tbody>
+              <tr><td style="text-align:center"><strong>1</strong></td><td>用上面的框架，想出 1–3 個好痛點（找綠燈或黃燈的）</td><td>5 分鐘</td><td>填寫前</td></tr>
+              <tr><td style="text-align:center"><strong>2</strong></td><td>填寫《痛點調研問卷》（<strong>大部分為勾選題</strong>，有紅綠燈自評）</td><td>10 分鐘</td><td>6/15 前</td></tr>
+              <tr><td style="text-align:center"><strong>3</strong></td><td>點「產生回覆摘要」，複製後以 Email 回傳</td><td>1 分鐘</td><td>6/15（一）前</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">🎯 <strong>提醒：今天不需要一次找到「完美答案」</strong>。把你腦中最直覺想到的那個「每次做都很煩」的工作說出來，就是最有價值的貢獻。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>今天各部門說的真實例子——看看有沒有像你的</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="q-desc" style="margin-bottom:14px">這些都是今天說明會各部門分享的真實工作場景。看到「欸這就是我在做的事」，那就是你的好痛點。</p>
+        <div class="ex-grid">
+          <div class="ex-card">
+            <span class="ex-tag">成控中心 🔴</span>
+            <div class="ex-body">報價資料需要不斷更新維護，目前靠 Excel 全人工管理。因報價屬公司機密，使用 AI 時有資安疑慮，不確定哪些環節可以用。</div>
+            <div class="ex-dept">→ 報價本身屬紅燈；更新流程管理可討論</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">文件管制 DCC 🟢</span>
+            <div class="ex-body">原本用 Excel 函式做統計計算，已自己摸索改用免費版 ChatGPT 算平均值，但工具不穩定，希望有更系統化、公司核准的方案。</div>
+            <div class="ex-dept">→ 數據計算、Excel 輔助屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">資材處 🟢</span>
+            <div class="ex-body">ERP 資料需要額外資訊配合，目前靠 ERP + Excel Macro 處理，需要 IT 配合，整合流程繁瑣，希望能更自動化減少人工。</div>
+            <div class="ex-dept">→ ERP + Excel 整合自動化屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">財務部 🟢</span>
+            <div class="ex-body">每月要從各子公司系統抓資料，因各公司系統不同、輸出格式不一致，需手工做 Data Exchange，整個流程約 <strong>10 小時 / 月</strong>。</div>
+            <div class="ex-dept">→ 跨子公司格式整合屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">行政／人資 🟢</span>
+            <div class="ex-body">出勤異常、加班申請需人工逐筆查看 HR 系統；HR 規章被同仁反覆詢問，每次要手動查找回覆，希望有規章問答機器人（RAG）。</div>
+            <div class="ex-dept">→ 規章 QA 問答、出勤異常偵測屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">業務處 🟡／🔴</span>
+            <div class="ex-body">出貨文件種類多量大、Routine 重、全靠人工處理；報價需不斷更新，Excel 輔助加全人工。<strong>報價屬公司機密。</strong></div>
+            <div class="ex-dept">→ 出貨文件處理屬綠燈；報價屬紅燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">資訊部 IT 🟡</span>
+            <div class="ex-body">常需跨部門統整需求、整理邏輯、調整後實作除錯，溝通來回耗時。曾主導把紙本訂便當改為線上表單，流程優化是核心工作。</div>
+            <div class="ex-dept">→ 需求整理輔助屬黃燈；流程自動化屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">品保部 🔴／🟢</span>
+            <div class="ex-body">進料與成品檢驗需資深同仁每天 8 小時，透過 X-Ray 辨識材料是否短路，高度仰賴人工專業判斷，難以完全由 AI 取代。</div>
+            <div class="ex-dept">→ X-Ray 判斷屬紅燈；檢驗紀錄彙整屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">研發 EE 🟢</span>
+            <div class="ex-body">測試後要從量測儀器手工選取特定時段的電壓電流數據，光抓數據就要 <strong>2 小時</strong>，整理成表格再要好幾天，出報告流程極長。</div>
+            <div class="ex-dept">→ 數據抓取整理、報表自動化屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">PM 🟡</span>
+            <div class="ex-body">新客戶背景調查已用 ChatGPT（帶入 PM 角色效果較好）；認證法規原文查詢耗時、專有名詞不熟；PPT 用 Gamma 但免費點數不足。</div>
+            <div class="ex-dept">→ 法規查詢輔助屬黃燈；客戶分析屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">研發 SW 🟡</span>
+            <div class="ex-body">已在用 GPT 寫架構、Claude Debug，效果不錯。主要痛點是跨部門溝通，若能結合 RAG + Teams 整合，協作效率會大幅提升。</div>
+            <div class="ex-dept">→ RAG 知識庫整合屬黃燈；Debug 輔助屬綠燈</div>
+          </div>
+          <div class="ex-card">
+            <span class="ex-tag">DQA 🟡</span>
+            <div class="ex-body">Test Plan 靠資深工程師手動思考約需 3 天，新產品無標準；測試報告 Word 排版耗時；產線一直問相同問題（RAG 需求）；測試排程待優化。</div>
+            <div class="ex-dept">→ 測試報告排版、重複問答屬綠燈；Test Plan 屬黃燈</div>
+          </div>
+        </div>
+        <div class="callout warn">⚠️ <strong>注意紅燈</strong>：成控與業務的報價、品保的 X-Ray 專業判斷都屬於高風險，在 Q3 填這類痛點時請標記紅燈，AI 團隊會另外討論輔助方式。</div>
+      </div>
+    </div>
+
+    <div class="nav-footer">
+      <span></span>
+      <button class="btn btn-primary" onclick="goTab(2)">直接填寫問卷 →</button>
+    </div>
+  </div>
+
+  <!-- ════════════ TAB 2 AI 複習 ════════════ -->
+  <div class="tab-panel" id="tab-1">
+
+    <div class="callout info" style="margin-bottom:16px">今天說明會的重點整理，可隨時翻閱。</div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>一、AI 是你最強副駕</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="callout success" style="margin-bottom:16px">它能算、能想、能規劃，卻<strong>沒有意識、沒有意圖、沒有自己的意志</strong>。它出草稿，你簽名；路怎麼走、車停哪裡，<strong>方向盤永遠要你自己握</strong>。</div>
+        <div class="analogy-grid">
+          <div class="analogy-card">
+            <div class="a-tag">比喻 01</div>
+            <div class="a-title">超強版輸入法</div>
+            <div class="a-desc">讀過幾乎全世界的書，一次猜出一整套解法。</div>
+            <div class="a-key">「接龍」，只是接得極好</div>
+          </div>
+          <div class="analogy-card">
+            <div class="a-tag">比喻 02</div>
+            <div class="a-title">聽得懂白話的助理</div>
+            <div class="a-desc">用平常講話的方式交辦，它聽懂、去做、再回報。</div>
+            <div class="a-key">講人話就能指揮它</div>
+          </div>
+          <div class="analogy-card">
+            <div class="a-tag">比喻 03</div>
+            <div class="a-title">博學的圖書館員</div>
+            <div class="a-desc">你說得越清楚，它幫你找得越準。</div>
+            <div class="a-key">你問得清楚，它答得漂亮</div>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>✅ AI 擁有的・能力</th><th>✗ AI 沒有的・意識</th></tr></thead>
+            <tbody>
+              <tr><td>多步推理、邏輯演繹；海量知識快速調用</td><td>主觀感受、真實情緒；自我意志，不會「想要」</td></tr>
+              <tr><td>規劃、拆解、解題；良定義任務接近專家</td><td>自己的意圖與慾望；對「為什麼」的真正理解</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>二、該不該交給 AI？紅綠燈判準</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="callout warn" style="margin-bottom:16px"><strong>一句話判準：「錯了會不會傷到別人、又收不回來？」</strong><br>會 → 越往紅燈靠 ｜ 不會 → 越往綠燈放</div>
+        <div class="tl-summary" style="margin-bottom:16px">
+          <div class="tl-band green">
+            <div class="tl-dot">🟢</div>
+            <div class="tl-content">
+              <div class="tl-label">綠燈・放手做　低風險、可逆、出錯看得出來</div>
+              <div class="tl-examples">讀長文・整雜料・想點子・打草稿 → 它出錯你一眼看穿，放心用</div>
+            </div>
+          </div>
+          <div class="tl-band yellow">
+            <div class="tl-dot">🟡</div>
+            <div class="tl-content">
+              <div class="tl-label">黃燈・它做你查　有點重要、或你還在熟</div>
+              <div class="tl-examples">翻譯順稿・解釋概念・摘要會議 → 先查，穩了改抽查</div>
+            </div>
+          </div>
+          <div class="tl-band red">
+            <div class="tl-dot">🔴</div>
+            <div class="tl-content">
+              <div class="tl-label">紅燈・一定你來　高風險、不可逆、對外認帳</div>
+              <div class="tl-examples">算數字查日期・回客戶報價・改系統簽合約・做最終決定<br><strong>再聰明的副駕，也不能幫你踩煞車。</strong></div>
+            </div>
+          </div>
+        </div>
+        <p style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px">記住四句話・隨身對照</p>
+        <div class="four-rules">
+          <div class="rule-item"><span class="r-num">1</span><span>草稿是它的，簽名是你的</span></div>
+          <div class="rule-item"><span class="r-num">2</span><span>越重要，越要查</span></div>
+          <div class="rule-item"><span class="r-num">3</span><span>講得順，不等於講得對</span></div>
+          <div class="rule-item"><span class="r-num">4</span><span>影響到別人的事，人來拍板</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>三、找到「你的部門」那一格</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p class="q-desc">以下是<strong>示例</strong>，不是規定——實際幫你做什麼，依你填的痛點決定。看到「欸這就是我每天在做的事」，那就是 AI 能幫你的地方。</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>你的部門</th><th>AI 可能幫你的事（示例）</th></tr></thead>
+            <tbody>
+              <tr><td><strong>研發／機構／軟體</strong></td><td>比對規格書、查 datasheet、整理技術文件、debug 輔助</td></tr>
+              <tr><td><strong>品保／系統驗證</strong></td><td>彙整缺陷報告、揪測試數據異常、整理驗證紀錄</td></tr>
+              <tr><td><strong>市場開發／業務</strong></td><td>草擬多語客戶信件、整理會議記錄、文件翻譯</td></tr>
+              <tr><td><strong>文件管制</strong></td><td>整理／分類 SOP、文件版本比對</td></tr>
+              <tr><td><strong>製造／製造工程</strong></td><td>彙整生產數據、異常即時提醒、整理工單</td></tr>
+              <tr><td><strong>資材／採購</strong></td><td>比價彙整、整理供應商資料、追料提醒</td></tr>
+              <tr><td><strong>財務／會計</strong></td><td>對帳輔助、報表彙整、發票資料整理</td></tr>
+              <tr><td><strong>人資／廠務</strong></td><td>彙整問卷、草擬公告、整理出勤異常</td></tr>
+              <tr><td><strong>成控／資訊</strong></td><td>成本數據彙整、系統日誌分析、資安監控</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout success">你填的問卷，就是讓這些「示例」變成「<strong>真的有</strong>」的關鍵。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>四、AI 像導航：說「直走」的口氣，跟帶你開進田裡的口氣，一模一樣</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <p>AI 負責很有自信，<strong>你負責它是不是真的對</strong>——方向盤永遠在你手上。</p>
+        <div class="tbl-wrap" style="margin-top:12px">
+          <table>
+            <thead><tr><th>導航（AI）</th><th>你（老司機的眼力）</th></tr></thead>
+            <tbody>
+              <tr><td>算得快、講得順</td><td><strong style="color:var(--primary)">看得準、踩得住煞車</strong></td></tr>
+              <tr><td>不知道前面是田</td><td><strong style="color:var(--primary)">一眼看出不對勁</strong></td></tr>
+              <tr><td>口氣永遠很篤定</td><td><strong style="color:var(--primary)">篤定的是你的經驗</strong></td></tr>
+              <tr><td>給你一條路線</td><td><strong style="color:var(--primary)">決定走不走</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout danger" style="margin-top:12px">為什麼它會自信地說錯：<strong>它是文字接龍</strong>・<strong>被逼著交卷</strong>・<strong>越冷門越敢編</strong><br>AI 是「考試型選手」，不會的題寧可猜，也不肯空白。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>五、資安法則：守護客戶資料 = 守護振曜命脈</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="callout warn" style="margin-bottom:14px">🥇 <strong>黃金法則</strong>：<strong>不會貼到公司公布欄的東西，就不要貼進公開 AI。</strong></div>
+        <p style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:10px">🔴 紅燈清單・這 6 樣絕不外傳</p>
+        <div class="sec-grid">
+          <div class="sec-item"><div class="sec-num">1</div><div><div class="sec-label">客戶名稱</div><div class="sec-sub">誰是客戶，本身就是機密</div></div></div>
+          <div class="sec-item"><div class="sec-num">2</div><div><div class="sec-label">BOM 料表</div><div class="sec-sub">整台產品的核心配方</div></div></div>
+          <div class="sec-item"><div class="sec-num">3</div><div><div class="sec-label">CAD／Gerber</div><div class="sec-sub">產品的結構骨架</div></div></div>
+          <div class="sec-item"><div class="sec-num">4</div><div><div class="sec-label">報價</div><div class="sec-sub">成本毛利外洩即失守</div></div></div>
+          <div class="sec-item"><div class="sec-num">5</div><div><div class="sec-label">客戶原始碼</div><div class="sec-sub">軟體的心臟</div></div></div>
+          <div class="sec-item"><div class="sec-num">6</div><div><div class="sec-label">NDA 文件</div><div class="sec-sub">違約代價極高</div></div></div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>🪣 兩個水桶</th><th>說明</th></tr></thead>
+            <tbody>
+              <tr><td>✅ 公司核准的 AI 工具</td><td>把關過、資料受保護 → 放心用</td></tr>
+              <tr><td>❌ 個人免費 ChatGPT</td><td>輸入可能被拿去訓練 → 請避開機密</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <h2>六、你不是參與者，你是設計者</h2>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>這些，不用你懂</th><th>這些，只有你能做</th></tr></thead>
+            <tbody>
+              <tr><td>變 AI 老師・懂任何技術・變成 IT</td><td>用人話說出部門最耗時的工作<br>把痛點講清楚<br>確認 AI 做出來的東西好不好用</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout success">你說出的<strong>每個痛點</strong>，都可能成為 AI 團隊的<strong>開發清單</strong>。這不是上面交辦，是邀請你一起設計振曜的工作方式。</div>
+      </div>
+    </div>
+
+    <div class="nav-footer">
+      <button class="btn btn-outline" onclick="goTab(0)">← 找痛點指引</button>
+      <button class="btn btn-primary" onclick="goTab(2)">填寫問卷 →</button>
+    </div>
+  </div>
+
+  <!-- ════════════ TAB 3 問卷 ════════════ -->
+  <div class="tab-panel" id="tab-2">
+
+    <div class="callout info" style="margin-bottom:16px">
+      <strong>填寫提示</strong>：先想好你的 1–3 個痛點再開始填，效果最好。Q3 新增了「這是哪種痛」和「幾號燈」的自評，幫你說得更清楚。
+    </div>
+
+    <form id="survey-form">
+
+      <!-- Q1 -->
+      <div class="card">
+        <div class="card-head no-toggle">
+          <h2>Q1　你是誰 <span class="q-sub">30 秒</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="q-block">
+            <div class="q-title">1-1　你的部門 <span class="q-sub">單選</span></div>
+            <div class="opt-grid" id="dept-grid"></div>
+            <div class="other-field" id="dept-other-wrap">
+              <label class="field-label">其他部門名稱：</label>
+              <input type="text" name="dept-other" id="dept-other-input" placeholder="請填寫">
+            </div>
+          </div>
+          <div class="q-block">
+            <div class="q-title">1-2　你的角色 <span class="q-sub">單選</span></div>
+            <div class="opt-grid cols-2">
+              <label class="opt-item"><input type="radio" name="role" value="專員／工程師"><span>專員／工程師</span></label>
+              <label class="opt-item"><input type="radio" name="role" value="資深專員／資深工程師"><span>資深專員／資深工程師</span></label>
+              <label class="opt-item"><input type="radio" name="role" value="組長／副理"><span>組長／副理</span></label>
+              <label class="opt-item"><input type="radio" name="role" value="經理以上"><span>經理以上</span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="card">
+        <div class="card-head no-toggle">
+          <h2>Q2　你的日常工作類型 <span class="q-sub">2 分鐘</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="q-title">2-1　你的日常工作主要包含哪些？<span class="q-sub">可複選，越多越好</span></div>
+          <p class="q-desc">把你做過的都勾起來，不用想太多。Q3 再從這裡挑出最磨人的那幾項。</p>
+          <div class="opt-grid" id="work-grid"></div>
+          <div class="other-field" id="work-other-wrap">
+            <label class="field-label">其他工作類型：</label>
+            <input type="text" name="work-other" id="work-other-input" placeholder="請填寫">
+          </div>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="card">
+        <div class="card-head no-toggle">
+          <h2>Q3　痛點評分 <span class="q-sub">核心，5 分鐘</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="bridge-box">
+            <div class="b-title">填之前，先用這三個問題找出你的痛點：</div>
+            <div class="b-steps">
+              <div class="b-step"><span class="b-num">1</span><span>上週做了哪件事讓你心裡嘆氣說「又要做這個」？</span></div>
+              <div class="b-step"><span class="b-num">2</span><span>哪件事你做完同事沒感覺，但你知道有多耗時？</span></div>
+              <div class="b-step"><span class="b-num">3</span><span>如果 AI 今天就能幫你做一件事，你最想讓它做哪件？</span></div>
+            </div>
+          </div>
+          <p class="q-desc">找到了就往下填，<strong>1–3 項</strong>即可。描述得越具體，AI 團隊越能快速開發出來。</p>
+          <div id="pain-container"></div>
+          <button type="button" class="add-pain-btn" id="add-pain-btn" onclick="addPain()">＋ 新增第二個痛點</button>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="card">
+        <div class="card-head no-toggle">
+          <h2>Q4　AI 幫你做了，你最期待省下什麼？<span class="q-sub">1 分鐘</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="q-title">4-1　如果 Q3 的痛點被 AI 解決了，你最期待省下的是？<span class="q-sub">可複選</span></div>
+          <p class="q-desc">這幫 AI 團隊判斷「做出來之後，你拿到的真正價值是什麼」。</p>
+          <div class="opt-grid">
+            <label class="opt-item"><input type="checkbox" name="save" value="重複手工輸入的時間"><span>重複手工輸入的時間</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="跨系統搬資料、格式轉換的工時"><span>跨系統搬資料、格式轉換</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="回覆同類問題的腦力消耗"><span>回覆同類問題的腦力消耗</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="文件排版 / 整理的時間"><span>文件排版 / 整理的時間</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="人工從大量數據找關鍵的時間"><span>大量數據中人工找關鍵</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="出錯後重查、重做的時間"><span>出錯後重查、重做的時間</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="等待確認 / 簽核的等待時間"><span>等待確認 / 簽核的等待</span></label>
+            <label class="opt-item"><input type="checkbox" name="save" value="跨部門溝通協調的來回成本"><span>跨部門溝通協調成本</span></label>
+          </div>
+          <div style="margin-top:8px">
+            <label class="field-label">其他：</label>
+            <input type="text" name="save-other" placeholder="選填">
+          </div>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="card">
+        <div class="card-head no-toggle">
+          <h2>Q5　神燈題 <span class="q-sub">2 分鐘，這題最珍貴</span></h2>
+        </div>
+        <div class="card-body">
+          <div class="callout info" style="margin-bottom:16px">這兩題沒有選項——因為<strong>你的答案，可能就是別人沒想到的金礦</strong>。越具體越好，「每月把 4 家子公司 ERP 手動整合成同格式花 10 小時」比「資料很多」有用 10 倍。</div>
+          <div class="q-block">
+            <div class="q-title">5-1　如果 AI 今天就能幫你做一件事，你最想讓它做什麼？</div>
+            <p class="q-desc">再小、再瑣碎都值得說。試著寫出：<strong>什麼時候・從哪裡・做什麼・到哪裡</strong>。不需要說怎麼技術實現，只說你的期待。</p>
+            <textarea name="wish" placeholder="例 A（整合型）：每月底要把子公司 ERP 報表逐一手工整合，希望 AI 能自動抓資料、統一格式、直接出報表。&#10;例 B（問答型）：HR 規章每天被同仁問，希望 AI 能自動查規章回覆，不用每次我手工找。&#10;例 C（數據型）：測試後要手工從儀器抓電壓電流數據，希望 AI 能自動選時段、整理成表格。"></textarea>
+          </div>
+          <div class="q-block">
+            <div class="q-title">5-2　你現在有沒有自己發明的省時小撇步？<span class="q-sub">選填</span></div>
+            <p class="q-desc">Excel Macro、自己做的公式、固定的複製貼上流程……這些「人工自動化」通常是 AI 能直接接手的線索。</p>
+            <textarea name="tricks" placeholder="例：我用 Excel VBA 寫了一個 Macro，每月把三張報表合在一起，但還是要手動調整欄位對齊，大概省了一半時間…"></textarea>
+          </div>
+          <div class="q-block">
+            <div class="q-title">5-3　你有沒有在用 AI 工具（ChatGPT、Claude 等）？<span class="q-sub">選填，分享用法</span></div>
+            <p class="q-desc">不管是公司核准或個人使用，說說你怎麼用的——這幫我們知道你的起點在哪。</p>
+            <textarea name="aiuse" style="min-height:60px" placeholder="例：我有用免費版 ChatGPT 算 Excel 平均值、整理文字；PM 有用來做新客戶分析，帶入 PM 角色比較有用；SW 用 Claude Debug…"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+    <div class="nav-footer">
+      <button class="btn btn-outline" onclick="goTab(1)">← AI 複習</button>
+      <button class="btn btn-primary" onclick="goTab(3)">下一步：準備回傳 →</button>
+    </div>
+  </div>
+
+  <!-- ════════════ TAB 4 回傳 ════════════ -->
+  <div class="tab-panel" id="tab-3">
+
+    <div class="card">
+      <div class="card-head no-toggle">
+        <h2>回傳說明</h2>
+      </div>
+      <div class="card-body">
+        <div class="callout warn">📮 <strong>回傳方式</strong>：填妥後請於 <strong>2026 年 6 月 15 日（星期一）前</strong>，以電子郵件回傳至 AI 推動委員會　總幹事　呂紹綸（Alan）：<a href="mailto:alan@netronixinc.com" style="font-weight:700;color:#1e3a5f">alan@netronixinc.com</a></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head no-toggle">
+        <h2>產生回覆摘要</h2>
+      </div>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:14px;margin-bottom:14px">點下方按鈕產生回覆摘要，再點「複製全部」，貼到 Email 寄給 Alan 即可。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="btn btn-accent" onclick="generateSummary()">📋 產生回覆摘要</button>
+          <button type="button" class="btn btn-outline" id="copy-btn" style="display:none" onclick="copySummary()">複製全部</button>
+          <button type="button" class="btn btn-outline" id="pdf-btn" style="display:none" onclick="savePDF()">🖨️ 存成 PDF</button>
+        </div>
+        <div class="summary-out" id="summary-out"></div>
+        <p id="copy-ok" style="display:none;color:var(--ok);font-size:13px;font-weight:700;margin-top:6px">✅ 已複製！請貼到 Email 寄出。</p>
+      </div>
+    </div>
+
+    <div class="footer-card">
+      <p style="color:#a8c0d6;font-size:13px;margin-bottom:4px">AI 推動委員會　敬上</p>
+      <p style="color:#fff;font-size:17px;font-weight:700">🙏 謝謝你讓振曜的 AI 導入，真正貼近第一線的需求！</p>
+    </div>
+
+    <div class="nav-footer">
+      <button class="btn btn-outline" onclick="goTab(2)">← 返回問卷</button>
+      <span style="font-size:13px;color:var(--muted)">© 2026 振曜科技 AI 推動委員會</span>
+    </div>
+  </div>
+
+</main>
+
+<button class="float-reset" id="float-reset-btn" onclick="clearForm()">🔄 清除重填</button>
+
+<script>
+  const DEPTS = [
+    "成控中心","市場開發處","業務處","機構設計部",
+    "研發（HW）","研發（SW）","文件管制","系統驗證部",
+    "人力資源部","廠務工程部","製造處","製造工程部",
+    "品保部","資材處","會計部","財務部","資訊部","其他"
+  ];
+
+  const WORK_TYPES = [
+    "報表製作／數據彙整",
+    "跨系統資料整合 / 格式轉換（Data Exchange）",
+    "跨系統重複輸入同一筆資料",
+    "資料查詢／比對（需查多個來源）",
+    "文件整理／分類／格式轉換",
+    "出貨 ／ 交付文件製作",
+    "回覆重複性詢問（內部規章、SOP）",
+    "數據計算／核對",
+    "排程安排／進度追蹤",
+    "檢核／校對／稽核",
+    "會議記錄／文件撰寫",
+    "法規 ／ 認證 ／ 合規文件查詢",
+    "紙本資料數位化／key-in",
+    "規格／技術文件處理",
+    "其他"
+  ];
+
+  const RATINGS = [
+    ["freq",    "多久做一次",         "1 很少",    "5 每天多次"],
+    ["risk",    "做錯的風險",         "1 幾乎不錯", "5 很容易錯"],
+    ["pain",    "有多磨人／煩",       "1 還好",    "5 非常磨人"],
+    ["willing", "你願意讓 AI 幫忙做嗎","1 不太願意","5 很願意"],
+  ];
+
+  const TIME_OPTS = ["< 30 分", "30 分–2h", "2–5h", "5–10h", "> 10h"];
+  const LABELS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
+  const NUM_ZH = ["","二","三","四","五","六","七","八","九","十"];
+
+  let painCount = 1;
+
+  function buildDepts() {
+    const g = document.getElementById("dept-grid");
+    g.innerHTML = DEPTS.map(d => `
+      <label class="opt-item">
+        <input type="radio" name="dept" value="${d}">
+        <span>${d}</span>
+      </label>`).join("");
+    g.querySelectorAll("input").forEach(el => {
+      el.addEventListener("change", () => {
+        document.getElementById("dept-other-wrap").classList.toggle("show", el.value === "其他");
+      });
+    });
+  }
+
+  function buildWorkTypes() {
+    const g = document.getElementById("work-grid");
+    g.innerHTML = WORK_TYPES.map(w => `
+      <label class="opt-item">
+        <input type="checkbox" name="work" value="${w}">
+        <span>${w}</span>
+      </label>`).join("");
+    g.querySelectorAll("input").forEach(el => {
+      el.addEventListener("change", () => {
+        const anyOther = !!g.querySelector('input[value="其他"]:checked');
+        document.getElementById("work-other-wrap").classList.toggle("show", anyOther);
+      });
+    });
+  }
+
+  function painItemHTML(n) {
+    const lbl = LABELS[n - 1];
+    return `
+      <div class="pain-item" id="pain-${n}">
+        <div class="pain-header">
+          <div class="pain-num">${lbl}</div>
+          <div class="pain-title-wrap">
+            <label class="field-label">工作名稱（5–10 字）：</label>
+            <input type="text" name="pain-name-${n}" placeholder="例：每月子公司報表整合、出貨文件製作、測試報告排版">
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label class="field-label">具體說說這件事 <span style="font-size:11px;font-weight:400;color:var(--muted)">格式：「每___(頻率)，我需要___，大約花___，最煩的是___」</span></label>
+          <textarea name="p${n}-desc" style="min-height:68px" placeholder="例：每月底要把 4 家子公司的 ERP 數據手動整合成同一格式，因為各家系統不同欄位不一致，需要逐一手工轉換，大約花 10 小時，最煩的是每次格式都對不上要重做。"></textarea>
+        </div>
+
+        <div class="q-block" style="margin-bottom:12px">
+          <div class="field-label">這是哪種痛？<span style="font-size:11px;font-weight:400;color:var(--muted)"> 選最像的</span></div>
+          <div class="opt-grid cols-1" style="gap:5px">
+            <label class="opt-item">
+              <input type="radio" name="p${n}-type" value="別人感受不到的累">
+              <span><strong>別人感受不到的累</strong>——重複、每次都要手動的那種，別人不知道有多磨</span>
+            </label>
+            <label class="opt-item">
+              <input type="radio" name="p${n}-type" value="主管看不到的細節">
+              <span><strong>主管看不到的細節</strong>——明明很煩、說不出口的細節工作，結果看起來還好</span>
+            </label>
+            <label class="opt-item">
+              <input type="radio" name="p${n}-type" value="最磨人最該先解">
+              <span><strong>你知道這是最該先解的</strong>——最拖慢效率、最影響整體，你知道要解它</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="q-block" style="margin-bottom:12px">
+          <div class="field-label">如果交給 AI，你覺得是幾號燈？<span style="font-size:11px;font-weight:400;color:var(--muted)"> 判準：「錯了會不會傷到別人、又收不回來？」</span></div>
+          <div class="tl-row">
+            <label class="tl-chip tl-green">
+              <input type="radio" name="p${n}-tl" value="綠燈">
+              🟢 綠燈——低風險，出錯一眼看穿
+            </label>
+            <label class="tl-chip tl-yellow">
+              <input type="radio" name="p${n}-tl" value="黃燈">
+              🟡 黃燈——有點重要，AI 做我來查
+            </label>
+            <label class="tl-chip tl-red">
+              <input type="radio" name="p${n}-tl" value="紅燈">
+              🔴 紅燈——高風險，這個得人來
+            </label>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <table class="rating-tbl">
+            <thead>
+              <tr>
+                <th>評分維度</th>
+                ${[1,2,3,4,5].map(s=>`<th>${s}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${RATINGS.map(([key,label,min,max])=>`
+                <tr>
+                  <td>${label}<br><span style="font-size:11px;color:var(--muted)">${min} → ${max}</span></td>
+                  ${[1,2,3,4,5].map(s=>`<td><input type="radio" name="p${n}-${key}" value="${s}"></td>`).join("")}
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="field-label">每次大約花多少時間：</div>
+        <div class="time-row">
+          ${TIME_OPTS.map(t=>`
+            <label class="time-chip">
+              <input type="radio" name="p${n}-time" value="${t}">
+              ${t}
+            </label>`).join("")}
+        </div>
+        <label class="field-label">💬 想補充這項的細節嗎？（選填）</label>
+        <input type="text" name="p${n}-note" placeholder="補充說明，越具體越好">
+      </div>`;
+  }
+
+  function addPain() {
+    if (painCount >= 10) return;
+    painCount++;
+    document.getElementById("pain-container").insertAdjacentHTML("beforeend", painItemHTML(painCount));
+    syncAddBtn();
+  }
+
+  function syncAddBtn() {
+    const btn = document.getElementById("add-pain-btn");
+    if (painCount >= 10) {
+      btn.style.display = "none";
+    } else {
+      btn.textContent = `＋ 新增第${NUM_ZH[painCount]}個痛點`;
+    }
+  }
+
+  function goTab(idx) {
+    document.querySelectorAll(".tab-panel").forEach((p, i) => {
+      p.classList.toggle("active", i === idx);
+    });
+    document.querySelectorAll(".step-btn").forEach((btn, i) => {
+      btn.classList.remove("active", "done");
+      const num = btn.querySelector(".step-num");
+      if (i === idx)      { btn.classList.add("active"); num.textContent = i + 1; }
+      else if (i < idx)   { btn.classList.add("done");   num.textContent = "✓"; }
+      else                {                               num.textContent = i + 1; }
+    });
+    document.getElementById("float-reset-btn").classList.toggle("show", idx === 2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function toggleCard(head) {
+    head.closest(".card").classList.toggle("collapsed");
+  }
+
+  function revealAnswers() {
+    document.getElementById("quiz-answers").classList.add("show");
+    document.getElementById("reveal-btn").style.display = "none";
+  }
+
+  function generateSummary() {
+    const f = document.getElementById("survey-form");
+    const lines = [];
+
+    lines.push("════════════════════════════════");
+    lines.push("AI 大使痛點回報包 v2.0 — 問卷回覆");
+    lines.push("════════════════════════════════");
+    lines.push("");
+
+    const dept = f.querySelector('input[name="dept"]:checked');
+    const deptOther = document.getElementById("dept-other-input").value.trim();
+    const deptVal = dept ? (dept.value === "其他" ? `其他：${deptOther}` : dept.value) : "（未填）";
+    const role = f.querySelector('input[name="role"]:checked');
+    lines.push("【Q1 身分】");
+    lines.push(`部門：${deptVal}`);
+    lines.push(`角色：${role ? role.value : "（未填）"}`);
+    lines.push("");
+
+    const works = [...f.querySelectorAll('input[name="work"]:checked')].map(el => el.value);
+    const workOther = document.getElementById("work-other-input").value.trim();
+    const worksDisplay = works.map(w => w === "其他" && workOther ? `其他：${workOther}` : w);
+    lines.push("【Q2 日常工作類型】");
+    lines.push(worksDisplay.length ? worksDisplay.join("、") : "（未填）");
+    lines.push("");
+
+    lines.push("【Q3 痛點評分】");
+    for (let i = 1; i <= painCount; i++) {
+      const nameEl = f.querySelector(`input[name="pain-name-${i}"]`);
+      const name = nameEl ? nameEl.value.trim() : "";
+      if (!name) { lines.push(`▎工作${LABELS[i-1]}：（未填）`); lines.push(""); continue; }
+      lines.push(`▎工作${LABELS[i-1]}：${name}`);
+      const descEl = f.querySelector(`textarea[name="p${i}-desc"]`);
+      if (descEl && descEl.value.trim()) lines.push(`  具體情境：${descEl.value.trim()}`);
+      const painType = f.querySelector(`input[name="p${i}-type"]:checked`);
+      const trafficLight = f.querySelector(`input[name="p${i}-tl"]:checked`);
+      lines.push(`  痛點類型：${painType ? painType.value : "（未選）"}`);
+      lines.push(`  AI 燈號：${trafficLight ? trafficLight.value : "（未選）"}`);
+      RATINGS.forEach(([key, label]) => {
+        const r = f.querySelector(`input[name="p${i}-${key}"]:checked`);
+        lines.push(`  ${label}：${r ? r.value + " 分" : "（未評）"}`);
+      });
+      const t = f.querySelector(`input[name="p${i}-time"]:checked`);
+      lines.push(`  每次花費時間：${t ? t.value : "（未填）"}`);
+      const note = f.querySelector(`input[name="p${i}-note"]`);
+      if (note && note.value.trim()) lines.push(`  補充：${note.value.trim()}`);
+      lines.push("");
+    }
+
+    const saves = [...f.querySelectorAll('input[name="save"]:checked')].map(el => el.value);
+    const saveOther = f.querySelector('input[name="save-other"]').value.trim();
+    if (saveOther) saves.push(`其他：${saveOther}`);
+    lines.push("【Q4 AI 幫你後最期待省下】");
+    lines.push(saves.length ? saves.join("、") : "（未填）");
+    lines.push("");
+
+    const wish = f.querySelector('textarea[name="wish"]').value.trim();
+    const tricks = f.querySelector('textarea[name="tricks"]').value.trim();
+    const aiuse = f.querySelector('textarea[name="aiuse"]').value.trim();
+    lines.push("【Q5 神燈題】");
+    lines.push(`5-1 最希望 AI 幫我做掉：${wish || "（未填）"}`);
+    lines.push(`5-2 省時小撇步：${tricks || "（未填）"}`);
+    lines.push(`5-3 目前 AI 工具使用情況：${aiuse || "（未填）"}`);
+    lines.push("");
+
+    lines.push("════════════════════════════════");
+
+    const text = lines.join("\n");
+    const out = document.getElementById("summary-out");
+    out.textContent = text;
+    out.classList.add("show");
+    document.getElementById("copy-btn").style.display = "inline-flex";
+    document.getElementById("pdf-btn").style.display = "inline-flex";
+    document.getElementById("copy-ok").style.display = "none";
+  }
+
+  function savePDF() {
+    const text = document.getElementById("summary-out").textContent;
+    const win = window.open("", "_blank");
+    win.document.write(`<!doctype html><html lang="zh-Hant"><head>
+      <meta charset="utf-8">
+      <title>AI 大使痛點回報包 v2.0 — 問卷回覆</title>
+      <style>
+        body { font-family: "Noto Sans TC","Microsoft JhengHei",Arial,sans-serif; font-size:14px; line-height:1.8; color:#1a202c; padding:32px 40px; max-width:720px; margin:0 auto; }
+        h1 { font-size:18px; font-weight:800; color:#1e3a5f; border-bottom:3px solid #f59e0b; padding-bottom:8px; margin-bottom:20px; }
+        pre { white-space:pre-wrap; font-family:inherit; font-size:14px; }
+        .footer { margin-top:32px; font-size:12px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:12px; }
+        @media print { body { padding:16px 24px; } }
+      </style>
+    </head><body>
+      <h1>AI 大使痛點回報包 v2.0 — 問卷回覆</h1>
+      <pre>${text.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</pre>
+      <div class="footer">© 2026 振曜科技 AI 推動委員會</div>
+      <script>window.onload=function(){window.print();}<\/script>
+    </body></html>`);
+    win.document.close();
+  }
+
+  function copySummary() {
+    const text = document.getElementById("summary-out").textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const ok = document.getElementById("copy-ok");
+      ok.style.display = "block";
+      setTimeout(() => { ok.style.display = "none"; }, 3500);
+    });
+  }
+
+  function clearForm() {
+    if (!confirm("確定要清除所有填寫內容並重新開始嗎？")) return;
+    document.getElementById("survey-form").reset();
+    document.getElementById("dept-other-wrap").classList.remove("show");
+    document.getElementById("work-other-wrap").classList.remove("show");
+    painCount = 1;
+    document.getElementById("pain-container").innerHTML = painItemHTML(1);
+    syncAddBtn();
+    document.getElementById("summary-out").textContent = "";
+    document.getElementById("summary-out").classList.remove("show");
+    document.getElementById("copy-btn").style.display = "none";
+    document.getElementById("pdf-btn").style.display = "none";
+    document.getElementById("copy-ok").style.display = "none";
+    goTab(2);
+  }
+
+  buildDepts();
+  buildWorkTypes();
+  document.getElementById("pain-container").innerHTML = painItemHTML(1);
+  syncAddBtn();
+</script>
+</body>
+</html>
