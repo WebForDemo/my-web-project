@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ChatGPT 工具導覽：Custom GPT vs Projects</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #10a37f;
+      --primary-dark: #0d8a6b;
+      --secondary: #1e3a5f;
+      --accent: #f59e0b;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --text: #1a202c;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --ok: #059669;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0d1117 0%, #1a2744 60%, #0d8a6b 100%);
+      color: #fff;
+      padding: 64px 24px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(16,163,127,0.25);
+      border: 1px solid rgba(16,163,127,0.5);
+      color: #5eead4;
+      font-size: 12px; font-weight: 700;
+      padding: 4px 14px; border-radius: 99px; margin-bottom: 20px;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(28px,5vw,52px); font-weight: 800; line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .hero h1 span { color: #5eead4; }
+    .hero p { font-size: 17px; color: #a8b9cc; max-width: 600px; margin: 0 auto 32px; }
+    .hero-pills { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .hero-pill {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; font-size: 13px; font-weight: 600;
+      padding: 8px 18px; border-radius: 99px;
+    }
+
+    /* ── Nav / Tabs ── */
+    .toc {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow-x: auto;
+    }
+    .toc-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; gap: 0; padding: 0 16px;
+    }
+    .toc-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 14px 18px; border: none; background: none;
+      cursor: pointer; font: inherit; font-size: 14px; font-weight: 600;
+      color: var(--muted); border-bottom: 3px solid transparent;
+      white-space: nowrap; transition: all 0.15s;
+    }
+    .toc-btn:hover { color: var(--primary); }
+    .toc-btn.active.gpt  { color: var(--primary);  border-bottom-color: var(--primary); }
+    .toc-btn.active.proj { color: var(--secondary); border-bottom-color: var(--secondary); }
+    .toc-btn.active.cmp  { color: var(--accent);    border-bottom-color: var(--accent); }
+
+    /* ── Tab panels ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Layout ── */
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px 80px; }
+
+    /* ── Section header ── */
+    .sec-header {
+      display: flex; align-items: center; gap: 16px;
+      padding: 52px 0 28px;
+    }
+    .sec-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: grid; place-items: center; font-size: 24px; flex-shrink: 0;
+    }
+    .sec-icon.green { background: linear-gradient(135deg,#d1fae5,#6ee7b7); }
+    .sec-icon.blue  { background: linear-gradient(135deg,#dbeafe,#93c5fd); }
+    .sec-icon.gold  { background: linear-gradient(135deg,#fef3c7,#fcd34d); }
+    .sec-header h2 { font-size: clamp(22px,3.5vw,32px); font-weight: 800; color: var(--secondary); }
+    .sec-header p  { font-size: 14px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .card-head h3 { font-size: 16px; font-weight: 700; color: var(--secondary); }
+    .card-head .step-badge {
+      background: var(--secondary); color: #fff;
+      font-size: 12px; font-weight: 800;
+      width: 26px; height: 26px; border-radius: 50%;
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .card-head .step-badge.green { background: var(--primary); }
+    .card-body { padding: 22px; }
+    .card-body p { margin-bottom: 12px; font-size: 14px; line-height: 1.7; }
+    .card-body p:last-child { margin-bottom: 0; }
+    .card-body ul { padding-left: 20px; margin-bottom: 12px; }
+    .card-body li { margin-bottom: 7px; font-size: 14px; }
+
+    /* ── Screenshot ── */
+    .screenshot {
+      background: #f0f4f8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 14px 0;
+    }
+    .screenshot img { width: 100%; display: block; cursor: zoom-in; transition: opacity 0.15s; }
+    .screenshot img:hover { opacity: 0.88; }
+    .screenshot .caption {
+      padding: 8px 14px;
+      font-size: 12px; color: var(--muted);
+      background: #f8fafc;
+      border-top: 1px solid var(--line);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .screenshot .caption::before { content: "📸"; }
+
+    /* ── Two-col screenshots ── */
+    .ss-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+
+    /* ── Callout ── */
+    .callout {
+      padding: 12px 16px; border-radius: 8px; margin: 14px 0;
+      font-size: 14px; line-height: 1.65; border-left: 4px solid;
+    }
+    .callout.info   { background: #eff6ff; border-color: #3b82f6; color: #1e3a8a; }
+    .callout.ok     { background: #f0fdf4; border-color: var(--ok); color: #065f46; }
+    .callout.warn   { background: #fffbeb; border-color: var(--warn); color: #78350f; }
+    .callout.danger { background: #fef2f2; border-color: var(--danger); color: #7f1d1d; }
+
+    /* ── Permission chips ── */
+    .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+    .perm-card { padding: 14px 16px; border-radius: 8px; border: 2px solid; }
+    .perm-card.ok   { background: #f0fdf4; border-color: #86efac; }
+    .perm-card.warn { background: #fef2f2; border-color: #fca5a5; }
+    .perm-card .pc-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .perm-card.ok   .pc-title { color: #065f46; }
+    .perm-card.warn .pc-title { color: #7f1d1d; }
+    .perm-card .pc-item { font-size: 13px; margin-bottom: 4px; display: flex; gap: 6px; }
+
+    /* ── Comparison table ── */
+    .cmp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .cmp-table th {
+      padding: 12px 16px; font-weight: 700; font-size: 13px;
+      border-bottom: 2px solid var(--line);
+    }
+    .cmp-table th:first-child { text-align: left; background: #f8fafc; }
+    .cmp-table th:nth-child(2) { background: #f0fdf4; color: var(--primary); text-align: center; }
+    .cmp-table th:nth-child(3) { background: #eff6ff; color: var(--secondary); text-align: center; }
+    .cmp-table td {
+      padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: middle;
+    }
+    .cmp-table td:first-child { font-weight: 600; color: var(--secondary); background: #f8fafc; }
+    .cmp-table td:nth-child(2) { text-align: center; background: #f0fdf4; }
+    .cmp-table td:nth-child(3) { text-align: center; background: #eff6ff; }
+    .cmp-table tr:last-child td { border-bottom: none; }
+    .cmp-table tr:hover td { filter: brightness(0.97); }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+    }
+    .tag.ok      { background: #dcfce7; color: #166534; }
+    .tag.warn    { background: #fef9c3; color: #713f12; }
+    .tag.danger  { background: #fee2e2; color: #991b1b; }
+    .tag.partial { background: #fef3c7; color: #92400e; }
+
+    /* ── Use-case cards ── */
+    .use-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+    .use-card { padding: 18px; border-radius: 10px; border: 1px solid var(--line); }
+    .use-card.green { background: linear-gradient(135deg,#f0fdf4,#fff); border-color: #86efac; }
+    .use-card.blue  { background: linear-gradient(135deg,#eff6ff,#fff); border-color: #93c5fd; }
+    .use-card .uc-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .use-card.green .uc-title { color: var(--primary); }
+    .use-card.blue  .uc-title { color: var(--secondary); }
+    .use-card li { font-size: 13px; margin-bottom: 5px; color: var(--muted); }
+
+    /* ── Footer ── */
+    .footer {
+      background: var(--secondary);
+      color: #a8c0d6;
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 13px;
+    }
+    .footer strong { color: #fff; }
+
+    /* ── Lightbox ── */
+    .lightbox-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.88);
+      align-items: center; justify-content: center;
+      padding: 20px;
+      animation: lbFadeIn 0.18s ease;
+    }
+    .lightbox-overlay.open { display: flex; }
+    @keyframes lbFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .lightbox-img {
+      max-width: 92vw; max-height: 88vh;
+      border-radius: 8px;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+      animation: lbZoomIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      cursor: zoom-out;
+    }
+    @keyframes lbZoomIn {
+      from { transform: scale(0.88); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .lightbox-close {
+      position: fixed; top: 18px; right: 22px;
+      background: rgba(255,255,255,0.15); border: none;
+      color: #fff; font-size: 22px; font-weight: 700;
+      width: 40px; height: 40px; border-radius: 50%;
+      cursor: pointer; display: grid; place-items: center;
+      transition: background 0.15s;
+    }
+    .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+    .lightbox-caption {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.6); color: #fff;
+      font-size: 13px; padding: 6px 18px; border-radius: 99px;
+      white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    @media (max-width: 600px) {
+      .ss-grid   { grid-template-columns: 1fr; }
+      .perm-grid { grid-template-columns: 1fr; }
+      .use-grid  { grid-template-columns: 1fr; }
+      .cmp-table { font-size: 12px; }
+      .cmp-table td, .cmp-table th { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ Hero ══ -->
+<div class="hero">
+  <div class="hero-badge">ChatGPT Enterprise 工具導覽</div>
+  <h1>Custom GPT <span>vs</span> Projects<br>兩種 AI 工具，怎麼選？</h1>
+  <p>ChatGPT 提供兩種方式讓企業打造專屬 AI 助理。本指南帶你了解各自的操作方式、分享機制，以及什麼情境該用哪一種。</p>
+  <div class="hero-pills">
+    <div class="hero-pill">🤖 Custom GPT</div>
+    <div class="hero-pill">📁 Projects 專案</div>
+    <div class="hero-pill">🔒 分享與權限設定</div>
+    <div class="hero-pill">📊 功能比較表</div>
+  </div>
+</div>
+
+<!-- ══ Tab Nav ══ -->
+<nav class="toc">
+  <div class="toc-inner">
+    <button class="toc-btn gpt active" onclick="switchTab('gpt')">🤖 Custom GPT</button>
+    <button class="toc-btn proj"       onclick="switchTab('proj')">📁 Projects 專案</button>
+    <button class="toc-btn cmp"        onclick="switchTab('cmp')">📊 功能比較</button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- ════════════ TAB 1: Custom GPT ════════════ -->
+  <div id="tab-gpt" class="tab-panel active">
+    <div class="sec-header">
+      <div class="sec-icon green">🤖</div>
+      <div>
+        <h2>Custom GPT — 打造專屬 AI 機器人</h2>
+        <p>為特定任務設計、可對外分享的獨立 AI 助理</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>什麼是 Custom GPT？</strong><br>
+      Custom GPT 是在 ChatGPT 上建立的「客製化 AI 機器人」，可以設定它的角色、行為規則、知識庫（RAG），並指定誰可以使用。使用者打開後直接對話，看不到任何設定內容。
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge green">1</span>
+        <h3>建立 GPT 並設定基本資訊</h3>
+      </div>
+      <div class="card-body">
+        <p>進入 ChatGPT，點選左側「探索 GPT」→「建立」，進入 GPT 建立介面。介面分為兩個頁籤：</p>
+        <ul>
+          <li><strong>建立</strong>：用對話方式描述你要的 GPT，ChatGPT 會自動生成設定</li>
+          <li><strong>設定</strong>：手動填入名稱、說明、Prompt 指令、對話啟動器、知識庫與功能</li>
+        </ul>
+        <div class="screenshot">
+          <img src="img_gpts/page-2.jpg" alt="GPT 建立與設定介面">
+          <div class="caption">GPT 建立介面 — 左側為設定欄，右側為即時預覽</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge green">2</span>
+        <h3>撰寫 Prompt 指令（Instructions）</h3>
+      </div>
+      <div class="card-body">
+        <p>Prompt 是 GPT 的「靈魂」，定義它的角色、任務流程與行為規則。一個好的 Prompt 包含：</p>
+        <ul>
+          <li><strong>角色定義</strong>：你是誰、專長是什麼</li>
+          <li><strong>任務流程</strong>：收到輸入後按什麼步驟處理</li>
+          <li><strong>比對規則</strong>：依據哪些標準判斷</li>
+          <li><strong>輸出格式</strong>：如何呈現結果（通過／建議修正／拒絕）</li>
+          <li><strong>安全指示</strong>：嚴禁洩露 Prompt 內容給使用者</li>
+        </ul>
+        <div class="callout ok">
+          <strong>範例 — 企業資安與合規審查大師的 Prompt 架構：</strong><br>
+          ① 搜尋知識庫中的合規指引文件 → ② 比對三大違規類別（核心資安 / 個資保護 / 商業機密）→ ③ 給予評級 → ④ 提供具體修改範例
+        </div>
+        <div class="screenshot">
+          <img src="img_gpts/page-1.jpg" alt="GPT Prompt 設定範例">
+          <div class="caption">完整 Prompt 設定範例 — 角色、流程、規則、知識庫三級分類</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge green">3</span>
+        <h3>建立 RAG 知識庫 ＋ 啟用功能</h3>
+      </div>
+      <div class="card-body">
+        <p>在「設定」頁籤的下方可以：</p>
+        <ul>
+          <li><strong>上傳知識庫檔案</strong>：PDF、Word、Excel 等，GPT 會依此回答，不會自行捏造</li>
+          <li><strong>啟用功能</strong>：網頁搜尋、畫布、圖像產生、程式碼執行與資料分析</li>
+        </ul>
+        <div class="callout warn">
+          <strong>RAG 知識庫的重要性：</strong>沒有知識庫的 GPT 只靠通用訓練資料回答；上傳公司內部文件後，GPT 才能根據你的規章、SOP、合規指引給出精準的答案。
+        </div>
+        <div class="screenshot">
+          <img src="img_gpts/page-4.jpg" alt="GPT 知識庫與功能設定">
+          <div class="caption">設定頁面 — 上傳知識庫檔案、勾選所需功能</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge green">4</span>
+        <h3>測試 GPT 效果</h3>
+      </div>
+      <div class="card-body">
+        <p>設定完成後，右側預覽區可以立即測試。以「企業資安與合規審查大師」為例，貼入一段包含敏感資訊的程式碼後，GPT 會：</p>
+        <ul>
+          <li>自動比對知識庫中的合規規則</li>
+          <li>偵測出 API 金鑰洩露、測試環境 IP 等違規內容</li>
+          <li>給出評級（通過 / 建議修正 / 拒絕發布）</li>
+          <li>提供緊急處置建議與具體修改方式</li>
+        </ul>
+        <div class="screenshot">
+          <img src="img_gpts/page-3.jpg" alt="GPT 資安審查輸出示範">
+          <div class="caption">GPT 偵測到程式碼中包含 API 金鑰洩露 — 自動給出評級與處置建議</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge green">5</span>
+        <h3>分享設定 — 決定誰能用</h3>
+      </div>
+      <div class="card-body">
+        <p>點選右上角「建立」後，可選擇分享層級：</p>
+        <ul>
+          <li><strong>私人（僅限邀請）</strong>：只有你自己能用</li>
+          <li><strong>振曜工作空間</strong>：公司內所有有連結的人都能用</li>
+          <li><strong>公開 / GPT 商店</strong>：對外公開，任何人都可找到</li>
+        </ul>
+        <div class="screenshot">
+          <img src="img_gpts/page-5.jpg" alt="GPT 分享層級設定">
+          <div class="caption">分享設定 — 可限定「振曜工作空間」確保只有公司成員能存取</div>
+        </div>
+        <div class="callout ok">
+          <strong>保護 Prompt 與知識庫：</strong>無論選哪個分享層級，使用者<strong>永遠看不到</strong> Prompt 指令與知識庫檔案內容——他們只能與 GPT 對話，不能進入設定頁面。
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-gpt -->
+
+
+  <!-- ════════════ TAB 2: Projects ════════════ -->
+  <div id="tab-proj" class="tab-panel">
+    <div class="sec-header">
+      <div class="sec-icon blue">📁</div>
+      <div>
+        <h2>ChatGPT Projects — 團隊協作專案</h2>
+        <p>共享 AI 工作空間，讓多人在同一個 AI 助理下協作</p>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <strong>什麼是 Projects？</strong><br>
+      Projects 是 ChatGPT 的「共享工作空間」，可以設定一個 AI 助理並邀請團隊成員一起使用。成員可以看到彼此的歷史對話記錄，適合內部小團隊協同作業。
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge">1</span>
+        <h3>建立專案</h3>
+      </div>
+      <div class="card-body">
+        <p>在 ChatGPT 左側選單點選「建立專案」，輸入專案名稱後按下「建立專案」按鈕。</p>
+        <ul>
+          <li>專案會出現在左側選單，之後所有在此專案下的對話都集中在這裡</li>
+          <li>可以設定專屬的 AI 指令（Prompt），讓 ChatGPT 在這個專案內按固定角色回應</li>
+        </ul>
+        <div class="screenshot">
+          <img src="img_proj/page-3.jpg" alt="建立 ChatGPT 專案">
+          <div class="caption">建立專案 — 輸入名稱後即可開始設定</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge">2</span>
+        <h3>設定 Prompt 指令</h3>
+      </div>
+      <div class="card-body">
+        <p>進入專案後，點選右上角的設定圖示 → 「指令」欄位，填入 ChatGPT 在此專案中的行為規則。</p>
+        <ul>
+          <li>Prompt 設定後，所有在此專案中的對話都會套用這個角色與規則</li>
+          <li>只有「<strong>可以編輯</strong>」權限的成員才能修改 Prompt</li>
+        </ul>
+        <div class="screenshot">
+          <img src="img_proj/page-4.jpg" alt="專案 Prompt 設定">
+          <div class="caption">專案設定頁面 — 在「指令」欄位填入 AI 角色與行為規則</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge">3</span>
+        <h3>上傳知識庫（RAG 資料來源）</h3>
+      </div>
+      <div class="card-body">
+        <p>在專案頁面點選「資料來源」頁籤 → 「新增資料來源」，上傳公司內部文件。</p>
+        <ul>
+          <li>上傳後，ChatGPT 會在此專案的所有對話中參考這些文件</li>
+          <li>支援 PDF、Word、Excel 等格式</li>
+        </ul>
+        <div class="callout warn">
+          <strong>注意：</strong>被邀請進專案的成員（即使只有「可以聊天」權限）<strong>可能可以查看甚至下載 RAG 檔案</strong>。若文件含有機密，請謹慎考慮是否使用 Projects 分享。
+        </div>
+        <div class="screenshot">
+          <img src="img_proj/page-5.jpg" alt="專案知識庫 RAG 設定">
+          <div class="caption">資料來源頁籤 — 上傳的 RAG 知識庫文件一覽</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge">4</span>
+        <h3>邀請成員 ＋ 設定權限</h3>
+      </div>
+      <div class="card-body">
+        <p>點選右上角「分享」，搜尋成員 email 或名稱後，選擇權限層級：</p>
+        <div class="perm-grid">
+          <div class="perm-card ok">
+            <div class="pc-title">✅ 可以聊天</div>
+            <div class="pc-item">✓ 可以與 AI 對話</div>
+            <div class="pc-item">✓ 可以查看所有成員的歷史對話</div>
+            <div class="pc-item">⚠️ 可能可以查看 / 下載 RAG 檔案</div>
+            <div class="pc-item">✗ 無法修改 Prompt 或設定</div>
+          </div>
+          <div class="perm-card warn">
+            <div class="pc-title">⚠️ 可以編輯</div>
+            <div class="pc-item">✓ 以上全部</div>
+            <div class="pc-item">✓ 可修改 Prompt 指令</div>
+            <div class="pc-item">✓ 可新增 / 刪除 RAG 檔案</div>
+            <div class="pc-item">✓ 可邀請或移除成員</div>
+          </div>
+        </div>
+        <div class="ss-grid">
+          <div class="screenshot" style="margin:0">
+            <img src="img_proj/page-6.jpg" alt="專案邀請與權限設定">
+            <div class="caption">邀請成員 — 可選擇聊天或編輯權限</div>
+          </div>
+          <div class="screenshot" style="margin:0">
+            <img src="img_proj/page-2.jpg" alt="成員收到邀請通知">
+            <div class="caption">成員收到邀請通知，接受後即可加入</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="step-badge">5</span>
+        <h3>成員使用 — 共享歷史對話</h3>
+      </div>
+      <div class="card-body">
+        <p>成員接受邀請後，可在 ChatGPT 左側選單找到該專案。專案內的所有對話記錄對全體成員可見。</p>
+        <ul>
+          <li>這讓團隊可以互相參考彼此的提問方式與 AI 回應</li>
+          <li>適合需要知識共享的小組，例如：研發技術問答、法規查詢紀錄</li>
+          <li>但也意味著個人的對話內容對所有成員透明，請注意使用</li>
+        </ul>
+        <div class="screenshot">
+          <img src="img_proj/page-7.jpg" alt="成員查看專案所有對話記錄">
+          <div class="caption">成員視角 — 可在「資料來源」頁籤查看所有上傳的知識庫檔案</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-proj -->
+
+
+  <!-- ════════════ TAB 3: 比較 ════════════ -->
+  <div id="tab-cmp" class="tab-panel">
+    <div class="sec-header">
+      <div class="sec-icon gold">📊</div>
+      <div>
+        <h2>Custom GPT vs Projects — 功能比較</h2>
+        <p>根據使用情境選擇適合的工具</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>功能對照表</h3>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <table class="cmp-table">
+          <thead>
+            <tr>
+              <th>功能 / 情境</th>
+              <th>🤖 Custom GPT</th>
+              <th>📁 Projects 專案</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>設定 AI 角色（Prompt）</td>
+              <td><span class="tag ok">✓ 支援</span></td>
+              <td><span class="tag ok">✓ 支援</span></td>
+            </tr>
+            <tr>
+              <td>上傳知識庫（RAG）</td>
+              <td><span class="tag ok">✓ 支援</span></td>
+              <td><span class="tag ok">✓ 支援</span></td>
+            </tr>
+            <tr>
+              <td>設定對話啟動器（快捷問題）</td>
+              <td><span class="tag ok">✓ 支援</span></td>
+              <td><span class="tag danger">✗ 不支援</span></td>
+            </tr>
+            <tr>
+              <td>Prompt 對使用者完全隱藏</td>
+              <td><span class="tag ok">✓ 完全隱藏</span></td>
+              <td><span class="tag warn">⚠️ 可以聊天者看不到</span></td>
+            </tr>
+            <tr>
+              <td>RAG 檔案對使用者隱藏</td>
+              <td><span class="tag ok">✓ 完全隱藏</span></td>
+              <td><span class="tag danger">✗ 可能可看 / 下載</span></td>
+            </tr>
+            <tr>
+              <td>可對外公開（工作空間以外）</td>
+              <td><span class="tag ok">✓ 可公開或上架商店</span></td>
+              <td><span class="tag danger">✗ 限工作空間內</span></td>
+            </tr>
+            <tr>
+              <td>成員共享歷史對話記錄</td>
+              <td><span class="tag danger">✗ 各人獨立</span></td>
+              <td><span class="tag ok">✓ 全員可見</span></td>
+            </tr>
+            <tr>
+              <td>多人同時使用同一 AI</td>
+              <td><span class="tag ok">✓ 支援（獨立對話）</span></td>
+              <td><span class="tag ok">✓ 支援（共享對話）</span></td>
+            </tr>
+            <tr>
+              <td>啟用網頁搜尋 / 圖像 / 程式執行</td>
+              <td><span class="tag ok">✓ 可自由設定</span></td>
+              <td><span class="tag warn">⚠️ 依模型預設</span></td>
+            </tr>
+            <tr>
+              <td>建立 API 動作（Actions）</td>
+              <td><span class="tag ok">✓ 支援</span></td>
+              <td><span class="tag danger">✗ 不支援</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>什麼情境該用哪個？</h3>
+      </div>
+      <div class="card-body">
+        <div class="use-grid">
+          <div class="use-card green">
+            <div class="uc-title">🤖 選 Custom GPT，當你需要…</div>
+            <ul>
+              <li>保護 Prompt 與知識庫，不讓使用者看到</li>
+              <li>把工具分享給公司內所有人，甚至對外公開</li>
+              <li>設計對話啟動器引導使用者</li>
+              <li>呼叫外部 API 或系統（Actions）</li>
+              <li>各部門有獨立的 AI 小工具（資安審查、HR 問答）</li>
+            </ul>
+          </div>
+          <div class="use-card blue">
+            <div class="uc-title">📁 選 Projects，當你需要…</div>
+            <ul>
+              <li>小團隊共同使用一個 AI，並互看對話記錄</li>
+              <li>多人協作更新知識庫與 Prompt 設定</li>
+              <li>記錄整個專案過程中所有的 AI 對話</li>
+              <li>快速建立臨時性的 AI 協作空間</li>
+              <li>內部研發小組的技術問答共享</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout ok" style="margin-top:8px">
+          <strong>一句話總結：</strong><br>
+          需要「<strong>發布給別人用、保護設定不外洩</strong>」→ 用 <strong>Custom GPT</strong><br>
+          需要「<strong>小組一起用、共享記錄一起改</strong>」→ 用 <strong>Projects</strong>
+        </div>
+      </div>
+    </div>
+  </div><!-- /tab-cmp -->
+
+</div><!-- /wrap -->
+
+<!-- Lightbox -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img class="lightbox-img" id="lightbox-img" src="" alt="">
+  <div class="lightbox-caption" id="lightbox-cap"></div>
+</div>
+
+<div class="footer">
+  <strong>振曜科技 AI 推動委員會</strong><br>
+  本文件僅供內部教育訓練使用 · ChatGPT Enterprise / ChatGPT Plus 功能
+</div>
+
+<script>
+  /* ── Tab switching ── */
+  function switchTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.toc-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    document.querySelector('.toc-btn.' + id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── Lightbox ── */
+  let lbScale = 1, lbX = 0, lbY = 0;
+  let isDragging = false, dragEndTime = 0;
+  let dragStartX = 0, dragStartY = 0, dragOriginX = 0, dragOriginY = 0;
+
+  const lb    = () => document.getElementById('lightbox');
+  const lbImg = () => document.getElementById('lightbox-img');
+
+  function applyTransform() {
+    lbImg().style.transform = `translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+    lbImg().style.cursor = lbScale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-out';
+  }
+
+  function openLightbox(img) {
+    lbScale = 1; lbX = 0; lbY = 0; isDragging = false;
+    lbImg().src = img.src;
+    lbImg().style.transform = '';
+    lbImg().style.cursor = 'zoom-out';
+    const cap = img.closest('.screenshot')?.querySelector('.caption');
+    document.getElementById('lightbox-cap').textContent = cap ? cap.textContent.replace('📸','').trim() : '';
+    lb().classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lb().classList.remove('open');
+    document.body.style.overflow = '';
+    lbScale = 1; lbX = 0; lbY = 0; isDragging = false;
+  }
+
+  lb().addEventListener('wheel', e => {
+    e.preventDefault();
+    lbScale = Math.min(Math.max(lbScale * (e.deltaY > 0 ? 0.85 : 1.18), 0.5), 8);
+    applyTransform();
+  }, { passive: false });
+
+  lbImg().addEventListener('pointerdown', e => {
+    if (lbScale <= 1) return;
+    e.preventDefault();
+    isDragging = true;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    dragOriginX = lbX; dragOriginY = lbY;
+    lbImg().setPointerCapture(e.pointerId);
+    applyTransform();
+  });
+
+  lbImg().addEventListener('pointermove', e => {
+    if (!isDragging) return;
+    lbX = dragOriginX + (e.clientX - dragStartX);
+    lbY = dragOriginY + (e.clientY - dragStartY);
+    applyTransform();
+  });
+
+  lbImg().addEventListener('pointerup', e => {
+    if (!isDragging) return;
+    isDragging = false;
+    dragEndTime = Date.now();
+    lbImg().releasePointerCapture(e.pointerId);
+    applyTransform();
+  });
+
+  lbImg().addEventListener('pointercancel', () => {
+    isDragging = false;
+    dragEndTime = Date.now();
+    applyTransform();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === '0') { lbScale = 1; lbX = 0; lbY = 0; applyTransform(); }
+  });
+
+  document.querySelectorAll('.screenshot img').forEach(img => {
+    img.addEventListener('click', () => openLightbox(img));
+  });
+</script>
+</body>
+</html>
