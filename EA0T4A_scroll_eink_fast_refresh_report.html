@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>捲動 E-Ink 快速刷新整合報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:920px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:44px;padding-bottom:26px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:25px;font-weight:800;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+  .sec{margin-bottom:38px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--cyan);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--cyan);color:#04222a;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:10px}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+  .card strong{color:var(--tx)}
+  .b{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.3px;vertical-align:middle}
+  .b-mod{background:var(--blue-d);color:var(--blue)}
+  .b-new{background:var(--amber-d);color:var(--amber)}
+  .b-key{background:var(--cyan-d);color:var(--cyan)}
+  .b-yes{background:var(--green-d);color:var(--green)}
+  .b-no{background:var(--red-d);color:var(--red)}
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:8px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top;color:var(--dim)}
+  .tb tr:last-child td{border-bottom:none}
+  .tb td strong{color:var(--tx)}
+  .tb td.mono{word-break:break-all}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .code{background:#0b0d13;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;color:#cdd3e1;margin-top:10px;white-space:pre-wrap;word-break:break-word}
+  .code .cm{color:#6b7280}
+  .code .en{color:var(--amber)}
+  .code .re{color:var(--green)}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+  .kbox{border-left:3px solid var(--cyan);background:var(--cyan-d);border-radius:0 8px 8px 0;padding:12px 16px;margin-top:10px;font-size:13px;color:var(--tx)}
+  .kbox.amber{border-left-color:var(--amber);background:var(--amber-d)}
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>捲動 E-Ink 快速刷新整合報告</h1>
+  <div class="sub">讓全系統「上下捲動」時自動切換 E-Ink 快速波形，手指放開即復原</div>
+  <div class="meta">
+    <div class="chip">範圍：<b>framework.jar</b></div>
+    <div class="chip">異動檔案：<b>2 files</b></div>
+    <div class="chip">涵蓋：<b>ScrollView / ListView / RecyclerView / WebView</b></div>
+    <div class="chip">日期：<b>2026-06-12</b></div>
+  </div>
+</div>
+
+<!-- ===== 0. 一句話 ===== -->
+<div class="sec">
+  <div class="card" style="border-color:var(--cyan)">
+    <h4 style="color:var(--cyan)">▎一句話總結</h4>
+    <p style="color:var(--tx)">延續 SeekBar 那套「動作時進快刷、停止時復原」的概念，這次把它擴大到<strong>整個系統的捲動</strong>：使用者上下捲動任何清單／頁面時切到 E-Ink 快速波形讓捲動順暢，<strong>手指一放開就切回正常高畫質波形</strong>。只動 2 個 Framework 檔案，全系統捲動（含 Settings All apps）自動受惠。</p>
+    <p style="margin-top:6px;font-size:12px">※ E-Ink 波形原理、廣播參數意義已於《SeekBar 拖動 E-Ink 快速刷新報告》說明，本報告不重複，聚焦在「捲動」的特殊處理。</p>
+  </div>
+</div>
+
+<!-- ===== 1. 為什麼捲動比 SeekBar 難 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 先驗知識：捲動為什麼比 SeekBar 棘手</div>
+
+  <div class="card">
+    <h4 style="color:var(--amber)">▎難點一：「可捲動」其實是好幾種不同類別</h4>
+    <p>Android 沒有單一的「捲動元件」，而是分散在多個類別，各自用不同方式捲動：</p>
+    <table class="tb">
+      <tr><th>類別</th><th>用在哪</th><th>怎麼捲</th></tr>
+      <tr><td class="mono">ScrollView / NestedScrollView</td><td>一般可捲頁面</td><td>改 scrollY</td></tr>
+      <tr><td class="mono">ListView / GridView</td><td>舊式清單（聯絡人、檔案）</td><td>位移子 view</td></tr>
+      <tr><td class="mono">RecyclerView</td><td><strong>現代清單，Settings All apps 就是這個</strong></td><td>位移子 view</td></tr>
+      <tr><td class="mono">WebView / TextView</td><td>網頁、長文字</td><td>改 scrollY</td></tr>
+    </table>
+    <div class="kbox amber">⚠️ <strong>RecyclerView 的原始碼不在這棵 tree 裡</strong>（只有預編譯 AAR）。所以沒辦法像 SeekBar 那樣直接改它的原始碼——這是本次最大的技術障礙。</div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--amber)">▎難點二：捲動沒有明確的「結束」事件</h4>
+    <p>SeekBar 有乾淨的「放開（ACTION_UP）」當結束點；但捲動是連續事件流，系統<strong>不會通知你「捲完了」</strong>，尤其慣性滑動（fling）放手後還會自己滑一段。所以「何時退出快刷」需要另外設計判定方式。</p>
+  </div>
+</div>
+
+<!-- ===== 2. 解法 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 解法：在 View 共同基底層統一攔截</div>
+  <div class="card">
+    <p>關鍵發現：上面所有捲動元件，捲動時都會呼叫<strong>繼承自 <span class="mono">View</span> 的同一個方法</strong>。所以不必逐一改每個類別，只要攔 <span class="mono">View</span> 這一層，就能涵蓋全部——<strong>連原始碼不在 tree 裡的 RecyclerView 也一起涵蓋</strong>（因為它呼叫的是繼承來的 View 方法）。</p>
+
+    <table class="tb" style="margin-top:10px">
+      <tr><th>攔截點</th><th>涵蓋元件</th><th>作用</th></tr>
+      <tr><td class="mono">View.awakenScrollBars()</td><td>ListView / GridView / <strong>RecyclerView</strong></td><td>偵測捲動 → 進快刷</td></tr>
+      <tr><td class="mono">View.onScrollChanged()</td><td>ScrollView / WebView / TextView</td><td>偵測捲動 → 進快刷</td></tr>
+      <tr><td class="mono">ViewRootImpl.processPointerEvent()</td><td>全部（視窗唯一輸入入口）</td><td>抓 ACTION_DOWN/UP → 手指放開即復原</td></tr>
+    </table>
+    <div class="kbox">為什麼「手指放開」要放在 <span class="mono">ViewRootImpl</span>？因為 RecyclerView 捲動時，子 view 會先收到 CANCEL、真正的 UP 是送到容器；只有在視窗層唯一的輸入入口 <span class="mono">ViewRootImpl</span> 才能<strong>可靠且只抓一次</strong>真正的手指放開。</div>
+  </div>
+</div>
+
+<!-- ===== 3. 狀態機示意圖 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 運作流程（狀態機）</div>
+  <div class="card">
+    <svg viewBox="0 0 820 330" width="100%" style="max-width:780px;display:block;margin:6px auto 0;background:#0b0d13;border:1px solid var(--bd);border-radius:8px" font-family="'Noto Sans TC',sans-serif">
+      <defs>
+        <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8b90a0"/></marker>
+      </defs>
+
+      <!-- box 1: DOWN -->
+      <rect x="40" y="60" width="180" height="58" rx="10" fill="#232733" stroke="#4ade80"/>
+      <text x="130" y="84" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="700">① 手指按下</text>
+      <text x="130" y="103" text-anchor="middle" fill="#8b90a0" font-size="11">ACTION_DOWN → 標記「按著」</text>
+      <text x="130" y="135" text-anchor="middle" fill="#6b7280" font-size="10">ViewRootImpl</text>
+
+      <!-- arrow -->
+      <line x1="220" y1="89" x2="300" y2="89" stroke="#8b90a0" stroke-width="1.5" marker-end="url(#a)"/>
+
+      <!-- box 2: scroll detected -->
+      <rect x="300" y="60" width="200" height="58" rx="10" fill="#232733" stroke="#22d3ee"/>
+      <text x="400" y="84" text-anchor="middle" fill="#22d3ee" font-size="13" font-weight="700">② 偵測到捲動</text>
+      <text x="400" y="103" text-anchor="middle" fill="#8b90a0" font-size="11">awakenScrollBars / onScrollChanged</text>
+      <text x="400" y="135" text-anchor="middle" fill="#6b7280" font-size="10">View（含 RecyclerView）</text>
+
+      <!-- arrow -->
+      <line x1="500" y1="89" x2="580" y2="89" stroke="#8b90a0" stroke-width="1.5" marker-end="url(#a)"/>
+
+      <!-- box 3: fast on -->
+      <rect x="580" y="60" width="200" height="58" rx="10" fill="rgba(251,191,36,.10)" stroke="#fbbf24"/>
+      <text x="680" y="84" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">⚡ 快刷中</text>
+      <text x="680" y="103" text-anchor="middle" fill="#e2e4eb" font-size="11">發 enter 廣播 waveform=1</text>
+
+      <!-- guard note under box2 -->
+      <text x="400" y="160" text-anchor="middle" fill="#fbbf24" font-size="11">條件：手指按著 + 每手勢只發一次</text>
+
+      <!-- big down arrow from fast to restore -->
+      <path d="M680 118 L680 210" stroke="#8b90a0" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#a)"/>
+      <text x="694" y="170" fill="#8b90a0" font-size="11">手指放開</text>
+
+      <!-- box 4: restore -->
+      <rect x="560" y="212" width="220" height="64" rx="10" fill="rgba(74,222,128,.10)" stroke="#4ade80"/>
+      <text x="670" y="238" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="700">③ 復原</text>
+      <text x="670" y="257" text-anchor="middle" fill="#e2e4eb" font-size="11">ACTION_UP / CANCEL</text>
+      <text x="670" y="272" text-anchor="middle" fill="#e2e4eb" font-size="11">發 restore 廣播 waveform=0</text>
+      <text x="670" y="294" text-anchor="middle" fill="#6b7280" font-size="10">ViewRootImpl</text>
+
+      <!-- fling note -->
+      <rect x="40" y="212" width="480" height="64" rx="10" fill="#1a1d27" stroke="#2e3345"/>
+      <text x="60" y="236" fill="#8b90a0" font-size="12" font-weight="600">取捨：慣性 fling</text>
+      <text x="60" y="256" fill="#8b90a0" font-size="11.5">手指放開的當下就復原；放手後自己滑的那段</text>
+      <text x="60" y="272" fill="#8b90a0" font-size="11.5">維持正常波形（不快刷）—— 此為拍板的設計選擇。</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ===== 4. 改動細節 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> 改動細節</div>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>檔案（絕對路徑）</th><th>狀態</th><th>異動</th></tr>
+      <tr>
+        <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/core/java/android/view/View.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>新增 process 內狀態 + <span class="mono">ntxEinkReportScroll()</span>；在 <span class="mono">awakenScrollBars()</span>、<span class="mono">onScrollChanged()</span> 掛鉤；發 enter/restore 廣播</td>
+      </tr>
+      <tr>
+        <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/core/java/android/view/ViewRootImpl.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>在 <span class="mono">processPointerEvent()</span> 追蹤 DOWN/UP/CANCEL，呼叫 <span class="mono">View.ntxEinkOnTouchDown()/OnTouchUp()</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎核心邏輯（簡化）</h4>
+    <div class="code"><span class="cm">// View.java — 偵測捲動時（手指按著才進、每手勢一次）</span>
+<span class="en">ntxEinkReportScroll()</span> {
+    if (!手指按著 || 已在快刷) return;
+    已在快刷 = true;
+    sendBroadcast(GLOBAL_REFRESH, waveformmode=1, flags=0x2000, dithermode=0x301);
+}
+
+<span class="cm">// ViewRootImpl.java — 手指放開時復原</span>
+DOWN  → 手指按著 = true
+UP/CANCEL → if (已在快刷) { <span class="re">sendBroadcast(GLOBAL_REFRESH, waveformmode=0)</span>; 清狀態; }</div>
+  </div>
+</div>
+
+<!-- ===== 5. 設計考量 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 設計考量</div>
+  <div class="card">
+    <ul>
+      <li><strong>手指按著才進快刷</strong>：避免「程式自動捲動 / 動畫」誤觸發，也防止沒有對應放開事件而卡死。</li>
+      <li><strong>每手勢只發一次 enter</strong>：捲動事件極頻繁，用狀態旗標確保不會狂發廣播。</li>
+      <li><strong>放手即復原（含 CANCEL）</strong>：來電、鎖屏等中斷會收到 CANCEL，一樣會復原，<strong>不會卡在快刷</strong>。</li>
+      <li><strong>不改 RecyclerView 原始碼</strong>：靠攔截它繼承的 <span class="mono">View.awakenScrollBars()</span>，所以原始碼不在 tree 裡也能涵蓋。</li>
+      <li><strong>慣性 fling 不快刷</strong>：依拍板選擇「手指放開即復原」，放手後的滑動段維持正常波形。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== 6. 驗證方式 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> 如何驗證廣播有發</div>
+  <div class="card">
+    <p>接收端 <span class="mono">PowerManagerService</span> 收到廣播時會印 log，最快的驗證：</p>
+    <div class="code">adb logcat | grep "SMode"</div>
+    <table class="tb" style="margin-top:10px">
+      <tr><th>動作</th><th>預期 log</th></tr>
+      <tr><td>進快刷</td><td class="mono">(SMode) ... Globle Mode - updatemode(0) wait(0) waveform(1) flags(2000) dithermode(301)</td></tr>
+      <tr><td>復原</td><td class="mono">(SMode) ... Globle Mode - ... waveform(0)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== 7. 測試場景 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">7</span> 測試場景</div>
+
+  <div class="card">
+    <h4 style="color:var(--green)">▎A. 捲動快刷（本次主改動）— <span class="b b-yes">應該觸發</span></h4>
+    <table class="tb">
+      <tr><th>場景</th><th>元件類型</th><th>預期</th></tr>
+      <tr><td><strong>Settings → All apps 清單</strong>上下捲</td><td>RecyclerView</td><td>捲動→waveform 1；放手→waveform 0</td></tr>
+      <tr><td>一般長設定頁上下捲</td><td>RecyclerView / ScrollView</td><td>同上</td></tr>
+      <tr><td>舊式清單（聯絡人、檔案管理）</td><td>ListView / GridView</td><td>同上</td></tr>
+      <tr><td>瀏覽器 / 網頁上下捲</td><td>WebView</td><td>同上</td></tr>
+      <tr><td>長文字捲動</td><td>TextView</td><td>同上</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--red)">▎B. 捲動 — <span class="b b-no">不應該觸發</span>（驗證 guard 正確）</h4>
+    <table class="tb">
+      <tr><th>場景</th><th>預期</th></tr>
+      <tr><td>只點一下不捲（tap）</td><td>不發任何廣播</td></tr>
+      <tr><td>內容沒超出畫面、捲不動</td><td>不發（沒有 scroll 事件）</td></tr>
+      <tr><td>程式自動捲動 / 動畫（非手指）</td><td>不發（手指沒按著）</td></tr>
+      <tr><td>手指放開後的慣性 fling 段</td><td>放手當下即復原，fling 段維持正常波形</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--blue)">▎C. SeekBar（上次改動，回歸測試）</h4>
+    <table class="tb">
+      <tr><th>場景</th><th>預期</th></tr>
+      <tr><td>拖動音量 / 亮度 / 前光條</td><td>開始拖→waveform 1；放手→waveform 0</td></tr>
+      <tr><td>單純點一下 seekbar 定位（不拖）</td><td>不發（tap-seek 不觸發）</td></tr>
+      <tr><td>SeekBar 放在可捲動頁面裡拖 thumb</td><td>只觸發 seekbar 快刷，不會誤觸發捲動快刷</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--amber)">▎D. 邊界 / 穩定性</h4>
+    <table class="tb">
+      <tr><th>場景</th><th>預期</th></tr>
+      <tr><td>捲到一半被打斷（來電、鎖屏）</td><td>收到 ACTION_CANCEL → 正常復原，不卡快刷</td></tr>
+      <tr><td>連續快速多次捲動</td><td>不狂發廣播（每手勢只發一次 enter）</td></tr>
+      <tr><td>捲動中切換 App / 返回</td><td>放手的 UP/CANCEL 會復原，畫面波形正常</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ===== 8. 重點觀察 ===== -->
+<div class="sec">
+  <div class="sec-t"><span class="n">8</span> 重點觀察</div>
+  <div class="card">
+    <ul>
+      <li><strong>不該卡在快刷</strong>：任何操作後，靜止畫面應回到正常高畫質波形（不是一直黑白快刷）。用 <span class="mono">grep "SMode"</span> 確認每個 enter 後最終都有對應的 <span class="mono">waveform(0)</span>。</li>
+      <li><strong>RecyclerView 是關鍵驗證點</strong>：它原始碼不在 tree 裡，靠 <span class="mono">View.awakenScrollBars()</span> 這層攔截——所以「<strong>Settings All apps 捲動能進快刷</strong>」是這次改動成不成立的指標。</li>
+    </ul>
+    <div class="kbox">若有實機，建議<strong>優先測兩項</strong>：① Settings All apps 捲動是否進快刷；② 靜止後是否回到正常波形。</div>
+  </div>
+</div>
+
+<div class="note">Scroll E-Ink Fast Refresh Integration · View.java / ViewRootImpl.java · 2026-06-12</div>
+
+</div>
+</body>
+</html>
