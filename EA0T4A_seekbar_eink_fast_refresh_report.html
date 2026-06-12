@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SeekBar 拖動 E-Ink 快速刷新整合報告</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;
+    --bd:#2e3345;--tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+    --pink:#f472b6;--pink-d:rgba(244,114,182,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans TC','Inter',sans-serif;background:var(--bg);color:var(--tx);line-height:1.7;padding:40px 20px}
+  .c{max-width:920px;margin:0 auto}
+  .hdr{text-align:center;margin-bottom:48px;padding-bottom:28px;border-bottom:1px solid var(--bd)}
+  .hdr h1{font-size:26px;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .hdr .sub{color:var(--dim);font-size:13px}
+  .hdr .meta{display:flex;gap:12px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .hdr .chip{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:4px 14px;font-size:12px;color:var(--dim)}
+  .hdr .chip b{color:var(--tx)}
+  .sec{margin-bottom:40px}
+  .sec-t{font-size:17px;font-weight:700;margin-bottom:14px;padding-left:12px;border-left:3px solid var(--blue);display:flex;align-items:center;gap:8px}
+  .sec-t .n{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px 22px;margin-bottom:10px}
+  .card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+  .card p,.card li{font-size:13.5px;color:var(--dim)}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+  .card strong{color:var(--tx)}
+  .b{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.3px;vertical-align:middle}
+  .b-aosp{background:var(--green-d);color:var(--green)}
+  .b-ntx{background:var(--purple-d);color:var(--purple)}
+  .b-new{background:var(--amber-d);color:var(--amber)}
+  .b-mod{background:var(--blue-d);color:var(--blue)}
+  .tb{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  .tb th{text-align:left;padding:8px 12px;background:var(--s2);color:var(--dim);font-weight:600;border-bottom:1px solid var(--bd)}
+  .tb td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top;color:var(--dim)}
+  .tb tr:last-child td{border-bottom:none}
+  .tb td strong{color:var(--tx)}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .tb td.mono{word-break:break-all}
+  .pathtb td:first-child,.pathtb th:first-child{white-space:nowrap;width:1%;color:var(--tx)}
+  .code{background:#0b0d13;border:1px solid var(--bd);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.75;color:#cdd3e1;margin-top:10px}
+  .code .cm{color:#6b7280}
+  .code .kw{color:var(--purple)}
+  .code .st{color:var(--green)}
+  .code .nm{color:var(--amber)}
+  .code .fn{color:var(--cyan)}
+  .arch{display:grid;gap:10px;margin:16px 0}
+  .arch-box{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px}
+  .arch-box .lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .arch-box .name{font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace}
+  .arch-box .desc{font-size:12px;color:var(--dim);margin-top:4px}
+  .arch-box.h1b{border-color:var(--cyan);box-shadow:0 0 12px rgba(34,211,238,.08)}
+  .arch-box.h2b{border-color:var(--purple);box-shadow:0 0 12px rgba(167,139,250,.08)}
+  .arch-box.h3b{border-color:var(--green);box-shadow:0 0 12px rgba(74,222,128,.08)}
+  .arch-arrow{text-align:center;font-size:18px;color:var(--dim);padding:2px 0}
+  .arch-2{grid-template-columns:1fr 1fr}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;padding:10px 16px;background:var(--s1);border-radius:8px;border:1px solid var(--bd)}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim)}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+  .note{font-size:11px;color:var(--dim);text-align:center;margin-top:24px}
+  .kbox{border-left:3px solid var(--amber);background:var(--amber-d);border-radius:0 8px 8px 0;padding:12px 16px;margin-top:10px;font-size:13px;color:var(--tx)}
+  .kbox.cyan{border-left-color:var(--cyan);background:var(--cyan-d)}
+  .kbox.green{border-left-color:var(--green);background:var(--green-d)}
+  @media(max-width:640px){ .arch-2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="hdr">
+  <h1>SeekBar 拖動 E-Ink 快速刷新整合報告</h1>
+  <div class="sub">在 Framework 層讓所有滑桿（SeekBar）拖動時自動切換 E-Ink 快速波形、放開後復原</div>
+  <div class="meta">
+    <div class="chip">範圍：<b>framework.jar</b></div>
+    <div class="chip">異動檔案：<b>1 file</b></div>
+    <div class="chip">機制：<b>ntx.eink_control.GLOBAL_REFRESH 廣播</b></div>
+    <div class="chip">日期：<b>2026-06-12</b></div>
+  </div>
+</div>
+
+<!-- ============ 0. 一句話總結 ============ -->
+<div class="sec">
+  <div class="card" style="border-color:var(--blue)">
+    <h4 style="color:var(--blue)">▎一句話總結</h4>
+    <p style="color:var(--tx)">在 Android 所有滑桿的共同基底類別 <span class="mono">AbsSeekBar</span> 加入掛鉤：<strong>使用者開始拖動滑桿時</strong>，發出廣播要 E-Ink 面板切到「快速波形 + Dither」模式讓滑動順暢；<strong>拖動結束時</strong>，再發一次廣播把波形恢復成系統預設。只動一個檔案，全系統 SeekBar 自動受惠。</p>
+  </div>
+</div>
+
+<!-- ============ 1. 先驗知識 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">1</span> 先驗知識（背景原理）</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎1-1　E-Ink 螢幕怎麼更新：波形（Waveform）</h4>
+    <p>E-Ink（電子紙）不像 LCD/OLED 可以隨時連續刷新。它每次更新畫面，都要對畫素送出一段<strong>電壓序列（波形 Waveform）</strong>來翻轉墨水粒子。不同波形在「速度」與「畫質」之間取捨：</p>
+    <table class="tb">
+      <tr><th>波形模式</th><th>耗時（約）</th><th>畫質</th><th>適用場景</th></tr>
+      <tr><td><strong>GC16 / AUTO</strong></td><td>~330 ms</td><td>最好，16 階灰</td><td>靜態畫面、文字閱讀</td></tr>
+      <tr><td><strong>DU</strong></td><td>~250 ms</td><td>中等，灰階有限</td><td>一般翻頁</td></tr>
+      <tr><td><strong>A2 / 快速</strong></td><td>~120 ms</td><td>最快，偏黑白</td><td>連續動作（拖動、滑動）</td></tr>
+    </table>
+    <p style="margin-top:8px;font-size:12px">（數據引用自本專案既有文件 <span class="mono">/mnt/aosp2/eink_ghosting_fix_presentation.md</span>，實際數值依面板而定。）</p>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--red)">▎1-2　為什麼拖 SeekBar 在 E-Ink 上會「卡 + 殘影」</h4>
+    <p>拖動滑桿是<strong>連續、高頻</strong>的畫面變化。若維持預設的高畫質慢波形（GC16，每幀 ~330ms）：</p>
+    <ul style="margin-top:6px">
+      <li>單幀更新時間太長，跟不上手指移動 → <strong>明顯卡頓</strong>。</li>
+      <li>多幀波形互相重疊、舊畫面來不及清除 → <strong>滑桿拖出一條殘影尾巴</strong>。</li>
+    </ul>
+    <p style="margin-top:6px">解法是：<strong>只在拖動的這段期間</strong>，把面板切到 A2 類的快速波形（犧牲灰階換速度），手放開後再切回高畫質模式。這正是本次改動要做的事。</p>
+
+    <svg viewBox="0 0 800 210" width="100%" style="max-width:740px;display:block;margin:16px auto 4px;background:#0b0d13;border:1px solid var(--bd);border-radius:8px" font-family="'Noto Sans TC',sans-serif">
+      <!-- divider -->
+      <line x1="400" y1="22" x2="400" y2="188" stroke="#2e3345" stroke-width="1" stroke-dasharray="4 4"/>
+      <!-- ===== BEFORE ===== -->
+      <text x="200" y="34" text-anchor="middle" fill="#f87171" font-size="14" font-weight="700">Before · 預設慢波形（GC16 ~330ms）</text>
+      <!-- track -->
+      <rect x="55" y="92" width="290" height="6" rx="3" fill="#3a4055"/>
+      <rect x="55" y="92" width="245" height="6" rx="3" fill="#6c8cff"/>
+      <!-- ghost trail -->
+      <circle cx="160" cy="95" r="11" fill="#8b90a0" opacity="0.22"/>
+      <circle cx="210" cy="95" r="11" fill="#8b90a0" opacity="0.38"/>
+      <circle cx="258" cy="95" r="11" fill="#8b90a0" opacity="0.6"/>
+      <!-- real thumb -->
+      <circle cx="300" cy="95" r="13" fill="#cdd3e1" stroke="#0b0d13" stroke-width="2"/>
+      <text x="200" y="150" text-anchor="middle" fill="#f87171" font-size="13" font-weight="600">滑桿拖出殘影尾巴 + 卡頓</text>
+      <text x="200" y="170" text-anchor="middle" fill="#8b90a0" font-size="11">舊畫面來不及清除，多幀波形重疊</text>
+
+      <!-- ===== AFTER ===== -->
+      <text x="600" y="34" text-anchor="middle" fill="#4ade80" font-size="14" font-weight="700">After · 拖動切快速波形（A2 ~120ms）</text>
+      <rect x="455" y="92" width="290" height="6" rx="3" fill="#3a4055"/>
+      <rect x="455" y="92" width="245" height="6" rx="3" fill="#22d3ee"/>
+      <circle cx="700" cy="95" r="13" fill="#22d3ee" stroke="#0b0d13" stroke-width="2"/>
+      <!-- clean motion arrow -->
+      <path d="M560 95 L685 95" stroke="#4ade80" stroke-width="2" stroke-dasharray="3 5" opacity="0.7"/>
+      <text x="600" y="150" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="600">乾淨、流暢、無殘影</text>
+      <text x="600" y="170" text-anchor="middle" fill="#8b90a0" font-size="11">單幀快、跟得上手指</text>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--purple)">▎1-3　NTX 的 E-Ink 控制介面：廣播 <span class="mono">ntx.eink_control.*</span></h4>
+    <p>本平台（NTX / MTK）提供一組 <strong>Broadcast Intent</strong> 來即時切換 E-Ink 刷新模式。系統服務 <span class="mono">PowerManagerService</span> 內部註冊了一個接收器 <span class="mono">UpdateModeReceiver</span>，監聽這些 action：</p>
+    <ul style="margin-top:6px">
+      <li><span class="mono">ntx.eink_control.GLOBAL_REFRESH</span>　← 本次使用，全螢幕模式切換</li>
+      <li><span class="mono">ntx.eink_control.QUICK_REFRESH</span></li>
+      <li><span class="mono">ntx.eink_control.SPECIAL_REFRESH</span> / <span class="mono">DropFrames</span></li>
+    </ul>
+    <p style="margin-top:6px">收到後，它會呼叫 <span class="mono">Surface.updateAuxRefreshMode(...)</span> 一路下到 native，最終改變面板的刷新行為。任何 App / Framework 程式碼都能用 <span class="mono">sendBroadcast()</span> 觸發 —— 這也是原本工程師用 <span class="mono">adb shell am broadcast</span> 手動測試的同一條路徑。</p>
+    <div class="kbox cyan">這次的工作，本質上就是把「工程師手動下的 <span class="mono">adb am broadcast</span> 指令」，改成由 SeekBar 在拖動的正確時機<strong>自動發出</strong>。</div>
+  </div>
+</div>
+
+<!-- ============ 2. 需求 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">2</span> 需求 / 目標</div>
+  <div class="card">
+    <ul>
+      <li><strong>拖動開始 / 拖動中</strong>：發出快速刷新廣播，讓滑桿拖起來順、不留殘影。<br>
+        <span class="mono" style="font-size:11px">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH --ei updatemode 0 --ei waitmode 0 --ei waveformmode 1 --ei flags 0x2000 --ei dithermode 0x301</span></li>
+      <li><strong>拖動結束</strong>：發出復原廣播，把波形切回系統預設（高畫質）。<br>
+        <span class="mono" style="font-size:11px">adb shell am broadcast -a ntx.eink_control.GLOBAL_REFRESH --ei waveformmode 0</span></li>
+      <li>要對<strong>整機所有 SeekBar</strong> 生效（音量、亮度、前光、播放進度條等），而不是改每一個 App。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============ 3. 解法 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">3</span> 解法：改在 Framework 共同基底類別</div>
+  <div class="card">
+    <p>Android 中所有滑桿（<span class="mono">SeekBar</span>、各家 App 的進度條/音量條）都繼承自同一個基底類別 <span class="mono">AbsSeekBar</span>，它位在 <span class="b b-aosp">AOSP framework</span>。只要在這個類別處理觸控的進入/結束點掛鉤，<strong>一處修改 = 全系統生效</strong>，不需逐一改 App。</p>
+    <div class="arch arch-2" style="margin-top:14px">
+      <div class="arch-box h1b">
+        <div class="lbl">拖動開始</div>
+        <div class="name">startDrag()</div>
+        <div class="desc">手指真的開始拖動滑桿 → 發「快速波形」廣播</div>
+      </div>
+      <div class="arch-box h3b">
+        <div class="lbl">拖動結束 / 取消</div>
+        <div class="name">onStopTrackingTouch()</div>
+        <div class="desc">放開或被取消 → 發「復原波形」廣播</div>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;color:var(--tx)"><strong>SeekBar 拖動與廣播時機示意圖</strong></p>
+    <svg viewBox="0 0 820 340" width="100%" style="max-width:780px;display:block;margin:8px auto 0;background:#0b0d13;border:1px solid var(--bd);border-radius:8px" font-family="'Noto Sans TC',sans-serif">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#22d3ee"/>
+        </marker>
+      </defs>
+
+      <!-- ===== 上半：SeekBar 本體 ===== -->
+      <text x="60" y="40" fill="#8b90a0" font-size="12">使用者拖動滑桿：</text>
+      <!-- drag direction arrow -->
+      <path d="M180 52 L430 52" stroke="#22d3ee" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ah)"/>
+      <text x="300" y="44" text-anchor="middle" fill="#22d3ee" font-size="11">手指拖動方向</text>
+      <!-- finger -->
+      <text x="452" y="80" font-size="22">👆</text>
+      <!-- track -->
+      <rect x="90" y="72" width="640" height="7" rx="3.5" fill="#3a4055"/>
+      <rect x="90" y="72" width="345" height="7" rx="3.5" fill="#6c8cff"/>
+      <!-- thumb -->
+      <circle cx="435" cy="75.5" r="15" fill="#22d3ee" stroke="#0b0d13" stroke-width="2"/>
+      <!-- fast-refresh badge -->
+      <rect x="520" y="62" width="178" height="26" rx="13" fill="rgba(251,191,36,.14)" stroke="#fbbf24"/>
+      <text x="609" y="79" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="600">⚡ 快速波形啟用中</text>
+
+      <!-- ===== 下半：觸控事件時間軸 ===== -->
+      <text x="60" y="140" fill="#8b90a0" font-size="12">觸控事件流（時間 →）：</text>
+      <line x1="90" y1="232" x2="740" y2="232" stroke="#2e3345" stroke-width="2"/>
+
+      <!-- nodes on the axis -->
+      <!-- DOWN -->
+      <circle cx="130" cy="232" r="7" fill="#4ade80"/>
+      <text x="130" y="258" text-anchor="middle" fill="#cdd3e1" font-size="11">ACTION_DOWN</text>
+      <!-- startDrag -->
+      <circle cx="280" cy="232" r="7" fill="#22d3ee"/>
+      <text x="280" y="258" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="600">startDrag()</text>
+      <!-- MOVE -->
+      <circle cx="450" cy="232" r="7" fill="#6c8cff"/>
+      <text x="450" y="258" text-anchor="middle" fill="#cdd3e1" font-size="11">ACTION_MOVE ×N</text>
+      <text x="450" y="273" text-anchor="middle" fill="#8b90a0" font-size="10">（拖動中）</text>
+      <!-- UP -->
+      <circle cx="585" cy="232" r="7" fill="#4ade80"/>
+      <text x="585" y="258" text-anchor="middle" fill="#cdd3e1" font-size="11">ACTION_UP</text>
+      <!-- stop -->
+      <circle cx="690" cy="232" r="7" fill="#22d3ee"/>
+      <text x="690" y="258" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="600">onStopTracking</text>
+      <text x="690" y="272" text-anchor="middle" fill="#22d3ee" font-size="11" font-weight="600">Touch()</text>
+
+      <!-- callout ① amber (above startDrag) -->
+      <rect x="180" y="158" width="210" height="46" rx="8" fill="rgba(251,191,36,.12)" stroke="#fbbf24"/>
+      <text x="285" y="178" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">① sendBroadcast</text>
+      <text x="285" y="195" text-anchor="middle" fill="#e2e4eb" font-size="11">waveformmode=1 → 快速波形 ON</text>
+      <line x1="285" y1="204" x2="280" y2="225" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <!-- callout ② green (below stop) -->
+      <rect x="565" y="288" width="226" height="46" rx="8" fill="rgba(74,222,128,.12)" stroke="#4ade80"/>
+      <text x="678" y="308" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="700">② sendBroadcast</text>
+      <text x="678" y="325" text-anchor="middle" fill="#e2e4eb" font-size="11">waveformmode=0 → 波形復原</text>
+      <line x1="690" y1="239" x2="690" y2="288" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+      <!-- span bracket: fast-refresh active region -->
+      <line x1="280" y1="218" x2="690" y2="218" stroke="#fbbf24" stroke-width="1" stroke-dasharray="2 4" opacity="0.6"/>
+      <text x="485" y="213" text-anchor="middle" fill="#fbbf24" font-size="10" opacity="0.85">— 此區間維持快速波形 —</text>
+    </svg>
+    <p style="margin-top:8px;font-size:12px;color:var(--dim)">說明：手指真正開始拖動（<span class="mono">startDrag()</span>）就發①切快速波形；整段拖動維持；放開或取消時（<span class="mono">onStopTrackingTouch()</span>）發②復原。單純點一下定位不會觸發（見第 7 段旗標說明）。</p>
+  </div>
+</div>
+
+<!-- ============ 4. 完整鏈路 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">4</span> 完整觸發鏈路</div>
+  <div class="card">
+    <p>從使用者手指，到面板實際換波形，整條路徑（全部都在本專案 tree 內，已逐段確認）：</p>
+    <div class="arch" style="margin-top:14px">
+      <div class="arch-box h1b">
+        <div class="lbl">① UI 事件　<span class="b b-mod">本次新增</span></div>
+        <div class="name">AbsSeekBar.java</div>
+        <div class="desc">拖動時 getContext().sendBroadcast( "ntx.eink_control.GLOBAL_REFRESH" )</div>
+      </div>
+      <div class="arch-arrow">↓　Broadcast Intent（跨行程）</div>
+      <div class="arch-box h2b">
+        <div class="lbl">② 系統服務（接收端，既有）</div>
+        <div class="name">PowerManagerService.UpdateModeReceiver</div>
+        <div class="desc">讀取 updatemode / waitmode / waveformmode / flags / dithermode 等 extra</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box">
+        <div class="lbl">③ Framework → Native 介面（既有）</div>
+        <div class="name">Surface.updateAuxRefreshMode(...)</div>
+        <div class="desc">組合參數後呼叫 nativeUpdateAuxRefreshMode(...)</div>
+      </div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box h3b">
+        <div class="lbl">④ 面板</div>
+        <div class="name">E-Ink Panel / Driver</div>
+        <div class="desc">實際切換波形：拖動 → 快速波形；放開 → 預設高畫質波形</div>
+      </div>
+    </div>
+    <p style="margin-top:12px;font-size:12px">※ 我們只新增了 ① 這一段；②③④ 是平台原本就存在的機制（工程師先前用 adb 測試走的就是同一條鏈路），因此風險低、相容性高。</p>
+  </div>
+
+  <div class="card">
+    <h4>▎相關檔案（絕對路徑）</h4>
+    <table class="tb pathtb">
+      <tr><th>環節</th><th>絕對路徑</th></tr>
+      <tr><td>① 發送（新增）</td><td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/core/java/android/widget/AbsSeekBar.java</td></tr>
+      <tr><td>② 接收（既有）</td><td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java</td></tr>
+      <tr><td>③ Native 介面（既有）</td><td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base/core/java/android/view/Surface.java</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============ 5. 改動細節 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">5</span> 改動細節（程式碼）</div>
+
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>檔案</th><th>狀態</th><th>異動重點</th></tr>
+      <tr>
+        <td class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/<wbr>frameworks/base/core/java/android/widget/AbsSeekBar.java</td>
+        <td><span class="b b-mod">修改</span></td>
+        <td>新增旗標與兩個私有方法、在 3 個觸控生命週期點掛鉤；新增 <span class="mono">import android.content.Intent;</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎5-1　新增成員（旗標 + 常數）</h4>
+    <div class="code"><span class="cm">// NTX e-ink：拖動期間切快速波形，結束後復原</span>
+<span class="kw">private static final</span> String <span class="nm">NTX_EINK_GLOBAL_REFRESH</span> = <span class="st">"ntx.eink_control.GLOBAL_REFRESH"</span>;
+<span class="kw">private boolean</span> mEinkSeekFastRefresh = <span class="kw">false</span>;</div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎5-2　進入快速波形（對應拖動開始）</h4>
+    <div class="code"><span class="kw">private void</span> <span class="fn">startEinkSeekFastRefresh</span>() {
+    <span class="kw">if</span> (mEinkSeekFastRefresh) <span class="kw">return</span>;        <span class="cm">// 已在快刷狀態，避免重複發送</span>
+    mEinkSeekFastRefresh = <span class="kw">true</span>;
+    <span class="kw">final</span> Intent intent = <span class="kw">new</span> Intent(NTX_EINK_GLOBAL_REFRESH);
+    intent.<span class="fn">putExtra</span>(<span class="st">"updatemode"</span>,   <span class="nm">0</span>);
+    intent.<span class="fn">putExtra</span>(<span class="st">"waitmode"</span>,     <span class="nm">0</span>);
+    intent.<span class="fn">putExtra</span>(<span class="st">"waveformmode"</span>, <span class="nm">1</span>);      <span class="cm">// 快速波形</span>
+    intent.<span class="fn">putExtra</span>(<span class="st">"flags"</span>,        <span class="nm">0x2000</span>);
+    intent.<span class="fn">putExtra</span>(<span class="st">"dithermode"</span>,   <span class="nm">0x301</span>);
+    <span class="fn">getContext</span>().<span class="fn">sendBroadcast</span>(intent);
+}</div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎5-3　復原波形（對應拖動結束）</h4>
+    <div class="code"><span class="kw">private void</span> <span class="fn">stopEinkSeekFastRefresh</span>() {
+    <span class="kw">if</span> (!mEinkSeekFastRefresh) <span class="kw">return</span>;       <span class="cm">// 沒發過 start 就不發 stop</span>
+    mEinkSeekFastRefresh = <span class="kw">false</span>;
+    <span class="kw">final</span> Intent intent = <span class="kw">new</span> Intent(NTX_EINK_GLOBAL_REFRESH);
+    intent.<span class="fn">putExtra</span>(<span class="st">"waveformmode"</span>, <span class="nm">0</span>);      <span class="cm">// 0 = 回系統預設波形</span>
+    <span class="fn">getContext</span>().<span class="fn">sendBroadcast</span>(intent);
+}</div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎5-4　三個掛鉤點</h4>
+    <table class="tb">
+      <tr><th>方法</th><th>時機</th><th>呼叫</th></tr>
+      <tr><td class="mono">startDrag()</td><td>真正開始拖動</td><td class="mono">startEinkSeekFastRefresh()</td></tr>
+      <tr><td class="mono">onStopTrackingTouch()</td><td>放開 / 觸控取消</td><td class="mono">stopEinkSeekFastRefresh()</td></tr>
+      <tr><td class="mono">onDetachedFromWindow()</td><td>拖動中畫面被移除（保險）</td><td class="mono">stopEinkSeekFastRefresh()</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============ 6. 參數說明 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">6</span> 廣播參數說明</div>
+  <div class="card" style="padding:0;overflow-x:auto">
+    <table class="tb">
+      <tr><th>Extra</th><th>意義</th><th>拖動中</th><th>拖動結束</th></tr>
+      <tr><td class="mono">waveformmode</td><td>波形模式（速度/畫質取捨）</td><td><strong>1</strong>（快速）</td><td><strong>0</strong>（預設/復原）</td></tr>
+      <tr><td class="mono">updatemode</td><td>更新模式旗標</td><td>0</td><td>0（預設）</td></tr>
+      <tr><td class="mono">waitmode</td><td>是否等待前一幀完成</td><td>0</td><td>0（預設）</td></tr>
+      <tr><td class="mono">flags</td><td>面板控制旗標</td><td>0x2000</td><td>0（預設）</td></tr>
+      <tr><td class="mono">dithermode</td><td>抖色（Dither）設定，改善快速波形的視覺</td><td>0x301</td><td>0（預設）</td></tr>
+    </table>
+    <p style="padding:12px 16px 4px;font-size:12px">復原廣播只帶 <span class="mono">waveformmode=0</span>，其餘 extra 在接收端 <span class="mono">getIntExtra(key, 0)</span> 預設即為 0，行為與 adb 復原指令完全一致。</p>
+  </div>
+</div>
+
+<!-- ============ 7. 設計考量 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">7</span> 設計考量（為什麼這樣寫）</div>
+
+  <div class="card">
+    <h4>▎用 <span class="mono">mEinkSeekFastRefresh</span> 旗標把關</h4>
+    <p><span class="mono">onStopTrackingTouch()</span> 在「單純點一下定位」時也會被呼叫。用旗標確保：只有真正發過「快速波形」的拖動，結束時才會發「復原」廣播 —— <strong>不會憑空發、也不會漏發</strong>，廣播永遠成對。</p>
+  </div>
+  <div class="card">
+    <h4>▎start 掛在 <span class="mono">startDrag()</span> 而非 <span class="mono">onStartTrackingTouch()</span></h4>
+    <p>後者在「點擊定位（tap-seek）」時也會被呼叫。掛在 <span class="mono">startDrag()</span> 可讓<strong>單純點擊不觸發</strong>波形切換，避免點一下就閃一次快/慢波形。</p>
+  </div>
+  <div class="card">
+    <h4>▎<span class="mono">onDetachedFromWindow()</span> 保險</h4>
+    <p>萬一拖動中畫面被移除、沒收到正常的放開事件，這個保險會補發復原廣播，<strong>避免整機面板卡在快速波形（A2）</strong>回不來。</p>
+  </div>
+  <div class="card kbox green" style="border-radius:8px">
+    <strong>相容性佐證</strong>：本專案 SystemUI 既有程式碼（<span class="mono">PhoneStatusBarView.java</span>）早已用完全相同的寫法發 <span class="mono">ntx.eink_control.*</span> 廣播；而接收端 <span class="mono">PowerManagerService</span> 讀取的 extra key 名稱與本次使用逐字吻合。因此本改動是沿用既有、已驗證的機制，非新造。
+  </div>
+</div>
+
+<!-- ============ 8. 影響與注意 ============ -->
+<div class="sec">
+  <div class="sec-t"><span class="n">8</span> 影響範圍與注意事項</div>
+  <div class="card">
+    <ul>
+      <li><strong>編譯範圍</strong>：改動在 <span class="mono">/mnt/aosp2/android16_mtk_system_b0mp5_aiv/frameworks/base</span>，需重新編譯並更新 <strong><span class="mono">framework.jar</span></strong>（非單一 App）。</li>
+      <li><strong>全系統生效</strong>：因為改在基底類別，整機所有 SeekBar 拖動都會觸發。若日後只想限定特定 App（例如閱讀器進度條），可再加判斷條件收斂。</li>
+      <li><strong>廣播時機</strong>：僅在「拖動開始」與「拖動結束」各發一次，非每一幀，效能負擔可忽略。</li>
+      <li><strong>無新權限</strong>：使用既有公開廣播機制，未新增 SELinux / 權限需求。</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">SeekBar E-Ink Fast Refresh Integration · frameworks/base / AbsSeekBar.java · 2026-06-12</div>
+
+</div>
+</body>
+</html>
