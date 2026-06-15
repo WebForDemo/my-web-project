@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 大使痛點分析 · 振曜科技</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#10a37f;--primary-dark:#0d8a6b;--secondary:#1e3a5f;--secondary-light:#2d527f;
+  --accent:#f59e0b;--bg:#eef2f6;--panel:#fff;--text:#1a202c;--muted:#64748b;--line:#e2e8f0;
+  --red:#ef4444;--yellow:#f59e0b;--green:#10b981;
+  --shadow:0 4px 24px rgba(15,40,80,.08);--shadow-lg:0 14px 48px rgba(15,40,80,.18);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6;font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+.topbar{background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 130%);color:#fff;flex:none;
+  padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  box-shadow:var(--shadow-lg);position:relative;z-index:20}
+.topbar .ttl{display:flex;align-items:center;gap:14px}
+.topbar .logo{width:44px;height:44px;border-radius:11px;background:rgba(16,163,127,.2);border:1px solid rgba(16,163,127,.5);display:grid;place-items:center;font-size:22px}
+.topbar h1{font-size:19px;font-weight:800;letter-spacing:.5px}
+.topbar .sub{font-size:12px;color:#9fb3c8;margin-top:1px}
+.metrics{display:flex;gap:10px;flex-wrap:wrap}
+.metric{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:7px 16px;text-align:center;min-width:74px}
+.metric .v{font-size:20px;font-weight:800;line-height:1.1}
+.metric .v.gold{color:#fcd34d}.metric .v.red{color:#fca5a5}
+.metric .l{font-size:10.5px;color:#9fb3c8;margin-top:1px}
+
+.tabnav{flex:none;background:var(--panel);border-bottom:1px solid var(--line);display:flex;padding:0 24px;box-shadow:0 2px 8px rgba(0,0,0,.05);z-index:10}
+.tab-btn{display:flex;align-items:center;gap:8px;padding:14px 22px;border:none;background:none;cursor:pointer;
+  font:inherit;font-size:14.5px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s}
+.tab-btn:hover{color:var(--primary)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab-btn .cnt{background:#e2e8f0;color:var(--secondary);font-size:11.5px;font-weight:800;padding:1px 8px;border-radius:99px}
+.tab-btn.active .cnt{background:#d1fae5;color:#065f46}
+
+.panel-area{flex:1;min-height:0;position:relative}
+.panel{display:none;height:100%;overflow:hidden}
+.panel.active{display:block}
+
+.layout{display:flex;height:100%}
+.sidebar{width:344px;flex-shrink:0;background:#f4f7fa;border-right:1px solid var(--line);display:flex;flex-direction:column}
+.side-search{padding:14px;border-bottom:1px solid var(--line);position:relative;background:var(--panel)}
+.side-search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:13.5px;background:#f8fafc}
+.side-search::before{content:"🔍";position:absolute;left:26px;top:50%;transform:translateY(-50%);opacity:.45;font-size:13px}
+.side-list{overflow-y:auto;flex:1;padding:0 10px 14px}
+
+.dept-label{position:sticky;top:0;z-index:3;margin:14px 2px 8px;padding:9px 14px;border-radius:9px;
+  background:linear-gradient(90deg,var(--secondary),var(--secondary-light));color:#fff;
+  font-size:12.5px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 10px rgba(30,58,95,.22)}
+.dept-label .nm{display:flex;align-items:center;gap:8px}
+.dept-label .nm::before{content:"";width:7px;height:7px;border-radius:50%;background:#5eead4}
+.dept-label .c{background:rgba(255,255,255,.22);padding:1px 9px;border-radius:99px;font-size:11px;font-weight:700}
+
+.pcard{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;cursor:pointer;transition:all .13s;border:1px solid transparent;background:var(--panel);margin-bottom:7px;box-shadow:0 1px 3px rgba(15,40,80,.04)}
+.pcard:hover{border-color:#86efac;transform:translateX(2px)}
+.pcard.active{background:linear-gradient(135deg,#ecfdf5,#fff);border-color:var(--primary);box-shadow:var(--shadow)}
+.avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(135deg,var(--secondary-light),var(--primary))}
+.pcard .info{flex:1;min-width:0}
+.pcard .nm{font-weight:700;color:var(--secondary);font-size:14px;display:flex;align-items:center;gap:6px}
+.pcard .meta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px}
+.mini-tag.amb{background:#dcfce7;color:#166534}.mini-tag.non{background:#e2e8f0;color:#475569}
+.pcard .right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.paincnt{font-size:11px;font-weight:800;color:var(--accent);background:#fef3c7;padding:1px 8px;border-radius:99px}
+.dots{display:flex;gap:3px}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot.red{background:var(--red)}.dot.yellow{background:var(--yellow)}.dot.green{background:var(--green)}
+
+.detail{flex:1;overflow-y:auto;padding:28px 36px}
+.empty-state{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:14px;text-align:center}
+.empty-state .big{font-size:54px;opacity:.35}
+.dh{display:flex;align-items:flex-start;gap:18px;margin-bottom:22px;flex-wrap:wrap}
+.dh .av{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--secondary),var(--primary));flex-shrink:0}
+.dh .who h2{font-size:26px;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dh .who .line{color:var(--muted);font-size:13.5px;margin-top:3px}
+.dh .who .line b{color:var(--secondary)}
+.badge{font-size:12px;font-weight:700;padding:3px 11px;border-radius:99px}
+.badge.amb{background:#dcfce7;color:#166534}.badge.non{background:#e2e8f0;color:#475569}
+.dh .kpis{margin-left:auto;display:flex;gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px 18px;text-align:center;box-shadow:var(--shadow)}
+.kpi .v{font-size:24px;font-weight:800;color:var(--secondary);line-height:1}
+.kpi .v.gold{color:var(--accent)}
+.kpi .l{font-size:11px;color:var(--muted);margin-top:4px}
+.section-t{font-size:13px;font-weight:800;color:var(--secondary);text-transform:uppercase;letter-spacing:.6px;margin:24px 0 12px;display:flex;align-items:center;gap:8px}
+.section-t::before{content:"";width:4px;height:15px;background:var(--primary);border-radius:2px}
+.worktags{display:flex;flex-wrap:wrap;gap:8px}
+.wtag{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 13px;font-size:13px;color:var(--secondary);font-weight:600}
+.pain{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;position:relative}
+.pain.gold{border-color:#fcd34d;box-shadow:0 6px 28px rgba(245,158,11,.18)}
+.pain-head{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#fafdff,#fff)}
+.pain.gold .pain-head{background:linear-gradient(90deg,#fffbeb,#fff)}
+.pain-num{width:30px;height:30px;border-radius:9px;background:var(--secondary);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex-shrink:0}
+.pain.gold .pain-num{background:var(--accent)}
+.pain-title{font-size:16px;font-weight:800;color:var(--secondary);flex:1}
+.gold-ribbon{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:11.5px;font-weight:800;padding:4px 11px;border-radius:99px;white-space:nowrap}
+.light{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;white-space:nowrap;padding:4px 11px;border-radius:99px}
+.light.red{background:#fef2f2;color:#b91c1c}.light.yellow{background:#fffbeb;color:#b45309}.light.green{background:#f0fdf4;color:#15803d}
+.light .b{width:10px;height:10px;border-radius:50%}
+.light.red .b{background:var(--red)}.light.yellow .b{background:var(--yellow)}.light.green .b{background:var(--green)}
+.pain-body{padding:6px 20px 18px}
+.frow{display:flex;gap:14px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.frow:last-child{border-bottom:none}
+.frow .fl{width:96px;flex-shrink:0;font-size:12.5px;font-weight:700;color:var(--muted);padding-top:1px}
+.frow .fv{flex:1;font-size:13.5px;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.sig-tags,.aifeat{display:flex;flex-wrap:wrap;gap:6px}
+.sig{background:#eef2f6;color:var(--secondary);font-size:12px;font-weight:600;padding:2px 9px;border-radius:7px}
+.aifeat span{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;font-size:12px;font-weight:600;padding:2px 9px;border-radius:7px}
+
+.soon{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted);text-align:center;padding:24px}
+.soon .ic{font-size:60px;opacity:.4}
+.soon h2{font-size:22px;font-weight:800;color:var(--secondary)}
+.soon p{font-size:14px;max-width:440px}
+
+@media(max-width:820px){
+  body{height:auto;overflow:auto}.panel,.panel.active{height:auto}.layout{flex-direction:column;height:auto}
+  .sidebar{width:100%;max-height:46vh}.detail{padding:20px}.dh .kpis{margin-left:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="ttl"><div class="logo">📊</div>
+    <div><h1>AI 大使痛點分析</h1><div class="sub">振曜科技 · AI 推動委員會 · 痛點回報 v2.0</div></div></div>
+  <div class="metrics" id="metrics"></div>
+</div>
+
+<nav class="tabnav">
+  <button class="tab-btn active" id="tabbtn-raw" onclick="switchTab('raw')">📋 原始資料 <span class="cnt" id="cntRaw">0</span></button>
+  <button class="tab-btn" id="tabbtn-analysis" onclick="switchTab('analysis')">📈 痛點分析</button>
+</nav>
+
+<div class="panel-area">
+  <!-- TAB 1：原始資料 -->
+  <section class="panel active" id="tab-raw">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="side-search"><input id="search" type="text" placeholder="搜尋姓名 / 部門…" oninput="renderList()"></div>
+        <div class="side-list" id="list"></div>
+      </aside>
+      <main class="detail" id="detail"></main>
+    </div>
+  </section>
+  <!-- TAB 2：痛點分析（建置中） -->
+  <section class="panel" id="tab-analysis">
+    <div class="soon"><div class="ic">📈</div><h2>痛點分析 — 建置中</h2>
+      <p>這裡之後會放跨部門痛點彙整、AI 燈號分布、可 AI 化機會排序、每月耗時 Top 排行等分析視覺。<br>告訴我你想看的分析角度，我就接著做。</p></div>
+  </section>
+</div>
+
+<script>
+const DATA=[{"dept": "市場開發處", "name": "黃詩婷", "email": "nicole.huang@netronixinc.com", "painCount": 3, "role": "專員／工程師", "work": "報表製作／數據彙整、排程安排／進度追蹤、會議記錄／文件撰寫、法規 ／ 認證 ／ 合規文件查詢、規格／技術文件處 理、其他：試產料況的查詢及確認缺料表", "total": "22.0", "pains": [{"title": "結合美編及英文翻譯的PPT檔", "golden": false, "light": "yellow", "fields": {"訊號": "煩躁、易錯", "具體場景": "專案產品簡報/競品簡報(PPT)", "頻率": "不定期", "來源": "內/外部E-mail, excel或美工圖檔, 網路資訊", "每次耗時": "至少3hr以上", "總時程預估": "3 小時", "風險": "內容或英文語法有誤差, 文件格式版面有異常, 需耗時查找資訊", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": "目前有使用免費版ChatGPT輔助編輯,美化版面及翻譯,但免費版有使用上的次數限制且功能性沒有太多可選擇使 用"}}, {"title": "會議記錄", "golden": true, "light": "yellow", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "會議場次太多,耗時製作會議記錄", "頻率": "每天", "來源": "Excel, Word", "每次耗時": "至少1hr", "每月預估耗時": "約 22 小時", "風險": "內容或英文語法有誤差, 會議內容片段遺漏記錄, 文件格式版面有異常", "可 AI 化特徵": "重複性、規則明確、有數據", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": "目前有使用手機錄音功能,搭配免費版NotebookLM輔助產生會議記錄,再搭配語文翻譯及美編功能,但免費版有使 用上的次數限制且功能性沒有太多可選擇使用"}}, {"title": "DCC文件調閱或技術文件轉入流程", "golden": false, "light": "yellow", "fields": {"訊號": "煩躁、易錯", "具體場景": "文件申請調閱或文件轉入DCC流程", "頻率": "不定期", "來源": "提需求調閱文件/將Excel或Project或PDF文檔轉入DCC", "每次耗時": "30min", "總時程預估": "0.5 小時", "風險": "漏給或是提供錯誤的檔案, 依開發時程要入DCC的文件遺漏提供", "可 AI 化特徵": "重複性、規則明確、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": "1)調閱申請:BPM申請後,可由系統自動產生文檔或提供相關資料連結下載,例如TIPTOP查詢承認書方式,不需由 DCC再整理後提供,以縮短提供時間 2)文件轉入DCC:目前做法為PM首先入開案文件,並PIC相關人員才會進一步後續流程,建議透過系統化自動發出提醒郵件 通知PIC進行上傳,可透過AI協助DCC進行文件初步審核,增加初審效率並降低loading"}}], "images": []}, {"dept": "成控中心", "name": "吳思嫺", "email": "mia.wu@netronixinc.com", "painCount": 1, "role": "組長／副理", "work": "報表製作／數據彙整、資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、數據計算／核對、排程安排／進度追蹤、檢核／校對／稽核、會議記錄／文件撰寫", "total": "6.5", "pains": [{"title": "分析每週bom cost", "golden": false, "light": "red", "fields": {"訊號": "煩躁、易錯", "具體場景": "分析每週bom cost", "頻率": "每週", "來源": "excel", "每次耗時": "1.5小時", "每月預估耗時": "約 6.5 小時", "風險": "資料外洩", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合", "影響人數": "整個部門", "AI 燈號": "紅燈", "補充": "現 excel 整裡每週 bom cost；需要套好幾份 excel 整裡，再入 bom 比對價格差異、分析價格走勢。一）相同零件位置主替交換時無法填入正確價格，需重覆比對；二）進版時無法自動找到對應料號，需人工查詢"}}], "images": []}, {"dept": "文件管制", "name": "徐淑芬", "email": "tracy", "painCount": 1, "role": "經理以上", "work": "報表製作／數據彙整、跨系統資料整合／格式轉換（Data Exchange）、資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、紙本資料數位化／key-in、規格／技術文件處理", "total": "43", "pains": [{"title": "每週週報及每月月報整理", "golden": false, "light": "green", "fields": {"訊號": "煩躁、易錯", "具體場景": "每週從 ERP 抓取資料", "頻率": "每週", "來源": "ERP", "每次耗時": "10hr", "每月預估耗時": "約 43 小時", "風險": "資料整合計算錯誤", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "綠燈", "補充": "1. excel 步驟繁多　2. 數筆 ERP 資料相互以函數做整合比對得到最終數據　3. 每週產生 ppt 報表格式"}}], "images": []}, {"dept": "文件管制", "name": "非大使未具名", "email": "email待補", "painCount": 1, "role": "專員／工程師", "work": "報表製作／數據彙整、資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、紙本資料數位化／key-in", "total": "66", "pains": [{"title": "群聯工單比對在 ERP 做料件新增", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "每天從 ERP 抓群聯料號與群聯工單 BOM 比對及做料件新增", "頻率": "每天", "來源": "ERP、EXCEL", "每次耗時": "3h~4h", "每月預估耗時": "約 66 小時", "風險": "格式不符（檔案完整性）", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "綠燈", "補充": "目前有用 EXCEL 與 ERP 資料下函數去做比對；ERP 資料庫龐大，資料跑很慢。希望 AI 能幫忙做到把群聯料號自動加 P"}}], "images": []}, {"dept": "會計部", "name": "郭孟渝", "email": "cherry.kuo@netronixinc.com", "painCount": 2, "role": "組長／副理", "work": "報表製作／數據彙整、跨系統資料整合 / 格式轉換（Data Exchange）、跨系統重複輸入同一筆資料、資料查詢／比對 （需查多個來源）、文件整理／分類／格式轉換、數據計算／核對", "total": "4.0", "pains": [{"title": "財報自編", "golden": false, "light": "red", "fields": {"訊號": "煩躁、易錯", "具體場景": "將多個excel資料來源套入word模板", "頻率": "每月", "來源": "excel 底稿", "每次耗時": "委外(若可自編，公費可減少)", "風險": "金額有誤、欄位有誤", "可 AI 化特徵": "規則明確、有數據、需多源整合", "影響人數": "只有我", "AI 燈號": "紅燈", "補充": "這件事目前為會計師轉檔，資料來源皆為公司提供"}}, {"title": "tiptop自動產出報表", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "自nx系統底下的各家子公司，撈取資料耗時", "頻率": "每月", "來源": "ERP", "每次耗時": "半天", "每月預估耗時": "約 4 小時", "風險": "繁瑣，重複性高，等待時間長", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合", "影響人數": "只有我", "AI 燈號": "綠燈", "補充": "自nx系統底下的各家子公司，撈取全部報表(AR AP明細、ISBS、明細分類帳...)"}}], "images": []}, {"dept": "業務處", "name": "戴英如", "email": "enid.dai@netronixinc.com", "painCount": 3, "role": "", "work": "", "total": "90.0", "pains": [{"title": "客⼾包材版本的控管", "golden": false, "light": "green", "fields": {"訊號": "重複、煩躁", "具體場景": "客⼈更換包材的版本頻率⾼，需要內部重覆確認庫存及切換⽇期", "頻率": "每⽉", "來源": "客⼈的信件", "每次耗時": "2h 每⽉預估耗時：約 2 ⼩時", "風險": "新舊版混料，未得到妥善的控管", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合 影響⼈數：部⾨ 2–3 ⼈", "AI 燈號": "綠燈"}}, {"title": "每個⽉的出貨價格更新", "golden": false, "light": "", "fields": {"訊號": "煩躁、易錯", "具體場景": "每個⽉中需要將下⼀個⽉的出貨價格重新確認價格變化", "頻率": "每⽉", "來源": "⾃⼰維護的Excel表格", "每次耗時": "⼀天", "風險": "價格與數量的歸屬可能出現錯誤", "可 AI 化特徵": "重複性、有數據、需多源整合 影響⼈數：部⾨ 2–3 ⼈ 第 1 頁，共 2 頁 2026/6/12 上午 11:42"}}, {"title": "出貨packing list的製作(關務)", "golden": false, "light": "green", "fields": {"訊號": "重複、煩躁、易錯 ★ 黃⾦痛點", "具體場景": "計算貨物在棧板上的數量", "頻率": "每天", "來源": "ERP/EXCEL", "每次耗時": "半天 每⽉預估耗時：約 88 ⼩時", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合 影響⼈數：只有我", "AI 燈號": "綠燈"}}], "images": []}, {"dept": "機構設計部", "name": "李忠軒", "email": "bruce.lee@netronixinc.com", "painCount": 1, "role": "專員／工程師", "work": "跨系統資料整合 / 格式轉換（Data Exchange）、資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、規格 ／技術文件處理", "total": "", "pains": [{"title": "料號編碼查詢/申請", "golden": true, "light": "yellow", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "查詢編碼原則->查詢客戶名稱及代碼對照表->在Excel預編碼->在BPM填寫新料號申請通知單", "頻率": "不定期", "來源": "文件/紙本/BPM/TIPTOP", "每次耗時": "1~2小時", "總時程預估": "2 小時", "風險": "如編碼錯誤申請時BPM無法偵錯(只有料號重複會提醒)", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": " 1. 希望AI能整合並建立線上數據庫查詢 2. 希望系統可以用下拉式選單或是勾選方式編碼料號 3. 現階段BPM如編碼錯誤也可申請,直到DCC關卡由人工核對後有誤才退件重新簽核 4. 如BPM出現料號重複,要在上TIPTOP確認料號規格重複的內容"}}], "images": []}, {"dept": "機構設計部", "name": "李易", "email": "dante.li@netronixinc.com", "painCount": 2, "role": "經理以上", "work": "報表製作／數據彙整、資料查詢／比對（需查多個來源）、排程安排／進度追蹤、規格／技術文件處理", "total": "25.8", "pains": [{"title": "競品規格收集", "golden": false, "light": "yellow", "fields": {"訊號": "重複、易錯", "具體場景": "產品開發，前期競品規格收集", "頻率": "每週", "來源": "網路", "每次耗時": "2H", "每月預估耗時": "約 8.6 小時", "風險": "規格/價格每個網站查的有落差", "可 AI 化特徵": "規則明確、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": "目前有用Gemini和gpt重複收尋匯整，但還是容易出現錯誤"}}, {"title": "產品開發3D協作", "golden": true, "light": "red", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "在專案前期 ID/ME 密集改圖階段，ID 更新了 3D 外觀面（如調整尺寸/ 外觀細節），或 ME 修改了內部結構， 雙方僅將檔案存在公共 Server 交換。常發生「ID 以為 ME 抓了新檔，ME 卻用舊檔繼續做」，或反過來「ME 局部修改後 未通知，ID 抓錯版本重新建面」，導致雙方做白工、甚至後續出圖開模出錯。", "頻率": "每週", "來源": "Server 公用資料夾、通訊軟體通知（Teams/Email/口頭通知）、Creo 3D 原始檔（.prt / .asm）。", "每次耗時": "每次出錯後，輕則花 半天（4h） 到 1天（8h） 重新對圖、修正模型；重則影響時程。", "每月預估耗時": "約 17.2 小時", "風險": "格式不符、抓錯舊版本、漏通知變更。最嚴重風險是拿舊檔去發包、加工或開模，造成重大的外觀錯誤與成本損 失。", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "紅燈", "補充": "現行僅靠「人為傳遞與 Server 堆疊」缺乏防呆機制，完全無法確認對方是否真的同步到最新版本。"}}], "images": []}, {"dept": "研發SW", "name": "彭雅婕", "email": "betty.peng@netronixinc.com", "painCount": 1, "role": "專員／工程師", "work": "報表製作／數據彙整、跨系統重複輸入同一筆資料、文件整理／分類／格式轉換、紙本資料數位化／key-in", "total": "", "pains": [{"title": "（工作名稱未填）", "golden": false, "light": "green", "fields": {"訊號": "（未勾選）", "具體場景": "每年稽核都會來稽查內控自評作業.都需區分個專案的DCR.EN.ECO.", "頻率": "不定期", "來源": "文件來自DCC發信Outlook", "可 AI 化特徵": "有數據、需多源整合", "影響人數": "部門 2–3 人", "AI 燈號": "綠燈", "補充": "內控自評作業-目前收到DCC Outlook通知已經用Outlook規則分類 但文件需要依據個專案的DCR.EN.ECO來區分 目前都需手動拉取與建立資料夾 ，目前因時間關係只有拉取資料夾沒有時間細分裡面細項 \\\\fs\\RD-SW\\115年度內控自評作業_研發"}}], "images": []}, {"dept": "研發SW", "name": "林韡宸", "email": "weichen.lin@netronixinc.com", "painCount": 1, "role": "專員／工程師", "work": "報表製作／數據彙整、其他：機器 Test Case 測試", "total": "", "pains": [{"title": "機器 OTA 進版前 Test Case 測試", "golden": false, "light": "red", "fields": {"訊號": "煩躁、易錯", "具體場景": "機器功能實際操作", "頻率": "不定期", "來源": "EXECL", "每次耗時": "2天", "總時程預估": "16 小時", "風險": "測試方式錯誤", "影響人數": "部門 2–3 人", "AI 燈號": "紅燈"}}], "images": []}, {"dept": "研發SW", "name": "賴星延", "email": "sam.lai@netronixinc.com", "painCount": 1, "role": "經理以上", "work": "報表製作／數據彙整、跨系統資料整合 / 格式轉換（Data Exchange）、資料查詢／比對（需查多個來源）、 文件整理／分類／格式轉換、回覆重複性詢問（內部規章、SOP）、數據計算／核對、排程安排／進度追 蹤、會議記錄／文件撰寫、規格／技術文件處理、其他：架構設計與風險評估", "total": "150.0", "pains": [{"title": "回覆重複性詢問、數據彙整、進度追蹤", "golden": true, "light": "yellow", "fields": {"訊號": "重複、煩躁、易錯 ★ 黃金痛點", "具體場景": "回覆客戶或是公司內部以及跨部門同仁對於開發進度與技術支援詢問", "頻率": "每天多次", "來源": "程式碼、Excel、Word、PDF、Teams、Email、資料庫(含Github)", "每次耗時": "30分鐘~3小時", "每月預估耗時": "約 150 小時", "可 AI 化特徵": "需多源整合", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": "已透過ChatGPT針對相關專案建立資料集加速查核速度"}}], "images": []}, {"dept": "系統驗證部", "name": "洪揚程", "email": "hughes.hung@netronixinc.com", "painCount": 2, "role": "經理以上", "work": "資料查詢／比對（需查多個來源）、排程安排／進度追蹤、規格／技術文件處理", "total": "", "pains": [{"title": "測試項目排程優化", "golden": false, "light": "yellow", "fields": {"訊號": "煩躁、易錯", "具體場景": "產品可靠度測試項目有很多，每個項目需要的人力與設備不同，需要就資源安排做最優化，在最短時間內測 試完畢", "頻率": "不定期", "來源": "Excel", "每次耗時": "4天", "總時程預估": "32 小時", "風險": "若沒將資源做最有效運用，測試完成時程會延長", "可 AI 化特徵": "重複性、規則明確、有數據", "影響人數": "部門 2–3 人", "AI 燈號": "黃燈", "補充": "需將工作天/人力/設備使用情況同時考慮 很費腦力"}}, {"title": "（工作名稱未填）", "golden": false, "light": "yellow", "fields": {"訊號": "（未勾選）", "具體場景": "針對產品規格，撰寫測試計畫", "頻率": "不定期", "來源": "IBP 文件", "每次耗時": "3天", "總時程預估": "24 小時", "風險": "測試涵蓋率不夠，測試說明表達不清楚，語句不通順", "可 AI 化特徵": "有數據", "影響人數": "部門 2–3 人", "AI 燈號": "黃燈"}}], "images": []}, {"dept": "製造工程部", "name": "李至明", "email": "aaron.li@netronixinc.com", "painCount": 1, "role": "專員／工程師", "work": "資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、排程安排／進度追蹤、會議記錄／文件撰寫", "total": "8.6", "pains": [{"title": "量測工時&SOP修改", "golden": false, "light": "yellow", "fields": {"訊號": "（未勾選）", "具體場景": "輔助生產", "頻率": "每週", "每次耗時": "2H", "每月預估耗時": "約 8.6 小時", "風險": "貼錯欄位", "可 AI 化特徵": "規則明確、有數據", "影響人數": "整個部門", "AI 燈號": "黃燈", "補充": "做到一半常被打斷"}}], "images": []}, {"dept": "製造處", "name": "張志偉", "email": "chihwei.chang@netronixinc.com", "painCount": 1, "role": "專員／工程師", "work": "報表製作／數據彙整、資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、回覆重複性詢問（內部規章、 SOP）、數據計算／核對", "total": "88.0", "pains": [{"title": "週報數據以及產線數據整合", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "整合生產線所有數據並細項分類到對應週報", "頻率": "每天", "來源": "Excel", "每次耗時": "4H", "每月預估耗時": "約 88 小時", "風險": "數據來源錯誤", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "只有我", "AI 燈號": "綠燈"}}], "images": []}, {"dept": "製造處", "name": "曾俊欽", "email": "pupupuma@netronixinc.com", "painCount": 2, "role": "經理以上", "work": "報表製作／數據彙整、資料查詢／比對（需查多個來源）、數據計算／核對、排程安排／進度追蹤、檢核／校對／稽核", "total": "23.9", "pains": [{"title": "每日生產排程追蹤", "golden": false, "light": "yellow", "fields": {"訊號": "重複", "具體場景": "每日將製造處各單位生產日報表彙整,確認生產進度", "頻率": "每天", "來源": "各製造處單位生產報表", "每次耗時": "30分鐘", "每月預估耗時": "約 11 小時", "風險": "抓到舊資料", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "部門 2–3 人", "AI 燈號": "黃燈", "補充": "這份資料會包含客戶名稱,及預計出貨日,卻部份資料是將客戶寄來的email資料匯入"}}, {"title": "每週生產週報,計算效率 稼動率 良率", "golden": false, "light": "", "fields": {"訊號": "易錯", "具體場景": "每週將各單位生產週報彙整", "頻率": "每週", "來源": "各單位建立EXCEL生產週報", "每次耗時": "3H", "每月預估耗時": "約 12.9 小時", "風險": "欄位填寫錯誤導致計算錯誤", "可 AI 化特徵": "有數據、需多源整合", "影響人數": "整個部門", "AI 燈號": "（未選）", "補充": "希望將資料自動填寫及計算"}}], "images": []}, {"dept": "製造處", "name": "楊婉玉", "email": "kate.yang@netronixinc.com", "painCount": 1, "role": "組長／副理", "work": "報表製作／數據彙整、資料查詢／比對（需查多個來源）、文件整理／分類／格式轉換、數據計算／核對、排程安排／進 度追蹤、紙本資料數位化／key-in", "total": "100.0", "pains": [{"title": "生產排程優化", "golden": true, "light": "red", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "收集每個生產單位的數據整合成可以出貨的資訊", "頻率": "每天多次", "來源": "各單位生產排程", "每次耗時": "2h", "每月預估耗時": "約 100 小時", "風險": "資訊整合落差", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "整個部門", "AI 燈號": "紅燈", "補充": "目前部門內部依各生產階段各自整合生產資料 需要多人維護以確定生產資訊及可以出貨的狀況 內部希望可以一條龍式的優化生產排程"}}], "images": []}, {"dept": "財務部", "name": "曾宛菱", "email": "clara.tseng@netronixinc.com", "painCount": 3, "role": "專員／工程師", "work": "報表製作／數據彙整、跨系統資料整合 / 格式轉換（Data Exchange）、資料查詢／比對（需查多個來源）、數據計算／ 核對、會議記錄／文件撰寫", "total": "11.0", "pains": [{"title": "各機種別銷售與成本分析表", "golden": false, "light": "yellow", "fields": {"訊號": "煩躁、易錯", "具體場景": "每月初第三工作天要將上月出貨的產品依照機種別分類，抓取銷售與成本金額計算毛利率與前月的資料做比 對分析", "頻率": "每月", "來源": "ERP、EXCEL", "每次耗時": "4h", "每月預估耗時": "約 4 小時", "風險": "貼錯或者為帶公式的的地方忘記更新金額", "可 AI 化特徵": "有數據、需多源整合", "影響人數": "部門 2–3 人", "AI 燈號": "黃燈", "補充": "目前表格基本有帶入公式，但資料要從ERP抓取跟從同事做的EXCEL抓取，有點耗時，還要比對與前一個月的資 料，分析毛利率增減的原因，希望能更快速完成"}}, {"title": "科目餘額表", "golden": false, "light": "green", "fields": {"訊號": "煩躁、易錯", "具體場景": "每月從ERP抓取aglr906科目明細製作個科目的餘額表", "頻率": "每月", "來源": "ERP (aglr906)", "每次耗時": "2h", "每月預估耗時": "約 2 小時", "風險": "容易貼錯，更新時誤刪要保留的項目", "可 AI 化特徵": "重複性、規則明確、有數據", "影響人數": "只有我", "AI 燈號": "綠燈", "補充": "希望AI能將各科目資料與上月的比對刪減後產生本月科目餘額(剩餘項目)並表格化"}}, {"title": "經營管理月報", "golden": false, "light": "yellow", "fields": {"訊號": "煩躁、易錯", "具體場景": "將台灣與大陸德奇工同生產的機種做從銷售、成本、", "頻率": "每月", "來源": "ERP、EXCEL、EMAIL", "每次耗時": "5h", "每月預估耗時": "約 5 小時", "風險": "樞紐更新後資料位置跑掉，公式資料帶錯位置", "可 AI 化特徵": "規則明確、有數據、需多源整合", "影響人數": "部門 2–3 人", "AI 燈號": "黃燈", "補充": "希望ai能整合資料，自動計算單位售價/成本等並生成表格與上月資料比對，分析毛利率、成本等增減的原因"}}], "images": []}, {"dept": "資材處", "name": "黃品淵", "email": "kane.huang@netronixinc.com", "painCount": 2, "role": "專員／工程師", "work": "報表製作／數據彙整、跨系統資料整合 / 格式轉換（Data Exchange）、資料查詢／比對（需查多個來源）、出貨 ／ 交付 文件製作、排程安排／進度追蹤", "total": "200.0", "pains": [{"title": "每日群聯出貨單彙整列印", "golden": false, "light": "yellow", "fields": {"訊號": "（未勾選）", "具體場景": "群聯每日出貨每一張工單都需列印一張出通單 最高曾經一日累計80張左右", "頻率": "每天多次", "來源": "客戶出貨需求&產線實際產出", "每次耗時": "2~3小時", "每月預估耗時": "約 150 小時", "風險": "格式不符 資訊不完整", "可 AI 化特徵": "重複性、規則明確、有數據", "影響人數": "部門 2–3 人", "AI 燈號": "黃燈", "補充": "希望AI協助可以快速統整出貨資訊,彙整成同一份資料同時比對資料來源是否正確"}}, {"title": "各單位提出試產&生產需求的排程安排", "golden": false, "light": "yellow", "fields": {"訊號": "（未勾選）", "具體場景": "須檢視所提需求BOM的所有料件是否齊料OR缺料狀況", "頻率": "每天多次", "來源": "提出試產&生產的各單位+供應商回覆", "每次耗時": "1H", "每月預估耗時": "約 50 小時", "風險": "主管對於需求料況與排程資訊與實際情況不符", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "黃燈", "補充": "希望AI整合各單位需求來源資後整合正確資訊同步給各位長官與相關同仁"}}], "images": []}, {"dept": "資材處", "name": "黃品淵", "email": "kane.huang@netronixinc.com", "painCount": 4, "role": "資深專員／資深工程師", "work": "報表製作／數據彙整、跨系統資料整合 / 格式轉換（Data Exchange）、跨系統重複輸入同一筆資料、資料查詢／比對 （需查多個來源）、排程安排／進度追蹤", "total": "472.0", "pains": [{"title": "排程安排/進度追蹤", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "排程安排/進度追蹤", "頻率": "每天多次", "來源": "ERP資料", "每次耗時": "2H", "每月預估耗時": "約 100 小時", "風險": "急件插單可能造成後續排程影響交期", "可 AI 化特徵": "重複性、有數據、需多源整合", "影響人數": "整個部門", "AI 燈號": "綠燈"}}, {"title": "查詢/keyin收料單", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "廠商進貨單keyin", "頻率": "每天", "來源": "廠商進貨單據", "每次耗時": "1H", "每月預估耗時": "約 22 小時", "風險": "keyin錯品名數量", "可 AI 化特徵": "重複性、規則明確、有數據", "影響人數": "跨部門都有", "AI 燈號": "綠燈"}}, {"title": "報表製作／數據彙整", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "庫存資料下載整理", "頻率": "每天多次", "來源": "ERP", "每次耗時": "2H", "每月預估耗時": "約 100 小時", "風險": "數字錯誤需反覆檢查", "可 AI 化特徵": "重複性、規則明確、有數據", "影響人數": "跨部門都有", "AI 燈號": "綠燈"}}, {"title": "採購排程安排／進度追蹤", "golden": true, "light": "green", "fields": {"訊號": "重複、煩躁、易錯", "具體場景": "採購排程安排／進度追蹤", "頻率": "每天多次", "來源": "FLOW資訊&廠商MAIL", "每次耗時": "5H", "每月預估耗時": "約 250 小時", "風險": "料況變化影響生產排程", "可 AI 化特徵": "重複性、規則明確、有數據、需多源整合", "影響人數": "跨部門都有", "AI 燈號": "綠燈"}}], "images": []}];const AMB=["吳思嫺", "張益誠", "古沅仟", "黃詩婷", "戴英如", "李忠軒", "李易", "羅翔生", "林韡宸", "徐淑芬", "洪揚程", "賴星延", "李沛瀠", "楊婉玉", "張志偉", "曾群粟", "曾俊欽", "詹嘉文", "張順宏", "許俐雯", "彭齡緩", "趙凱馨", "郭孟渝", "張書豪", "葉瑛達", "潘莛家"];
+const FIELD_ORDER=['訊號','具體場景','頻率','來源','每次耗時','每月預估耗時','總時程預估','風險','可 AI 化特徵','影響人數','補充'];
+let selected=null;
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const isAmb=n=>AMB.includes(n);
+const lightLabel={red:'紅燈',yellow:'黃燈',green:'綠燈'};
+
+function switchTab(t){
+  ['raw','analysis'].forEach(x=>{
+    document.getElementById('tab-'+x).classList.toggle('active',x===t);
+    document.getElementById('tabbtn-'+x).classList.toggle('active',x===t);
+  });
+}
+function metrics(){
+  const ppl=DATA.length;
+  const pains=DATA.reduce((t,p)=>t+p.pains.length,0);
+  const gold=DATA.reduce((t,p)=>t+p.pains.filter(x=>x.golden).length,0);
+  const hours=DATA.reduce((t,p)=>t+(parseFloat(p.total)||0),0);
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="v">${ppl}</div><div class="l">填寫人數</div></div>
+    <div class="metric"><div class="v">${pains}</div><div class="l">痛點總數</div></div>
+    <div class="metric"><div class="v gold">${gold}</div><div class="l">★ 黃金痛點</div></div>
+    <div class="metric"><div class="v red">${Math.round(hours)}</div><div class="l">每月耗時(hr)</div></div>`;
+  document.getElementById('cntRaw').textContent=ppl;
+}
+function renderList(){
+  const q=(document.getElementById('search').value||'').trim().toLowerCase();
+  const groups={};
+  DATA.forEach((p,i)=>{ if(q&&!((p.name+p.dept+p.role).toLowerCase().includes(q)))return;(groups[p.dept]=groups[p.dept]||[]).push(i);});
+  let html='';
+  Object.keys(groups).forEach(d=>{
+    html+=`<div class="dept-label"><span class="nm">${esc(d)}</span><span class="c">${groups[d].length} 人</span></div>`;
+    groups[d].forEach(i=>{
+      const p=DATA[i];
+      const dots=p.pains.map(x=>`<span class="dot ${x.light||'green'}"></span>`).join('');
+      const gold=p.pains.some(x=>x.golden)?' ⭐':'';
+      html+=`<div class="pcard ${selected===i?'active':''}" onclick="select(${i})">
+        <div class="avatar">${esc(p.name[0]||'?')}</div>
+        <div class="info"><div class="nm">${esc(p.name)}<span class="mini-tag ${isAmb(p.name)?'amb':'non'}">${isAmb(p.name)?'大使':'非大使'}</span></div>
+          <div class="meta">${esc(p.role||'—')}</div></div>
+        <div class="right"><span class="paincnt">${p.pains.length} 痛點${gold}</span><div class="dots">${dots}</div></div>
+      </div>`;
+    });
+  });
+  document.getElementById('list').innerHTML=html||'<div style="padding:30px;text-align:center;color:#94a3b8">查無資料</div>';
+}
+function select(i){selected=i;renderList();renderDetail();}
+function fieldRow(label,val){
+  if(!val)return '';
+  let inner;
+  if(label==='訊號') inner='<div class="sig-tags">'+val.split(/[、,，]/).map(s=>s.trim()).filter(Boolean).map(s=>`<span class="sig">${esc(s)}</span>`).join('')+'</div>';
+  else if(label==='可 AI 化特徵') inner='<div class="aifeat">'+val.split(/[、,，]/).map(s=>s.trim()).filter(Boolean).map(s=>`<span>${esc(s)}</span>`).join('')+'</div>';
+  else inner=esc(val);
+  return `<div class="frow"><div class="fl">${esc(label)}</div><div class="fv">${inner}</div></div>`;
+}
+function renderDetail(){
+  const p=DATA[selected];
+  if(!p){document.getElementById('detail').innerHTML='';return;}
+  const amb=isAmb(p.name);
+  let h=`<div class="dh"><div class="av">${esc(p.name[0]||'?')}</div>
+    <div class="who"><h2>${esc(p.name)} <span class="badge ${amb?'amb':'non'}">${amb?'🟢 大使':'⚪ 非大使'}</span></h2>
+      <div class="line"><b>${esc(p.dept)}</b>　·　${esc(p.role||'—')}　·　${esc(p.email)}</div></div>
+    <div class="kpis"><div class="kpi"><div class="v">${p.pains.length}</div><div class="l">痛點數</div></div>
+      ${p.total?`<div class="kpi"><div class="v gold">${esc(p.total)}</div><div class="l">每月耗時(hr)</div></div>`:''}</div></div>`;
+  if(p.work) h+=`<div class="section-t">日常工作類型</div><div class="worktags">`+p.work.split(/[、,，]/).map(s=>s.trim()).filter(Boolean).map(s=>`<span class="wtag">${esc(s)}</span>`).join('')+`</div>`;
+  h+=`<div class="section-t">痛點明細（${p.pains.length}）</div>`;
+  p.pains.forEach((x,n)=>{
+    h+=`<div class="pain ${x.golden?'gold':''}"><div class="pain-head"><div class="pain-num">${n+1}</div>
+      <div class="pain-title">${esc(x.title)}</div>
+      ${x.golden?'<span class="gold-ribbon">⭐ 黃金痛點</span>':''}
+      ${x.light?`<span class="light ${x.light}"><span class="b"></span>${lightLabel[x.light]}</span>`:''}</div>
+      <div class="pain-body">`;
+    FIELD_ORDER.forEach(f=>{h+=fieldRow(f,x.fields[f]);});
+    h+=`</div></div>`;
+  });
+  const d=document.getElementById('detail');d.innerHTML=h;d.scrollTop=0;
+}
+document.getElementById('detail').innerHTML=`<div class="empty-state"><div class="big">👈</div>
+  <div><b style="color:#475569;font-size:16px">從左側選擇一位大使</b><br>查看他回報的痛點詳細內容</div></div>`;
+metrics();renderList();
+</script>
+</body>
+</html>
