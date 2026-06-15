@@ -425,7 +425,7 @@ function escAttr(s){return esc(s).replace(/"/g,'&quot;')}
 /* ── 自動存檔（localStorage） ── */
 const LS_KEY='aiAmbSurveyTracker_v1';
 function save(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({sessions,people,sessSeq})); }
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({sessions,people,sessSeq,savedAt:Date.now()})); }
   catch(e){ console.warn('存檔失敗',e); }
 }
 function apply(d){
@@ -437,17 +437,18 @@ function apply(d){
   return false;
 }
 function load(){
-  // 1) 本機工作草稿（admin 編輯中的暫存）
-  try{
-    const raw=localStorage.getItem(LS_KEY);
-    if(raw && apply(JSON.parse(raw))) return 'local';
-  }catch(e){ console.warn('讀取本機草稿失敗',e); }
-  // 2) HTML 內嵌的已發佈資料
-  try{
-    const t=(document.getElementById('savedData').textContent||'').trim();
-    if(t && apply(JSON.parse(t))) return 'embedded';
-  }catch(e){ console.warn('讀取內嵌資料失敗',e); }
-  // 3) 程式內建預設
+  let local=null, embed=null;
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw) local=JSON.parse(raw); }catch(e){}
+  try{ const t=(document.getElementById('savedData').textContent||'').trim(); if(t) embed=JSON.parse(t); }catch(e){}
+  const lt = local ? (local.savedAt||1) : 0;   // 本機暫存的時間
+  const et = embed ? (embed.savedAt||1) : 0;   // HTML 內嵌的時間
+  // 選「最新」的那份；同時間則以已發佈版為準，確保一致
+  if(embed && et>=lt && apply(embed)){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(embed)); }catch(e){} // 同步本機
+    return 'embedded';
+  }
+  if(local && apply(local)) return 'local';
+  if(embed && apply(embed)) return 'embedded';
   return 'default';
 }
 function resetAll(){
@@ -458,9 +459,11 @@ function resetAll(){
 
 /* ── 匯出整份網頁（把目前資料烤進 HTML，供上傳 GitHub 發佈） ── */
 function exportHTML(){
-  // 把目前資料寫進內嵌區塊
-  const json=JSON.stringify({sessions,people,sessSeq}).replace(/<\//g,'<\\/');
-  document.getElementById('savedData').textContent=json;
+  // 用同一個時間戳，讓「本機暫存」與「HTML 內嵌」完全同步
+  const now=Date.now();
+  const payload=JSON.stringify({sessions,people,sessSeq,savedAt:now});
+  try{ localStorage.setItem(LS_KEY, payload); }catch(e){}
+  document.getElementById('savedData').textContent=payload.replace(/<\//g,'<\\/');
   // 還原一些「畫面狀態」避免被一起匯出
   document.getElementById('search').value='';
   const html='<!doctype html>\n'+document.documentElement.outerHTML;
