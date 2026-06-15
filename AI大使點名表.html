@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 大使點名表 · 振曜科技</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --primary:#10a37f; --primary-dark:#0d8a6b;
+    --secondary:#1e3a5f; --secondary-light:#2d527f;
+    --accent:#f59e0b;
+    --bg:#eef2f6; --panel:#fff;
+    --text:#1a202c; --muted:#64748b; --line:#e2e8f0;
+    --ok:#059669; --danger:#dc2626;
+    --shadow:0 4px 24px rgba(15,40,80,0.08);
+    --shadow-lg:0 10px 40px rgba(15,40,80,0.16);
+  }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.6; font-size:14px;
+    padding-bottom:60px;
+  }
+
+  /* ── Header ── */
+  .topbar{
+    background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 130%);
+    color:#fff; padding:26px 32px;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:16px;
+    box-shadow:var(--shadow-lg);
+  }
+  .topbar .ttl{display:flex;align-items:center;gap:16px}
+  .topbar .logo{
+    width:48px;height:48px;border-radius:12px;flex-shrink:0;
+    background:rgba(16,163,127,.2);border:1px solid rgba(16,163,127,.5);
+    display:grid;place-items:center;font-size:24px;
+  }
+  .topbar h1{font-size:22px;font-weight:800;letter-spacing:.5px}
+  .topbar .sub{font-size:12.5px;color:#9fb3c8;margin-top:2px}
+  .topbar .date-pill{
+    font-size:12px;color:#5eead4;background:rgba(16,163,127,.18);
+    border:1px solid rgba(16,163,127,.4);padding:6px 14px;border-radius:99px;font-weight:600;
+  }
+
+  /* ── Stats ── */
+  .stats{
+    max-width:1320px;margin:24px auto 0;padding:0 24px;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
+  }
+  .stat{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px 20px;box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:14px;
+  }
+  .stat .ic{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+  .stat .ic.g{background:linear-gradient(135deg,#d1fae5,#6ee7b7)}
+  .stat .ic.b{background:linear-gradient(135deg,#dbeafe,#93c5fd)}
+  .stat .ic.o{background:linear-gradient(135deg,#fef3c7,#fcd34d)}
+  .stat .ic.p{background:linear-gradient(135deg,#ede9fe,#c4b5fd)}
+  .stat .v{font-size:24px;font-weight:800;color:var(--secondary);line-height:1.1}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* ── Toolbar ── */
+  .toolbar{
+    max-width:1320px;margin:22px auto 0;padding:0 24px;
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .search{
+    flex:1;min-width:200px;position:relative;
+  }
+  .search input{
+    width:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);
+    border-radius:10px;font:inherit;font-size:14px;background:#fff;
+    transition:border .15s,box-shadow .15s;
+  }
+  .search input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(16,163,127,.15)}
+  .search::before{content:"🔍";position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:10px 16px;border:none;border-radius:10px;cursor:pointer;
+    font:inherit;font-size:13.5px;font-weight:700;transition:all .15s;white-space:nowrap;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--primary);color:#fff}
+  .btn-primary:hover{background:var(--primary-dark)}
+  .btn-dark{background:var(--secondary);color:#fff}
+  .btn-dark:hover{background:var(--secondary-light)}
+  .btn-ghost{background:#fff;color:var(--secondary);border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+
+  /* ── Table ── */
+  .table-wrap{
+    max-width:1320px;margin:18px auto 0;padding:0 24px;
+  }
+  .table-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .scroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;white-space:nowrap}
+  thead th{
+    background:var(--secondary);color:#fff;font-weight:700;font-size:12.5px;
+    padding:13px 12px;text-align:left;position:sticky;top:0;z-index:5;
+    border-right:1px solid rgba(255,255,255,.08);
+  }
+  thead th.sess{background:var(--primary);text-align:center;position:relative}
+  thead th.center{text-align:center}
+  .sess-head{display:flex;align-items:center;justify-content:center;gap:6px}
+  .sess-name{
+    background:transparent;border:none;color:#fff;font:inherit;font-weight:700;
+    font-size:12.5px;text-align:center;width:90px;border-bottom:1px dashed rgba(255,255,255,.4);
+  }
+  .sess-name:focus{outline:none;border-bottom-color:#fff}
+  .del-sess{
+    background:rgba(255,255,255,.2);border:none;color:#fff;cursor:pointer;
+    width:18px;height:18px;border-radius:50%;font-size:11px;line-height:1;
+    display:grid;place-items:center;flex-shrink:0;
+  }
+  .del-sess:hover{background:var(--danger)}
+
+  tbody td{
+    padding:9px 12px;border-bottom:1px solid var(--line);
+    border-right:1px solid #f1f5f9;vertical-align:middle;
+  }
+  tbody tr:nth-child(even){background:#f9fbfd}
+  tbody tr:hover{background:#f0fdf9}
+  td.no{color:var(--muted);font-weight:700;text-align:center;width:40px}
+  td.center{text-align:center}
+  .editable{outline:none;min-width:30px;border-radius:4px;padding:2px 5px;transition:background .12s}
+  .editable:focus{background:#fffbe6;box-shadow:0 0 0 2px var(--accent)}
+  .dept-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--secondary);font-weight:700}
+  .ename{color:var(--muted)}
+  .email{color:var(--primary);font-size:12.5px}
+  td a.email{text-decoration:none}
+
+  /* attendance checkbox */
+  .att{width:90px;text-align:center}
+  .att input{
+    width:20px;height:20px;cursor:pointer;accent-color:var(--primary);
+  }
+  /* 檢視模式：勾勾維持原綠色，僅鎖住點擊 */
+  body:not(.is-admin) .att input{ pointer-events:none; cursor:default; }
+  /* delete row */
+  .del-row{
+    background:#fff;border:1px solid var(--line);color:var(--danger);
+    cursor:pointer;width:28px;height:28px;border-radius:7px;font-size:14px;
+    display:grid;place-items:center;transition:all .15s;
+  }
+  .del-row:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+  tfoot td{
+    padding:11px 12px;background:#f1f5f9;font-weight:700;color:var(--secondary);
+    border-top:2px solid var(--line);font-size:12.5px;
+  }
+  tfoot .att{color:var(--primary)}
+
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+
+  .foot-note{
+    max-width:1320px;margin:16px auto 0;padding:0 24px;
+    color:var(--muted);font-size:12px;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  .foot-note b{color:var(--secondary)}
+
+  @media(max-width:900px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+
+  /* ── 登入 / 權限 ── */
+  .editor-only{display:none}          /* 預設隱藏，登入後由 JS 顯示 */
+  body.is-admin .editor-only{display:inline-flex}
+  .auth-chip{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#f0fdf4;border:1px solid #86efac;color:#065f46;
+    padding:7px 12px;border-radius:10px;font-size:13px;font-weight:700;
+  }
+  .auth-chip .who{display:flex;align-items:center;gap:6px}
+  .auth-chip .logout{
+    background:none;border:none;color:var(--danger);cursor:pointer;
+    font:inherit;font-size:12.5px;font-weight:700;text-decoration:underline;padding:0;
+  }
+  .view-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;
+    padding:7px 12px;border-radius:10px;font-size:12.5px;font-weight:600;
+  }
+  /* modal */
+  .modal-mask{
+    display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(13,17,23,.55);backdrop-filter:blur(2px);
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-mask.open{display:flex}
+  .modal{
+    background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);
+    width:100%;max-width:360px;padding:28px 26px;
+    animation:popin .18s ease;
+  }
+  @keyframes popin{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal h2{font-size:18px;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .modal .hint{font-size:12.5px;color:var(--muted);margin-bottom:18px}
+  .modal label{display:block;font-size:12.5px;font-weight:700;color:var(--secondary);margin-bottom:5px}
+  .modal input{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;font-size:14px;margin-bottom:14px;
+  }
+  .modal input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(16,163,127,.15)}
+  .modal .err{color:var(--danger);font-size:12.5px;font-weight:600;margin:-6px 0 12px;min-height:16px}
+  .modal .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="ttl">
+    <div class="logo">🤖</div>
+    <div>
+      <h1>AI 大使問卷繳交追蹤表</h1>
+      <div class="sub">振曜科技 · AI 推動委員會</div>
+    </div>
+  </div>
+  <div class="date-pill" id="todayPill">—</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="ic b">👥</div><div><div class="v" id="stPeople">0</div><div class="l">總人數</div></div></div>
+  <div class="stat"><div class="ic p">🏢</div><div><div class="v" id="stDept">0</div><div class="l">部門數</div></div></div>
+  <div class="stat"><div class="ic o">📝</div><div><div class="v" id="stSess">0</div><div class="l">問卷份數</div></div></div>
+  <div class="stat"><div class="ic g">✅</div><div><div class="v" id="stRate">—</div><div class="l">最新問卷繳交率</div></div></div>
+</div>
+
+<div class="toolbar">
+  <div class="search"><input id="search" type="text" placeholder="搜尋姓名 / 部門 / 分機 / Email…"></div>
+  <button class="btn btn-primary editor-only" onclick="addPerson()">➕ 新增人員</button>
+  <button class="btn btn-dark editor-only" onclick="addSession()">📝 新增問卷</button>
+  <button class="btn btn-ghost" onclick="exportCSV()">⬇️ 匯出 CSV</button>
+  <button class="btn btn-primary editor-only" onclick="exportHTML()">💾 匯出網頁（發佈用）</button>
+  <button class="btn btn-ghost editor-only" onclick="resetAll()">🔄 還原已發佈版</button>
+  <span id="authBox"></span>
+</div>
+
+<div class="table-wrap">
+  <div class="table-card">
+    <div class="scroll">
+      <table id="tbl">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="foot-note">
+  <span>💡 <b>所有欄位可直接點擊編輯</b>（姓名、分機、Email…）</span>
+  <span>📝 <b>問卷標題可改名</b>，例如改成「資安問卷」「需求調查」</span>
+  <span>☑️ 勾選＝已繳交該份問卷　·　⬇️ 匯出 CSV 含繳交紀錄，可用 Excel 開啟</span>
+  <span>💾 <b>管理員改完後</b>：按「匯出網頁（發佈用）」下載 index.html → 覆蓋上傳 GitHub，所有人就看到最新版</span>
+</div>
+
+<!-- 已發佈資料（由「匯出網頁」寫入；打開時優先讀取此處） -->
+<script id="savedData" type="application/json"></script>
+
+<!-- 登入視窗 -->
+<div class="modal-mask" id="loginMask">
+  <div class="modal">
+    <h2>🔐 管理員登入</h2>
+    <div class="hint">登入後才可編輯名單與繳交狀態；未登入僅能檢視、搜尋與匯出。</div>
+    <label for="inUser">帳號</label>
+    <input id="inUser" type="text" autocomplete="username" placeholder="帳號">
+    <label for="inPass">密碼</label>
+    <input id="inPass" type="password" autocomplete="current-password" placeholder="密碼" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="err" id="loginErr"></div>
+    <div class="acts">
+      <button class="btn btn-ghost" onclick="closeLogin()">取消</button>
+      <button class="btn btn-primary" onclick="doLogin()">登入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── 資料模型 ── */
+let sessions = [
+  { id: 's1', name: '痛點分析 2.0' }
+];
+
+let people = [
+  ['C0000','成控中心','吳思嫺','Mia','6919','mia.wu@netronixinc.com'],
+  ['C0000','成控中心','張益誠','Johnson','6915','johnson.chang@netronixinc.com'],
+  ['E1100','市場開發處','古沅仟','Catherine','6902','cath.ku@netronixinc.com'],
+  ['E1100','市場開發處','黃詩婷','Nicole','6907','nicole.huang@netronixinc.com'],
+  ['E2100','業務處','戴英如','Enid','6901','enid.dai@netronixinc.com'],
+  ['E3040','機構設計部','李忠軒','Bruce','5205','bruce.lee@netronixinc.com'],
+  ['E3040','機構設計部','李易','Dante','5301','dante.li@netronixinc.com'],
+  ['E3112','研發一部(HW)','羅翔生','Jacky','5121','jacky.lo@netronixinc.com'],
+  ['E3120','研發二部(SW)_新竹','林韡宸','David','5107','weichen.lin@netronixinc.com'],
+  ['E3140','文件管制中心','徐淑芬','Tracy','5300','tracy_hsu@netronixinc.com'],
+  ['E3150','系統驗證部','洪揚程','Hughes','5128','hughes.hung@netronixinc.com'],
+  ['E3220','研發二部(SW)_台北','賴星延','Sam','1000→6→337','sam.lai@netronixinc.com'],
+  ['E4110','人力資源部','李沛瀠','Febe','6515','febe.lee@netronixinc.com'],
+  ['E4120','廠務工程部','李沛瀠','Febe','6515','febe.lee@netronixinc.com'],
+  ['E5100','製造處(代工)','楊婉玉','Kate','2101','kate.yang@netronixinc.com'],
+  ['E5100','製造處(代工)','張志偉','Chihwei','3202','chihwei.chang@netronixinc.com'],
+  ['E5101','製造處(非代工)','曾群粟','Asl','2111','asl.tseng@netronixinc.com'],
+  ['E5101','製造處(非代工)','曾俊欽','Jim','2102','pupupuma@netronixinc.com'],
+  ['E5200','製造工程部','詹嘉文','Gavin','4105','gavin.chan@netronixinc.com'],
+  ['E6100','品保部','張順宏','Jason','2100','jason@netronixinc.com'],
+  ['E6100','品保部','許俐雯','Winnie','1505','winnie.hsu@netronixinc.com'],
+  ['E6100','品保部','彭齡緩','Huan','1506','huan@netronixinc.com'],
+  ['E7100','資材處','趙凱馨','Kasy','6611','kasy@netronixinc.com'],
+  ['E8100','會計部','郭孟渝','Cherry','6103','cherry.kuo@netronixinc.com'],
+  ['E8100','財務部','張書豪','Frank','6310','frank.chang@netronixinc.com'],
+  ['E9100','資訊部','葉瑛達','Jimmy','6701','jimmy.yeh@netronixinc.com'],
+  ['E9100','資訊部','潘莛家','Lelina','6712','lelina.pan@netronixinc.com'],
+].map(r => ({
+  code:r[0], dept:r[1], cname:r[2], ename:r[3], ext:r[4], email:r[5],
+  att:{}
+}));
+
+const FIELDS = ['code','dept','cname','ename','ext','email'];
+const HEADERS = ['部門代號','部門別稱','中文姓名','英文名','分機','Email'];
+let sessSeq = 2;
+
+/* ── 登入驗證 ── */
+const ADMIN_USER='admin', ADMIN_PASS='netronix';
+let isAdmin = sessionStorage.getItem('aiAmbRole')==='admin';
+
+function openLogin(){
+  document.getElementById('inUser').value='';
+  document.getElementById('inPass').value='';
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('loginMask').classList.add('open');
+  setTimeout(()=>document.getElementById('inUser').focus(),50);
+}
+function closeLogin(){ document.getElementById('loginMask').classList.remove('open'); }
+function doLogin(){
+  const u=document.getElementById('inUser').value.trim();
+  const p=document.getElementById('inPass').value;
+  if(u===ADMIN_USER && p===ADMIN_PASS){
+    isAdmin=true; sessionStorage.setItem('aiAmbRole','admin');
+    closeLogin(); updateChrome(); render();
+  }else{
+    document.getElementById('loginErr').textContent='帳號或密碼錯誤，請重新輸入。';
+  }
+}
+function logout(){
+  isAdmin=false; sessionStorage.removeItem('aiAmbRole');
+  updateChrome(); render();
+}
+function updateChrome(){
+  document.body.classList.toggle('is-admin', isAdmin);
+  const box=document.getElementById('authBox');
+  if(isAdmin){
+    box.innerHTML=`<span class="auth-chip"><span class="who">👤 admin 已登入</span>
+      <button class="logout" onclick="logout()">登出</button></span>`;
+  }else{
+    box.innerHTML=`<span class="view-badge">👁️ 檢視模式</span>
+      <button class="btn btn-dark" onclick="openLogin()">🔐 管理員登入</button>`;
+  }
+}
+
+/* ── 渲染 ── */
+function render(){
+  const q = (document.getElementById('search').value||'').trim().toLowerCase();
+
+  const ce = isAdmin ? 'true' : 'false';   // 是否可編輯
+
+  // thead
+  let th = '<tr><th class="center">No.</th>';
+  HEADERS.forEach(h => th += `<th>${h}</th>`);
+  sessions.forEach(s => {
+    th += `<th class="sess"><div class="sess-head">
+      <input class="sess-name" value="${escAttr(s.name)}" ${isAdmin?'':'readonly'} oninput="renameSession('${s.id}',this.value)">
+      ${isAdmin?`<button class="del-sess" title="刪除此問卷" onclick="delSession('${s.id}')">✕</button>`:''}
+    </div></th>`;
+  });
+  if(isAdmin) th += '<th class="center">操作</th>';
+  th += '</tr>';
+  document.getElementById('thead').innerHTML = th;
+
+  // body
+  let html = '';
+  let shown = 0;
+  people.forEach((p, i) => {
+    const hay = (p.code+p.dept+p.cname+p.ename+p.ext+p.email).toLowerCase();
+    if(q && !hay.includes(q)) return;
+    shown++;
+    html += `<tr data-i="${i}">`;
+    html += `<td class="no">${i+1}</td>`;
+    html += cell(i,'code','dept-code',ce);
+    html += cell(i,'dept','',ce);
+    html += cell(i,'cname','',ce);
+    html += cell(i,'ename','ename',ce);
+    html += cell(i,'ext','',ce);
+    html += `<td><span class="editable email" contenteditable="${ce}" data-f="email" oninput="upd(${i},'email',this.innerText)">${esc(p.email)}</span></td>`;
+    sessions.forEach(s => {
+      html += `<td class="att"><input type="checkbox" ${p.att[s.id]?'checked':''} onchange="toggleAtt(${i},'${s.id}',this.checked)"></td>`;
+    });
+    if(isAdmin) html += `<td class="center"><button class="del-row" title="刪除此列" onclick="delPerson(${i})">🗑</button></td>`;
+    html += `</tr>`;
+  });
+  const cols = 7 + sessions.length + (isAdmin?1:0);
+  document.getElementById('tbody').innerHTML = html || `<tr><td class="empty" colspan="${cols}">查無符合的資料</td></tr>`;
+
+  // tfoot - 繳交統計
+  let tf = `<tr><td colspan="7">繳交小計</td>`;
+  sessions.forEach(s => {
+    const n = people.filter(p=>p.att[s.id]).length;
+    tf += `<td class="att">${n} 份</td>`;
+  });
+  if(isAdmin) tf += `<td></td>`;
+  tf += `</tr>`;
+  document.getElementById('tfoot').innerHTML = tf;
+
+  updateStats(shown);
+}
+
+function cell(i,f,cls,ce){
+  return `<td><span class="editable ${cls}" contenteditable="${ce}" data-f="${f}" oninput="upd(${i},'${f}',this.innerText)">${esc(people[i][f])}</span></td>`;
+}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escAttr(s){return esc(s).replace(/"/g,'&quot;')}
+
+/* ── 自動存檔（localStorage） ── */
+const LS_KEY='aiAmbSurveyTracker_v1';
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({sessions,people,sessSeq})); }
+  catch(e){ console.warn('存檔失敗',e); }
+}
+function apply(d){
+  if(d&&Array.isArray(d.sessions)&&Array.isArray(d.people)){
+    sessions=d.sessions; people=d.people;
+    if(d.sessSeq) sessSeq=d.sessSeq;
+    return true;
+  }
+  return false;
+}
+function load(){
+  // 1) 本機工作草稿（admin 編輯中的暫存）
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(raw && apply(JSON.parse(raw))) return 'local';
+  }catch(e){ console.warn('讀取本機草稿失敗',e); }
+  // 2) HTML 內嵌的已發佈資料
+  try{
+    const t=(document.getElementById('savedData').textContent||'').trim();
+    if(t && apply(JSON.parse(t))) return 'embedded';
+  }catch(e){ console.warn('讀取內嵌資料失敗',e); }
+  // 3) 程式內建預設
+  return 'default';
+}
+function resetAll(){
+  if(!confirm('確定清除本機暫存的編輯，還原成「目前 HTML 內已發佈的版本」？'))return;
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}
+
+/* ── 匯出整份網頁（把目前資料烤進 HTML，供上傳 GitHub 發佈） ── */
+function exportHTML(){
+  // 把目前資料寫進內嵌區塊
+  const json=JSON.stringify({sessions,people,sessSeq}).replace(/<\//g,'<\\/');
+  document.getElementById('savedData').textContent=json;
+  // 還原一些「畫面狀態」避免被一起匯出
+  document.getElementById('search').value='';
+  const html='<!doctype html>\n'+document.documentElement.outerHTML;
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='index.html';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  alert('已匯出 index.html（內含目前最新資料）。\n\n請把這個檔案覆蓋上傳到 GitHub，所有人打開就會看到最新版。');
+}
+
+/* ── 操作 ── */
+function upd(i,f,v){ people[i][f]=v.trim(); save(); }
+function toggleAtt(i,sid,v){ if(!isAdmin)return; people[i].att[sid]=v; render(); save(); }
+function renameSession(sid,v){ const s=sessions.find(x=>x.id===sid); if(s)s.name=v; save(); }
+
+function addPerson(){
+  people.push({code:'',dept:'',cname:'',ename:'',ext:'',email:'',att:{}});
+  document.getElementById('search').value='';
+  render(); save();
+  // 捲到底並聚焦新列的中文姓名
+  const rows=document.querySelectorAll('#tbody tr');
+  const last=rows[rows.length-1];
+  if(last){ last.scrollIntoView({behavior:'smooth',block:'center'});
+    const c=last.querySelector('[data-f="cname"]'); if(c)setTimeout(()=>c.focus(),300); }
+}
+function delPerson(i){
+  if(!confirm(`確定刪除「${people[i].cname||'此列'}」？`))return;
+  people.splice(i,1); render(); save();
+}
+function addSession(){
+  const def='痛點分析 '+(sessions.length+2)+'.0';
+  const name=prompt('輸入問卷名稱（例如：痛點分析 3.0、資安問卷）：',def);
+  if(name===null)return;
+  sessions.push({id:'s'+(sessSeq++),name:name||def});
+  render(); save();
+}
+function delSession(sid){
+  const s=sessions.find(x=>x.id===sid);
+  if(!confirm(`確定刪除問卷「${s?s.name:''}」？該問卷的繳交紀錄也會移除。`))return;
+  sessions=sessions.filter(x=>x.id!==sid);
+  people.forEach(p=>delete p.att[sid]);
+  render(); save();
+}
+function numCh(n){return ['零','一','二','三','四','五','六','七','八','九','十'][n]||n}
+
+/* ── 統計 ── */
+function updateStats(shown){
+  document.getElementById('stPeople').textContent = people.length;
+  document.getElementById('stDept').textContent = new Set(people.map(p=>p.dept).filter(Boolean)).size;
+  document.getElementById('stSess').textContent = sessions.length;
+  if(sessions.length && people.length){
+    const last=sessions[sessions.length-1];
+    const n=people.filter(p=>p.att[last.id]).length;
+    document.getElementById('stRate').textContent = Math.round(n/people.length*100)+'%';
+  }else{
+    document.getElementById('stRate').textContent='—';
+  }
+}
+
+/* ── 匯出 CSV ── */
+function exportCSV(){
+  const head=['No.',...HEADERS,...sessions.map(s=>s.name)];
+  const rows=people.map((p,i)=>{
+    const base=[i+1,p.code,p.dept,p.cname,p.ename,p.ext,p.email];
+    const att=sessions.map(s=>p.att[s.id]?'已繳交':'');
+    return [...base,...att];
+  });
+  const all=[head,...rows];
+  const csv=all.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date();
+  const stamp=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  a.href=url; a.download=`AI大使問卷繳交追蹤_${stamp}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function csvCell(v){
+  v=String(v??'');
+  if(/[",\r\n]/.test(v)) return '"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+
+/* ── init ── */
+document.getElementById('search').addEventListener('input',()=>render());
+(function(){
+  const d=new Date();
+  document.getElementById('todayPill').textContent=`📆 ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+})();
+load();
+updateChrome();
+render();
+</script>
+</body>
+</html>
