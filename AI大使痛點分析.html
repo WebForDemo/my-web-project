@@ -61,7 +61,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
 .avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(135deg,var(--secondary-light),var(--primary))}
 .pcard .info{flex:1;min-width:0}
 .pcard .nm{font-weight:700;color:var(--secondary);font-size:14px;display:flex;align-items:center;gap:6px}
-.pcard .meta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .meta{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:7px;margin-top:2px}
+.pcard .meta .role{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
+.pcard .meta .dots{display:flex;gap:3px;flex-shrink:0}
 .mini-tag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px}
 .mini-tag.amb{background:#dcfce7;color:#166534}.mini-tag.non{background:#e2e8f0;color:#475569}
 .pcard .right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
@@ -121,7 +123,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
 }
 
 /* ===== 痛點分析 Tab ===== */
-.dash{height:100%;overflow-y:auto;padding:22px 26px;display:flex;flex-direction:column;gap:18px}
+.dash{height:100%;overflow-y:auto;padding:22px 16px;display:flex;flex-direction:column;gap:18px}
 /* 優先排序表 + 大小任務 */
 .szfilter{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
 .szfilter button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--secondary);transition:.12s}
@@ -145,6 +147,52 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
 .sorthint .sortclear{color:#dc2626;cursor:pointer;font-weight:700;text-decoration:underline}
 .ptable th.sortth{cursor:pointer;user-select:none;white-space:nowrap}
 .ptable th.sortth:hover{color:var(--primary);background:#e8eef5}
+/* ── Tab3 行動方案 ── */
+.strat{background:linear-gradient(110deg,#0d1117,#1a2744);color:#e2e8f0;border-radius:12px;padding:13px 18px;font-size:13.5px;margin-bottom:8px;letter-spacing:.3px}
+.strat b{font-weight:800}
+/* 路線圖：連結節點流（圖2風） */
+.rmsvg{width:100%;height:auto;display:block;max-width:1200px;margin:6px auto 18px}
+.rmnode{cursor:pointer}.rmnode text{pointer-events:none}
+.rmnode circle{transition:.15s}
+.rmnode:hover circle{stroke-width:10}
+.rm-detail{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch}
+@media(max-width:980px){.rm-detail{grid-template-columns:1fr}}
+.phcard{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 6px 22px rgba(15,40,80,.08);background:#fff;display:flex;flex-direction:column;height:480px}
+.phcard.now{border-color:#86efac}.phcard.next{border-color:#93c5fd}.phcard.future{border-color:#cbd5e1}
+.ph-top{padding:14px 16px;color:#fff;position:relative}
+.phcard.now .ph-top{background:linear-gradient(120deg,#0b7a5e,#14b88d)}
+.phcard.next .ph-top{background:linear-gradient(120deg,#17314f,#36608c)}
+.phcard.future .ph-top{background:linear-gradient(120deg,#566273,#94a3b8)}
+.ph-when{font-size:10.5px;font-weight:800;letter-spacing:1.2px;opacity:.92}
+.ph-title{font-size:18px;font-weight:800;margin-top:2px}
+.ph-metric{margin-top:7px;font-size:12px;font-weight:700;opacity:.96;background:rgba(255,255,255,.16);display:inline-block;padding:3px 11px;border-radius:99px}
+.ph-badge{position:absolute;top:12px;right:14px;background:#fff;color:#0b7a5e;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.ph-body{padding:8px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;background:#fbfdff;flex:1}
+.phcard.future{opacity:.94}
+.pitem{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;background:#fff;cursor:pointer;transition:.12s}
+.pitem:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow)}
+.pitem .pi-t{flex:0 1 auto;min-width:0;max-width:62%}
+.pitem .pi-t b{font-size:12.5px;color:var(--secondary);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pitem .pi-t span{font-size:10.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pitem .pi-sc{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:800;color:#fff;background:var(--primary)}
+.pitem .pi-prog{flex:1;min-width:40px;height:9px;background:#eef2f6;border-radius:99px;overflow:hidden}
+.pitem .pi-prog>i{display:block;height:100%;border-radius:99px;opacity:.85}
+/* 優先層級漏斗（圖1風） */
+.funnel{display:flex;flex-direction:column;gap:11px;margin-top:6px}
+.ftier{display:flex;align-items:center}
+.fbul{width:184px;flex-shrink:0;margin:0;padding:0 24px 0 2px;list-style:none;text-align:left;font-size:12.5px;font-weight:600;color:#475569;line-height:1.75}
+.fbul li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.fbul li:hover{color:var(--primary);text-decoration:underline}
+.fbul li::marker{color:#94a3b8}
+.fbadge{width:56px;height:56px;border-radius:50%;background:#fff;border:4px solid;display:grid;place-items:center;font-weight:800;font-size:18px;color:var(--secondary);z-index:2;margin-right:-28px;box-shadow:0 4px 12px rgba(0,0,0,.18);flex-shrink:0}
+.fbarwrap{flex:1}
+.fbar{height:66px;border-radius:12px;display:flex;align-items:center;padding-left:46px;color:#fff;box-shadow:0 4px 16px rgba(15,40,80,.18);gap:14px;transition:.15s}
+.fbar:hover{filter:brightness(1.06)}
+.fbar-t{font-size:18px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+.fbar-d{font-size:13px;font-weight:600;opacity:.96;white-space:nowrap}
+.fcount{margin-left:auto;margin-right:16px;font-size:13.5px;font-weight:800;background:rgba(255,255,255,.28);padding:3px 13px;border-radius:99px;white-space:nowrap}
+.fnaxis{margin-top:14px;font-size:11.5px;color:var(--muted);text-align:center}
+@media(max-width:760px){.fbul{display:none}.fbadge{margin-right:-25px}}
 .filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:13px}
 .filterbar>b{color:var(--secondary)}
 .fchip{background:#e0f2fe;color:#075985;border:1px solid #bae6fd;padding:3px 11px;border-radius:99px;font-weight:700;font-size:12px}
@@ -248,6 +296,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
 <nav class="tabnav">
   <button class="tab-btn active" id="tabbtn-raw" onclick="switchTab('raw')">📋 原始資料 <span class="cnt" id="cntRaw">0</span></button>
   <button class="tab-btn" id="tabbtn-analysis" onclick="switchTab('analysis')">📈 痛點分析</button>
+  <button class="tab-btn" id="tabbtn-action" onclick="switchTab('action')">🎯 行動方案</button>
 </nav>
 
 <div class="panel-area">
@@ -261,9 +310,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
       <main class="detail" id="detail"></main>
     </div>
   </section>
-  <!-- TAB 2：痛點分析（建置中） -->
+  <!-- TAB 2：痛點分析 -->
   <section class="panel" id="tab-analysis">
     <div class="dash" id="dash"></div>
+  </section>
+  <!-- TAB 3：行動方案 -->
+  <section class="panel" id="tab-action">
+    <div class="dash" id="actiondash"></div>
   </section>
 </div>
 
@@ -276,7 +329,7 @@ const isAmb=n=>AMB.includes(n);
 const lightLabel={red:'紅燈',yellow:'黃燈',green:'綠燈'};
 
 function switchTab(t){
-  ['raw','analysis'].forEach(x=>{
+  ['raw','analysis','action'].forEach(x=>{
     document.getElementById('tab-'+x).classList.toggle('active',x===t);
     document.getElementById('tabbtn-'+x).classList.toggle('active',x===t);
   });
@@ -306,9 +359,10 @@ function renderList(){
       const gold=p.pains.some(x=>x.golden)?' ⭐':'';
       html+=`<div class="pcard ${selected===i?'active':''}" onclick="select(${i})">
         <div class="avatar">${esc(p.name[0]||'?')}</div>
-        <div class="info"><div class="nm">${esc(p.name)}<span class="mini-tag ${isAmb(p.name)?'amb':'non'}">${isAmb(p.name)?'大使':'非大使'}</span></div>
-          <div class="meta">${esc(p.role||'—')}</div></div>
-        <div class="right"><span class="paincnt">${p.pains.length} 痛點${gold}</span><div class="dots">${dots}</div></div>
+        <div class="info">
+          <div class="nm">${esc(p.name)}<span class="mini-tag ${isAmb(p.name)?'amb':'non'}">${isAmb(p.name)?'大使':'非大使'}</span></div>
+          <div class="meta"><span class="role">${esc(p.role||'—')}</span><span class="paincnt">${p.pains.length} 痛點${gold}</span><span class="dots">${dots}</span></div>
+        </div>
       </div>`;
     });
   });
@@ -488,7 +542,59 @@ function renderDash(){
    +`<div class="card"><h3>AI 導入優先排序（${cur.length}）· 點列看完整分析</h3>${szfilter}${sorthint}${ptable}</div>`;
 }
 
-renderDash();
+/* ===== Tab 3：行動方案（路線圖 + 2×2 矩陣） ===== */
+function renderAction(){
+  const ALL=PA(), VT=50;
+  const sumhr=a=>a.reduce((s,x)=>s+x.hr,0);
+  const byT=t=>ALL.filter(x=>x.t===t).sort((a,b)=>b.score-a.score);
+  const t2=byT('軌2'), t1=byT('軌1'), t3=byT('軌3');
+  const PH=[
+    {ic:'🤖',col:'#13b48b',when:'PHASE 1 · NOW',sub:'立即啟動',short:'NOW',nms:'軌2 自訂GPT',nm:'軌2 自訂GPT / ChatGPT',arr:t2,cls:'now',badge:'★ 建議起點',low:true},
+    {ic:'☁️',col:'#33597f',when:'PHASE 2 · NEXT',sub:'建置導入',short:'NEXT',nms:'軌1 Bedrock',nm:'軌1 Claude on Bedrock',arr:t1,cls:'next',badge:'',low:false},
+    {ic:'🔒',col:'#94a3b8',when:'PHASE 3 · FUTURE',sub:'未來候場',short:'FUTURE',nms:'軌3 地端',nm:'軌3 地端 On-Prem',arr:t3,cls:'future',badge:'',low:true},
+  ];
+  const strat=`<div class="strat">📌 <b>導入策略（經營層裁示）</b>　先衝 <b style="color:#5eead4">軌2 易用優先</b> ➜ 再上 <b style="color:#93c5fd">軌1 合規建置</b> ➜ <b style="color:#cbd5e1">軌3 未來候場</b></div>`;
+
+  // ── 圖2：連結節點流 ──
+  const cx=[150,450,750];
+  const svgNodes=PH.map((p,i)=>{const x=cx[i], y=p.low?182:98;
+    const l1=p.low?y+78:y-70, l2=p.low?y+96:y-50;          // 標籤兩行位置
+    const dd=p.low?`M${x} ${y+48} L${x} ${y+66}`:`M${x} ${y-48} L${x} ${y-64}`; // 虛線連接
+    return `<g class="rmnode" onclick="document.getElementById('phase${i}').scrollIntoView({behavior:'smooth',block:'center'})">
+      <path d="${dd}" stroke="${p.col}" stroke-width="2.5" stroke-dasharray="2 4" stroke-linecap="round" opacity=".55"/>
+      <circle cx="${x}" cy="${y}" r="46" fill="#fff" stroke="${p.col}" stroke-width="7"/>
+      <text x="${x}" y="${y+15}" text-anchor="middle" font-size="40">${p.ic}</text>
+      <text x="${x}" y="${l1}" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="1" fill="${p.col}">${p.short}</text>
+      <text x="${x}" y="${l2}" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a5f">${p.nms} · ${p.arr.length} 痛點</text></g>`;}).join('');
+  const svg=`<svg class="rmsvg" viewBox="0 0 900 296" xmlns="http://www.w3.org/2000/svg">
+    <path d="M150 182 C300 182 300 98 450 98 C600 98 600 182 750 182" fill="none" stroke="#e2e8f0" stroke-width="20" stroke-linecap="round"/>
+    ${svgNodes}</svg>`;
+  const item=(x,col)=>`<div class="pitem" style="border-left:4px solid ${col}" onclick="openPain(${x.pi},${x.xi})"><span class="pi-sc" style="background:${col}">${x.score}</span><div class="pi-t"><b>${esc(x.title)}${x.golden?' ⭐':''}</b><span>${esc(x.person)} · ${esc(x.dept)}${x.hr?' · '+fmt(x.hr)+'hr/月':''}</span></div><div class="pi-prog" title="優先分 ${x.score}"><i style="width:${x.score}%;background:${col}"></i></div></div>`;
+  const card=(p,i)=>`<div class="phcard ${p.cls}" id="phase${i}"><div class="ph-top">${p.badge?`<span class="ph-badge">${p.badge}</span>`:''}
+    <div class="ph-when">${p.when} · ${p.sub}</div><div class="ph-title">${p.ic} ${p.nm}</div>
+    <div class="ph-metric">${p.arr.length} 痛點 · 每月 ${fmt(sumhr(p.arr))} hr</div></div>
+    <div class="ph-body">${p.arr.map(x=>item(x,p.col)).join('')||'<div class="muted" style="padding:14px">—</div>'}</div></div>`;
+  const roadmap=`<div class="card"><h3>🚀 AI 導入路線圖</h3>${strat}${svg}<div class="rm-detail">${PH.map(card).join('')}</div></div>`;
+
+  // ── 圖1：三軌優先層級漏斗（軌2 ▸ 軌1 ▸ 軌3）──
+  const tiers=[
+    {n:'01',t:'軌2 · 自訂GPT / ChatGPT',d:'NOW 立即啟動 · 易用即用、零開發',c1:'#079669',c2:'#10c98f',arr:t2},
+    {n:'02',t:'軌1 · Claude on Bedrock',d:'NEXT 建置導入 · 合規剛性、需建置',c1:'#1d4ed8',c2:'#3b82f6',arr:t1},
+    {n:'03',t:'軌3 · 地端 On-Prem',d:'FUTURE 未來候場 · 待資源與條件成熟',c1:'#475569',c2:'#708095',arr:t3},
+  ];
+  const ftier=(t,i)=>{const w=100-i*7;
+    const bul=t.arr.slice(0,4).map(x=>`<li onclick="openPain(${x.pi},${x.xi})">${esc(x.title.slice(0,15))}</li>`).join('')||'<li class="muted">（無）</li>';
+    return `<div class="ftier"><ul class="fbul">${bul}</ul>
+      <div class="fbadge" style="border-color:${t.c2}">${t.n}</div>
+      <div class="fbarwrap"><div class="fbar" style="width:${w}%;background:linear-gradient(90deg,${t.c1},${t.c2})">
+        <span class="fbar-t">${t.t}</span><span class="fbar-d">${t.d}</span><span class="fcount">${t.arr.length} 項 · ${fmt(sumhr(t.arr))} hr</span></div></div></div>`;};
+  const funnel=`<div class="card"><h3>🎯 三軌導入優先層級（軌2 ▸ 軌1 ▸ 軌3）· 點左側要點看痛點</h3>
+    <div class="funnel">${tiers.map(ftier).join('')}</div>
+    <div class="fnaxis">▲ 上層＝越優先導入（軌2 易用即用）　·　下層＝越往後（軌3 未來候場）</div></div>`;
+
+  document.getElementById('actiondash').innerHTML=roadmap+funnel;
+}
+renderDash();renderAction();
 </script>
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()"><div class="modal"><button class="modal-x" onclick="closeModal()">✕</button><div class="modal-body" id="modalBody"></div></div></div>
 </body>
