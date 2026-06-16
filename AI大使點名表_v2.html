@@ -385,7 +385,7 @@ const DEFAULT_SUB = [
   ['機構設計部','李易',2,'dante.li@netronixinc.com'],
   ['機構設計部','李忠軒',1,'bruce.lee@netronixinc.com'],
   ['研發SW','賴星延',1,'sam.lai@netronixinc.com'],
-  ['研發SW','林韡宸',1,'weichen.lin@netronixinc.com'],
+  ['研發SW','林韡宸',3,'weichen.lin@netronixinc.com'],
   ['研發SW','彭雅婕',1,'betty.peng@netronixinc.com'],
   ['文件管制','徐淑芬',1,'tracy_hsu@netronixinc.com'],
   ['文件管制','非大使未具名',1,'email待補'],
@@ -409,7 +409,7 @@ const DEFAULTS = {
   submissions: DEFAULT_SUB,
   rounds: [R1],
   subSeq: 1,
-  savedAt: Date.parse('2026-06-16T16:30:00')   // 預設資料版本時間（更新預設時調整）
+  savedAt: Date.parse('2026-06-16T17:30:00')   // 預設資料版本時間（更新預設時調整）
 };
 const DEFAULT_AT = DEFAULTS.savedAt;
 
@@ -490,7 +490,7 @@ function unitOrder(){
 function renderUnits(){
   const q=(document.getElementById('searchUnits').value||'').trim().toLowerCase();
   document.getElementById('unitsHead').innerHTML=
-    '<tr><th class="center">No.</th><th>單位</th><th>該單位大使（英文名 · 分機 · Email）</th><th class="center">繳交狀態</th><th>繳交人</th><th class="center">痛點數</th><th class="center">繳交份數</th></tr>';
+    '<tr><th class="center">No.</th><th>單位</th><th>該單位大使（英文名 · 分機 · Email）</th><th class="center">繳交狀態</th><th>繳交人</th><th class="center">痛點數</th><th class="center">採納分數</th></tr>';
   const order=unitOrder();
   let totDone=0, totPain=0, totSubs=0;
   let html='', shown=0;
@@ -717,7 +717,7 @@ function exportCSV(which){
     rows=ambassadors.map((p,i)=>[i+1,p.code,p.dept,p.cname,p.ename,p.ext,p.email,submittedAmb(p.cname,currentRound)?'已繳':'未繳']);
     tag='大使名單';
   }else if(which==='units'){
-    head=['No.','單位','該單位大使','英文名','分機','Email','繳交狀態','繳交人','痛點數','繳交份數'];
+    head=['No.','單位','該單位大使','英文名','分機','Email','繳交狀態','繳交人','痛點數','採納分數'];
     rows=unitOrder().map((u,i)=>{
       const ambs=ambassadors.filter(a=>unitOf(a.dept)===u);
       const subs=submissions.filter(s=>s.round===currentRound && unitOf(s.dept)===u);
