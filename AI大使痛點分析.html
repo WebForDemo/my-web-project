@@ -557,17 +557,18 @@ function renderAction(){
 
   // ── 圖2：連結節點流 ──
   const cx=[150,450,750];
-  const svgNodes=PH.map((p,i)=>{const x=cx[i], y=p.low?182:98;
-    const l1=p.low?y+78:y-70, l2=p.low?y+96:y-50;          // 標籤兩行位置
-    const dd=p.low?`M${x} ${y+48} L${x} ${y+66}`:`M${x} ${y-48} L${x} ${y-64}`; // 虛線連接
+  const svgNodes=PH.map((p,i)=>{const x=cx[i], y=p.low?198:110;
+    // 低節點標籤在下、高節點標籤在上；都落在虛線外側、不壓圖
+    const l1=p.low?y+82:y-80, l2=p.low?y+100:y-98;
+    const dd=p.low?`M${x} ${y+55} L${x} ${y+70}`:`M${x} ${y-55} L${x} ${y-70}`;
     return `<g class="rmnode" onclick="document.getElementById('phase${i}').scrollIntoView({behavior:'smooth',block:'center'})">
       <path d="${dd}" stroke="${p.col}" stroke-width="2.5" stroke-dasharray="2 4" stroke-linecap="round" opacity=".55"/>
       <circle cx="${x}" cy="${y}" r="46" fill="#fff" stroke="${p.col}" stroke-width="7"/>
       <text x="${x}" y="${y+15}" text-anchor="middle" font-size="40">${p.ic}</text>
       <text x="${x}" y="${l1}" text-anchor="middle" font-size="16" font-weight="800" letter-spacing="1" fill="${p.col}">${p.short}</text>
       <text x="${x}" y="${l2}" text-anchor="middle" font-size="13" font-weight="700" fill="#1e3a5f">${p.nms} · ${p.arr.length} 痛點</text></g>`;}).join('');
-  const svg=`<svg class="rmsvg" viewBox="0 0 900 296" xmlns="http://www.w3.org/2000/svg">
-    <path d="M150 182 C300 182 300 98 450 98 C600 98 600 182 750 182" fill="none" stroke="#e2e8f0" stroke-width="20" stroke-linecap="round"/>
+  const svg=`<svg class="rmsvg" viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg">
+    <path d="M150 198 C300 198 300 110 450 110 C600 110 600 198 750 198" fill="none" stroke="#e2e8f0" stroke-width="20" stroke-linecap="round"/>
     ${svgNodes}</svg>`;
   const item=(x,col)=>`<div class="pitem" style="border-left:4px solid ${col}" onclick="openPain(${x.pi},${x.xi})"><span class="pi-sc" style="background:${col}">${x.score}</span><div class="pi-t"><b>${esc(x.title)}${x.golden?' ⭐':''}</b><span>${esc(x.person)} · ${esc(x.dept)}${x.hr?' · '+fmt(x.hr)+'hr/月':''}</span></div><div class="pi-prog" title="優先分 ${x.score}"><i style="width:${x.score}%;background:${col}"></i></div></div>`;
   const card=(p,i)=>`<div class="phcard ${p.cls}" id="phase${i}"><div class="ph-top">${p.badge?`<span class="ph-badge">${p.badge}</span>`:''}
