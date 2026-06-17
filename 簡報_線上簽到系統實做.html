@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>線上簽到系統 · 架構與部署簡報</title>
+<style>
+  :root{
+    --navy:#1A1D26; --navy2:#272B38; --teal:#2EC4C4; --teal-d:#1A8F8F;
+    --beige:#F5F0EA; --ink:#3a3f48; --muted:#8A8F98; --line:#e3e6ea;
+    --ok:#27AE60; --warn:#E8833A; --err:#D94848;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Microsoft JhengHei","Noto Sans CJK TC","PingFang TC",sans-serif;
+    background:#0e1014; color:var(--ink); overflow:hidden;
+  }
+  /* 投影片容器 */
+  .deck{position:fixed; inset:0; display:flex; align-items:center; justify-content:center;}
+  .slide{
+    position:absolute; width:min(1100px,94vw); height:min(680px,92vh);
+    background:var(--beige); border-radius:18px; box-shadow:0 30px 80px rgba(0,0,0,.5);
+    padding:54px 64px; opacity:0; transform:translateY(20px) scale(.98);
+    transition:opacity .4s ease, transform .4s ease; pointer-events:none;
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .slide.active{opacity:1; transform:none; pointer-events:auto;}
+  .slide.cover{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%); color:#fff;}
+
+  .brand{color:var(--teal); font-weight:700; font-size:14px; letter-spacing:2px;}
+  h1{font-size:40px; line-height:1.25; margin:14px 0;}
+  h2{font-size:30px; color:var(--navy); margin-bottom:6px;}
+  .slide.cover h2{color:#fff;}
+  .sub{color:var(--muted); font-size:16px; margin-bottom:22px;}
+  .cover .sub{color:#aeb4bd;}
+  .tealbar{width:54px; height:5px; background:var(--teal); border-radius:3px; margin:10px 0 22px;}
+
+  p,li{font-size:18px; line-height:1.7;}
+  ul{margin-left:22px;} li{margin:8px 0;}
+  .lead{font-size:22px; line-height:1.6;}
+  b,strong{color:var(--navy);}
+  .cover b{color:var(--teal);}
+  .hl{color:var(--teal-d); font-weight:700;}
+  .tag{display:inline-block; background:#e0f4f6; color:var(--teal-d); font-size:13px;
+       font-weight:700; padding:3px 12px; border-radius:99px; margin:2px 4px 2px 0;}
+
+  /* 兩欄 */
+  .cols{display:flex; gap:28px; flex:1; min-height:0;}
+  .col{flex:1;}
+  .card{background:#fff; border-radius:12px; padding:20px 22px; box-shadow:0 2px 10px rgba(0,0,0,.05);
+        height:100%; border-top:4px solid var(--teal);}
+  .card.bad{border-top-color:var(--err);} .card.good{border-top-color:var(--ok);}
+  .card h3{font-size:19px; margin-bottom:10px; color:var(--navy);}
+
+  table{width:100%; border-collapse:collapse; font-size:15.5px; background:#fff; border-radius:10px; overflow:hidden;}
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line);}
+  th{background:var(--navy); color:#fff; font-size:14px;}
+  tr:last-child td{border-bottom:none;}
+  td .y{color:var(--ok); font-weight:700;} td .n{color:var(--err); font-weight:700;}
+
+  /* 流程 / 架構方塊 */
+  .flow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0;}
+  .box{background:#fff; border:2px solid var(--teal); border-radius:10px; padding:12px 16px;
+       font-weight:700; color:var(--navy); font-size:15px; text-align:center;}
+  .box.dark{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .box.soft{border-style:dashed; color:var(--ink); font-weight:600;}
+  .arrow{color:var(--teal-d); font-size:22px; font-weight:700;}
+  .stk{display:flex; flex-direction:column; gap:10px;}
+
+  code,.mono{font-family:"Consolas","Menlo",monospace;}
+  .cmd{background:var(--navy); color:#d7f7f7; border-radius:10px; padding:14px 18px;
+       font-family:"Consolas","Menlo",monospace; font-size:15px; line-height:1.7; margin:8px 0; overflow:auto;}
+  .cmd .c{color:#6fcf97;} .cmd .k{color:#f2c94c;}
+
+  .steps{counter-reset:s; list-style:none; margin:0;}
+  .steps li{counter-increment:s; position:relative; padding-left:46px; margin:14px 0; font-size:17px;}
+  .steps li::before{content:counter(s); position:absolute; left:0; top:-2px; width:30px; height:30px;
+       background:var(--teal); color:#fff; border-radius:50%; display:flex; align-items:center;
+       justify-content:center; font-weight:700; font-size:15px;}
+
+  .note{background:#fdf6ee; border-left:4px solid var(--warn); padding:12px 16px; border-radius:8px;
+        font-size:15px; margin-top:14px;}
+  .ok-note{background:#eaf7ef; border-left:4px solid var(--ok);}
+
+  /* HUD */
+  .hud{position:fixed; bottom:18px; left:0; right:0; display:flex; align-items:center;
+       justify-content:center; gap:18px; z-index:10;}
+  .hud button{background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.25);
+       width:40px; height:40px; border-radius:50%; font-size:18px; cursor:pointer; transition:.2s;}
+  .hud button:hover{background:var(--teal); border-color:var(--teal);}
+  .counter{color:#cfd3da; font-size:14px; min-width:60px; text-align:center; font-family:monospace;}
+  .progress{position:fixed; top:0; left:0; height:4px; background:var(--teal); width:0;
+       transition:width .3s ease; z-index:11;}
+  .dots{position:fixed; top:16px; right:20px; display:flex; gap:7px; z-index:10;}
+  .dots i{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.3); cursor:pointer;}
+  .dots i.on{background:var(--teal); transform:scale(1.3);}
+  .hint{position:fixed; bottom:18px; right:22px; color:#6b7079; font-size:12px; z-index:10;}
+  .foot{position:absolute; bottom:22px; left:64px; color:var(--muted); font-size:13px;}
+  .slide.cover .foot{color:#7f8893;}
+
+  /* 檔案說明表 */
+  .ftable{font-size:14.5px;}
+  .ftable th,.ftable td{padding:7px 12px;}
+  .ftable td:first-child{font-family:"Consolas","Menlo",monospace; color:var(--teal-d); font-weight:700; white-space:nowrap;}
+  .ftable tr:nth-child(even) td{background:#faf7f2;}
+
+  /* 檔案分類分組 */
+  .fgroups{display:flex; flex-direction:column; gap:12px; flex:1; min-height:0;}
+  .fgrp{background:#fff; border-radius:10px; padding:12px 16px; box-shadow:0 1px 6px rgba(0,0,0,.05); border-left:5px solid var(--muted);}
+  .fgrp.red{border-left-color:var(--err);}
+  .fgrp.yellow{border-left-color:var(--warn);}
+  .fgrp.gray{border-left-color:var(--muted);}
+  .ghead{font-weight:700; font-size:15px; color:var(--navy); margin-bottom:8px;}
+  .ghead .pill{font-size:12px; color:#fff; padding:2px 9px; border-radius:99px; margin-right:8px;}
+  .red .pill{background:var(--err);} .yellow .pill{background:var(--warn);} .gray .pill{background:var(--muted);}
+  .frow{display:flex; gap:10px; font-size:13.5px; line-height:1.55; padding:2px 0;}
+  .frow code{font-family:"Consolas","Menlo",monospace; color:var(--teal-d); font-weight:700; min-width:235px; display:inline-block;}
+  .frow span{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="dots" id="dots"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 封面 -->
+  <section class="slide cover active">
+    <div class="brand">◆ NETRONIX 振曜科技 · AI 推動委員會</div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <h1>AI 大使週會<br><b>線上簽到系統</b></h1>
+      <div class="tealbar"></div>
+      <p class="lead" style="color:#cfd3da;">技術架構 × 兩種部署方案（本機 / Docker / 雲端）<br>給管理層的說明簡報</p>
+    </div>
+    <div class="foot">2026 · 內部技術簡報</div>
+  </section>
+
+  <!-- 2 問題緣起 -->
+  <section class="slide">
+    <div class="brand">01 · 緣起</div>
+    <h2>原本的做法，為什麼不行？</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col"><div class="card bad">
+        <h3>❌ 舊做法：HTML 放 GitHub Pages</h3>
+        <ul>
+          <li>簽到資訊寫在網頁裡</li>
+          <li><b>換一台電腦，資料就不見了</b></li>
+          <li>別人簽的，自己這台看不到</li>
+        </ul>
+        <div class="note">根因：GitHub Pages 是「靜態網站」，<b>只能讀、不能寫</b>，沒有後端、沒有資料庫——資料其實只存在「那台瀏覽器」裡。</div>
+      </div></div>
+      <div class="col"><div class="card good">
+        <h3>✅ 我們要的</h3>
+        <ul>
+          <li>掃 QR 即可線上簽到</li>
+          <li>所有人的資料<b>集中保存</b></li>
+          <li>任何電腦都看到<b>同一份</b></li>
+          <li>自動產出缺勤報表</li>
+        </ul>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 3 解決方案一句話 + 架構 -->
+  <section class="slide">
+    <div class="brand">02 · 解決方案</div>
+    <h2>一個「會一直跑的後端 + 集中資料庫」</h2>
+    <div class="tealbar"></div>
+    <p class="lead">所有人的簽到都送到<span class="hl">同一台伺服器</span>、寫進<span class="hl">同一個資料庫</span>，誰連都是看同一份。</p>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+      <div class="flow" style="justify-content:center;">
+        <div class="stk">
+          <div class="box">📱 大使手機<br><span style="font-weight:400;font-size:13px">掃 QR 簽到</span></div>
+          <div class="box soft">💻 管理員<br><span style="font-weight:400;font-size:13px">看報表</span></div>
+        </div>
+        <span class="arrow">⇄</span>
+        <div class="box dark">後端伺服器<br><span style="font-weight:400;font-size:13px">Flask</span></div>
+        <span class="arrow">→</span>
+        <div class="box">🗄️ 集中資料庫<br><span style="font-weight:400;font-size:13px">SQLite</span></div>
+      </div>
+    </div>
+    <div class="note ok-note">差別只在這一點：舊做法資料存「瀏覽器」；新做法資料存「中央伺服器」。所以換電腦資料還在。</div>
+  </section>
+
+  <!-- 4 功能總覽 -->
+  <section class="slide">
+    <div class="brand">03 · 功能</div>
+    <h2>系統做得到什麼</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col"><div class="card">
+        <h3>給大使（簽到端）</h3>
+        <ul>
+          <li><b>下拉選名字</b>簽到（可搜尋中／英文名）</li>
+          <li>不在名單者走「其他」手動填</li>
+          <li>看得到「目前已 N 人簽到」</li>
+        </ul>
+      </div></div>
+      <div class="col"><div class="card">
+        <h3>給管理員（主控台）</h3>
+        <ul>
+          <li>開啟／關閉本場簽到</li>
+          <li><b>即時人數</b>自動更新</li>
+          <li>名單比對：大使／小組／名單外</li>
+          <li>出缺勤報表、未到名單、CSV 匯出</li>
+          <li>現場投影 QR</li>
+        </ul>
+      </div></div>
+    </div>
+    <div style="margin-top:14px;">
+      <span class="tag">線上簽到</span><span class="tag">名單比對</span><span class="tag">即時統計</span>
+      <span class="tag">出缺勤報表</span><span class="tag">CSV 匯出</span><span class="tag">QR 產生</span><span class="tag">金鑰保護</span>
+    </div>
+  </section>
+
+  <!-- 5 技術架構 -->
+  <section class="slide">
+    <div class="brand">04 · 技術架構</div>
+    <h2>用到哪些技術</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col">
+        <div class="stk">
+          <div class="box" style="text-align:left">🖥️ 前端：純 HTML / CSS / JS<br><span style="font-weight:400;font-size:13px">簽到頁、管理台、報表頁，無框架</span></div>
+          <div class="box dark" style="text-align:left">⚙️ 後端：Flask（Python）<br><span style="font-weight:400;font-size:13px">提供 API、名單比對、報表</span></div>
+          <div class="box" style="text-align:left">🗄️ 資料：SQLite 單檔資料庫<br><span style="font-weight:400;font-size:13px">場次 / 名冊 / 簽到三張表</span></div>
+          <div class="box" style="text-align:left">🔳 QR：segno　｜　🌐 對外：cloudflared</div>
+        </div>
+      </div>
+      <div class="col"><div class="card">
+        <h3>為什麼這樣選</h3>
+        <ul>
+          <li><b>輕量</b>：整套能跑在一台機器</li>
+          <li><b>零外部依賴</b>：不需付費資料庫或雲服務</li>
+          <li><b>SQLite</b>：單一檔案，好備份、好搬移</li>
+          <li><b>可成長</b>：日後要換 MySQL／加功能都容易</li>
+        </ul>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 6 資料流對比 -->
+  <section class="slide">
+    <div class="brand">05 · 關鍵觀念</div>
+    <h2>「資料存在哪」決定一切</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col"><div class="card bad">
+        <h3>舊：存在瀏覽器</h3>
+        <div class="flow"><div class="box soft">瀏覽器</div><span class="arrow">→</span><div class="box soft">瀏覽器自己</div></div>
+        <p style="margin-top:10px; color:var(--err)"><b>換台電腦 → 沒了</b><br>每台各存各的，互看不到。</p>
+      </div></div>
+      <div class="col"><div class="card good">
+        <h3>新：存在中央伺服器</h3>
+        <div class="flow"><div class="box">手機</div><span class="arrow">→</span><div class="box dark">伺服器</div><span class="arrow">→</span><div class="box">中央 DB</div></div>
+        <p style="margin-top:10px; color:var(--ok)"><b>任何電腦都看同一份 ✅</b><br>資料集中、可備份、可報表。</p>
+      </div></div>
+    </div>
+    <div class="note">這也是為什麼一定要有「一直在跑的後端」——而後端要跑在哪，就帶出了接下來的部署方案。</div>
+  </section>
+
+  <!-- 7 方案A 非Docker -->
+  <section class="slide">
+    <div class="brand">06 · 部署方案 A（非 Docker）</div>
+    <h2>本機直接跑：最快上手</h2>
+    <div class="tealbar"></div>
+    <p class="sub">在自己電腦啟動後端，再用 cloudflared 開一條公開網址。適合：自己操作、臨時開會。</p>
+    <div class="cols">
+      <div class="col">
+        <ol class="steps">
+          <li>執行 <code>./run.sh</code></li>
+          <li>自動啟動後端 + Cloudflare Tunnel</li>
+          <li>取得公開網址 <span class="mono">https://xxxx.trycloudflare.com</span></li>
+          <li>投影 QR → 大家掃 → 簽到</li>
+        </ol>
+      </div>
+      <div class="col">
+        <div class="cmd"><span class="c"># 一行啟動</span><br>ATTEND_ADMIN_KEY=<span class="k">"你的金鑰"</span> ./run.sh</div>
+        <div class="note">缺點：<b>電腦要全程開著</b>、網址每次重開會變、需自己設好 Python 環境。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 什麼是Docker -->
+  <section class="slide">
+    <div class="brand">07 · 觀念</div>
+    <h2>什麼是 Docker？為什麼需要它？</h2>
+    <div class="tealbar"></div>
+    <p class="lead">把「<b>作業系統 + Python + 所有套件 + 我們的程式</b>」整包封裝成一個 <span class="hl">image（映像檔）</span>。</p>
+    <div class="cols" style="margin-top:8px;">
+      <div class="col"><div class="card bad">
+        <h3>沒有 Docker，給別人時…</h3>
+        <ul>
+          <li>對方要自己裝對的 Python</li>
+          <li>pip 安裝套件、對版本</li>
+          <li>設定環境、踩各種坑</li>
+          <li>👉「在我電腦明明可以」</li>
+        </ul>
+      </div></div>
+      <div class="col"><div class="card good">
+        <h3>有 Docker，對方只要…</h3>
+        <div class="cmd"><span class="c"># 就這一行</span><br>docker compose up -d --build</div>
+        <ul>
+          <li>電腦<b>完全不用裝 Python</b></li>
+          <li>Mac / Windows / Linux 結果<b>一模一樣</b></li>
+        </ul>
+      </div></div>
+    </div>
+    <div class="note ok-note">比喻：Docker 像「貨櫃」——不管搬到哪艘船（哪台電腦／哪個雲），裡面的東西原封不動、照常運作。</div>
+  </section>
+
+  <!-- 9 方案B Docker -->
+  <section class="slide">
+    <div class="brand">08 · 部署方案 B（Docker）</div>
+    <h2>Docker 版：給別人用 / 搬上雲</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col">
+        <div class="cmd"><span class="c"># 啟動（本機或任何伺服器）</span><br>docker compose up -d --build<br><br><span class="c"># 停止 / 移除</span><br>docker compose stop<br>docker compose down</div>
+        <p style="margin-top:6px">內含 Dockerfile、compose、名冊、健康檢查，<br>以 <b>gunicorn</b>（正式級）執行。</p>
+      </div>
+      <div class="col">
+        <table>
+          <tr><th>比較</th><th>本機直跑</th><th>Docker</th></tr>
+          <tr><td>對方裝 Python/套件</td><td><span class="n">要</span></td><td><span class="y">免</span></td></tr>
+          <tr><td>跨電腦一致</td><td><span class="n">常出包</span></td><td><span class="y">一致</span></td></tr>
+          <tr><td>搬上雲端</td><td>要重設</td><td><span class="y">直接跑</span></td></tr>
+          <tr><td>執行品質</td><td>開發伺服器</td><td><span class="y">gunicorn</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 三種對外情境 -->
+  <section class="slide">
+    <div class="brand">09 · 對外存取</div>
+    <h2>「外部的人能不能用」取決於跑在哪</h2>
+    <div class="tealbar"></div>
+    <p class="sub">Docker 本身不會讓它對外——能不能被連到，看你把容器跑在哪台機器、有沒有對外的路。</p>
+    <table>
+      <tr><th>容器跑在…</th><th>誰連得到</th><th>外部可用</th><th>穩定度</th><th>費用</th></tr>
+      <tr><td>你筆電</td><td>只有自己 / 同 WiFi</td><td><span class="n">否</span></td><td>—</td><td>免費</td></tr>
+      <tr><td>你筆電 + Tunnel</td><td>任何人（公開網址）</td><td><span class="y">是</span></td><td>筆電要開著</td><td>免費</td></tr>
+      <tr><td><b>OCI 雲端 VM</b></td><td>任何人，固定網址</td><td><span class="y">是</span></td><td><b>24 小時</b></td><td><b>永久免費額度</b></td></tr>
+    </table>
+    <div class="note ok-note">臨時用 → 筆電 + Tunnel；正式長期 → 上雲（OCI）。同一個 Docker image，兩種都能跑。</div>
+  </section>
+
+  <!-- 11 OCI -->
+  <section class="slide">
+    <div class="brand">10 · 部署方案 C（雲端）</div>
+    <h2>上 Oracle Cloud：固定網址、24 小時</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col">
+        <ol class="steps">
+          <li>建立永久免費 VM（Ubuntu）</li>
+          <li>開放連接埠（雲端 + VM 兩層）</li>
+          <li>安裝 Docker</li>
+          <li>上傳程式並 <code>docker compose up</code></li>
+          <li>接網域 + 自動 HTTPS（Caddy）</li>
+        </ol>
+      </div>
+      <div class="col"><div class="card good">
+        <h3>好處</h3>
+        <ul>
+          <li><b>固定網址</b>：QR 不用每次重出</li>
+          <li><b>24 小時在線</b>：不依賴任何人筆電</li>
+          <li><b>永久免費額度</b>內，零成本</li>
+          <li>正式級、可長期當公司工具</li>
+        </ul>
+        <div class="note">已備妥完整 <span class="mono">DEPLOY_OCI.md</span> 步驟文件。</div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 12 安全 -->
+  <section class="slide">
+    <div class="brand">11 · 安全與隱私</div>
+    <h2>資料安全怎麼把關</h2>
+    <div class="tealbar"></div>
+    <div class="cols">
+      <div class="col"><div class="card">
+        <h3>🔑 管理金鑰保護</h3>
+        <ul>
+          <li>開關場次、看名單、匯 CSV → <b>需金鑰</b></li>
+          <li>簽到頁公開（大使要能掃）</li>
+          <li>金鑰錯誤一律擋下（401）</li>
+        </ul>
+      </div></div>
+      <div class="col"><div class="card">
+        <h3>🛡️ 隱私設計</h3>
+        <ul>
+          <li>簽到下拉<b>只露姓名</b>，不外洩信箱</li>
+          <li>完整名單與報表僅管理員可見</li>
+          <li>資料存自有資料庫，<b>可隨時備份</b></li>
+        </ul>
+      </div></div>
+    </div>
+    <div class="note">分享 Docker 版給外部時，會以「範例名單」取代真實名冊，避免內部資料外流。</div>
+  </section>
+
+  <!-- 13 比較與建議 -->
+  <section class="slide">
+    <div class="brand">12 · 結論</div>
+    <h2>三方案總覽與建議</h2>
+    <div class="tealbar"></div>
+    <table>
+      <tr><th>方案</th><th>適用情境</th><th>網址</th><th>需要顧著</th></tr>
+      <tr><td>A 本機直跑</td><td>自己、臨時測試</td><td>臨時、會變</td><td>電腦開著</td></tr>
+      <tr><td>B 筆電 Docker + Tunnel</td><td>臨時活動、給別人快速用</td><td>臨時、會變</td><td>電腦開著</td></tr>
+      <tr><td><b>C 雲端 Docker（OCI）</b></td><td><b>正式、長期</b></td><td><b>固定</b></td><td><b>無（24h）</b></td></tr>
+    </table>
+    <div class="cols" style="margin-top:18px;">
+      <div class="col"><div class="card good"><h3>建議</h3>
+        <p>近期活動先用 <b>B（筆電 Docker + Tunnel）</b>，零成本即可上線；<br>確定常態使用後，一鍵把同一個 image 搬到 <b>C（OCI 雲端）</b>，取得固定網址與 24 小時穩定。</p>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 附錄 A 核心程式檔 -->
+  <section class="slide">
+    <div class="brand">附錄 A · 檔案結構</div>
+    <h2>核心程式檔（系統本體）</h2>
+    <div class="tealbar"></div>
+    <p class="sub">這幾個檔就是整個系統；不管哪種部署方式都用同一份。</p>
+    <table class="ftable">
+      <tr><th>檔案</th><th>作用</th></tr>
+      <tr><td>app.py</td><td>後端主程式：所有 API、名單比對、報表、QR 產生都在這支</td></tr>
+      <tr><td>schema.sql</td><td>資料庫結構定義：場次 / 名冊 / 簽到 三張表</td></tr>
+      <tr><td>roster.csv</td><td>名冊：誰是大使、誰是小組（工號 / 姓名 / 信箱）</td></tr>
+      <tr><td>templates/checkin.html</td><td>簽到頁——大使掃 QR 進來看到的畫面</td></tr>
+      <tr><td>templates/admin.html</td><td>管理主控台——開關場次、出 QR、看報表</td></tr>
+      <tr><td>templates/report.html</td><td>出缺勤報表頁（明細 + 未到名單）</td></tr>
+      <tr><td>requirements.txt</td><td>需要安裝的 Python 套件清單</td></tr>
+      <tr><td>run.sh · cloudflared</td><td>非 Docker 版：一鍵啟動後端 + 對外通道</td></tr>
+    </table>
+  </section>
+
+  <!-- 附錄 B Docker 相關檔 -->
+  <section class="slide">
+    <div class="brand">附錄 B · 檔案結構</div>
+    <h2>Docker 版資料夾：哪些是真核心？</h2>
+    <div class="tealbar"></div>
+    <div class="fgroups">
+      <div class="fgrp red">
+        <div class="ghead"><span class="pill">必要</span>少了就 build 不出來 / 跑不起來</div>
+        <div class="frow"><code>Dockerfile</code><span>打包食譜：把 OS + Python + 套件 + 程式 封成 image</span></div>
+        <div class="frow"><code>entrypoint.sh</code><span>啟動時先建好資料庫，再以 gunicorn 起服務</span></div>
+        <div class="frow"><code>docker-compose.yml</code><span>一鍵啟動設定（連接埠 / 金鑰 / 資料 volume）</span></div>
+        <div class="frow"><code>app.py · schema.sql · templates/ · roster.csv · requirements.txt</code><span>系統本體（見附錄 A）</span></div>
+      </div>
+      <div class="fgrp yellow">
+        <div class="ghead"><span class="pill">選用</span>看你走哪條對外方式才會用到</div>
+        <div class="frow"><code>cloudflared</code><span>「筆電 + Tunnel」對外用（純本機 / 上雲不需要）</span></div>
+        <div class="frow"><code>run_tunnel.sh</code><span>一鍵：啟動容器 + 開公開網址</span></div>
+        <div class="frow"><code>docker-compose.caddy.yml · Caddyfile</code><span>有網域時，自動申請 HTTPS 憑證</span></div>
+      </div>
+      <div class="fgrp gray">
+        <div class="ghead"><span class="pill">文件</span>不會被執行，只是給人看</div>
+        <div class="frow"><code>README.md · DEPLOY_OCI.md · DEPLOY_LAPTOP_TUNNEL.md</code><span>使用說明與兩種部署教學</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 結語 -->
+  <section class="slide cover">
+    <div class="brand">◆ NETRONIX · AI 推動委員會</div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <h1>已完成可用<br><b>隨時可上線</b></h1>
+      <div class="tealbar"></div>
+      <ul style="color:#cfd3da; font-size:19px;">
+        <li>系統開發完成、本機與容器皆測試通過</li>
+        <li>非 Docker / Docker / 雲端 三套部署文件齊備</li>
+        <li>後續可加：固定網域、自動備份、跨週統計儀表板</li>
+      </ul>
+    </div>
+    <div class="foot">謝謝聆聽 · Q & A</div>
+  </section>
+
+</div>
+
+<div class="progress" id="prog2" style="display:none"></div>
+<div class="hud">
+  <button onclick="go(-1)">‹</button>
+  <span class="counter" id="counter">1 / 14</span>
+  <button onclick="go(1)">›</button>
+</div>
+<div class="hint">← → 翻頁 · F 全螢幕</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const dotsWrap=document.getElementById('dots');
+  let cur=0;
+  slides.forEach((_,i)=>{const d=document.createElement('i'); d.onclick=()=>show(i); dotsWrap.appendChild(d);});
+  const dots=[...dotsWrap.children];
+  function show(i){
+    cur=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach((s,j)=>s.classList.toggle('active',j===cur));
+    dots.forEach((d,j)=>d.classList.toggle('on',j===cur));
+    document.getElementById('counter').textContent=(cur+1)+' / '+slides.length;
+    document.getElementById('prog').style.width=((cur+1)/slides.length*100)+'%';
+  }
+  function go(n){show(cur+n);}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') {e.preventDefault(); go(1);}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp') {e.preventDefault(); go(-1);}
+    else if(e.key==='Home') show(0);
+    else if(e.key==='End') show(slides.length-1);
+    else if(e.key.toLowerCase()==='f'){ if(!document.fullscreenElement)document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+  });
+  // 點左右半邊翻頁
+  document.getElementById('deck').addEventListener('click',e=>{
+    if(e.target.closest('a,button,.dots,code,.cmd')) return;
+    const x=e.clientX/window.innerWidth;
+    if(x>0.62) go(1); else if(x<0.38) go(-1);
+  });
+  show(0);
+</script>
+</body>
+</html>
