@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kindle 啟動問題 — 初步說明</title>
+<title>Kindle Launch Issue — Preliminary Note</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -41,11 +41,6 @@ p { color:#94a3b8; line-height:1.75; font-size:14.5px; margin-bottom:8px; }
 .card { background:#1e2030; border:1px solid #2d3148; border-radius:12px; padding:18px 20px; }
 .card .ic { font-size:24px; margin-bottom:10px; }
 
-.badge { display:inline-block; padding:3px 11px; border-radius:6px; font-size:12px; font-weight:600; }
-.badge-blue   { background:rgba(96,165,250,.15);  color:#60a5fa; }
-.badge-red    { background:rgba(248,113,113,.15); color:#f87171; }
-.badge-amber  { background:rgba(251,191,36,.15);  color:#fbbf24; }
-
 .hbox { background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.3); border-radius:10px; padding:13px 16px; margin:9px 0; font-size:14px; color:#bfdbfe; line-height:1.7; }
 .hbox strong { color:#93c5fd; }
 .wbox { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.3); border-radius:10px; padding:13px 16px; margin:9px 0; font-size:13.5px; color:#fde68a; line-height:1.7; }
@@ -58,13 +53,11 @@ ul li { padding:5px 0 5px 18px; position:relative; color:#94a3b8; font-size:14px
 ul li::before { content:'▸'; position:absolute; left:0; color:#60a5fa; }
 ul li strong { color:#e2e8f0; }
 
-/* flow */
 .flow { display:flex; align-items:stretch; margin-top:6px; }
 .fstep { flex:1; background:#1e2030; border:1px solid #2d3148; border-radius:10px; padding:16px 10px; text-align:center; font-size:13.5px; color:#e2e8f0; font-weight:600; }
 .fstep.bad { background:rgba(248,113,113,.1); border-color:rgba(248,113,113,.4); color:#f87171; }
 .fsep { display:flex; align-items:center; color:#475569; font-size:20px; padding:0 10px; font-weight:800; }
 
-/* timeline */
 .tl { display:flex; margin-top:6px; }
 .tl .seg { flex:1; position:relative; padding:0 6px; }
 .tl .dot2 { width:18px; height:18px; border-radius:50%; background:#2563eb; margin:0 auto 12px; box-shadow:0 0 0 5px rgba(37,99,235,.2); }
@@ -75,7 +68,13 @@ ul li strong { color:#e2e8f0; }
 .eta { display:inline-flex; align-items:center; gap:9px; background:rgba(251,191,36,.12); color:#fbbf24; font-weight:800; font-size:16px; padding:11px 20px; border-radius:11px; border:1px solid rgba(251,191,36,.4); }
 
 .slide-num { position:absolute; top:20px; right:32px; font-size:11px; color:#334155; }
-.key-hint { position:fixed; top:16px; right:16px; font-size:11px; color:#334155; }
+.key-hint { position:fixed; top:18px; right:120px; font-size:11px; color:#334155; }
+
+.lang-btn { position:fixed; top:14px; right:20px; z-index:200;
+  background:rgba(96,165,250,.15); border:1px solid rgba(96,165,250,.4); color:#93c5fd;
+  border-radius:9px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; gap:7px; transition:all .2s; }
+.lang-btn:hover { background:rgba(96,165,250,.3); }
 
 .nav { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; z-index:100; }
 .nav button { background:rgba(96,165,250,.15); border:1px solid rgba(96,165,250,.35); color:#93c5fd; border-radius:9px; width:40px; height:40px; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; }
@@ -88,94 +87,92 @@ ul li strong { color:#e2e8f0; }
 </style>
 </head>
 <body>
-<div class="key-hint">← → 或空白鍵切換</div>
+<button class="lang-btn" id="langBtn" onclick="toggleLang()">🌐 中文</button>
+<div class="key-hint t" data-en="← → or Space to navigate" data-zh="← → 或空白鍵切換">← → or Space to navigate</div>
 <div class="slides">
 
 <!-- ══════════ SLIDE 1: Cover ══════════ -->
 <div class="slide slide-cover active">
   <div class="cover-tag">Software Issue · Android 12 · E70P24 / B810</div>
-  <div class="cover-title">Kindle 啟動問題<br>初步分析說明</div>
-  <div class="cover-sub">App 啟動即閃退 — 現象、初步判斷與處理方向</div>
+  <div class="cover-title t" data-en="Kindle Launch Issue<br>Preliminary Analysis" data-zh="Kindle 啟動問題<br>初步分析說明">Kindle Launch Issue<br>Preliminary Analysis</div>
+  <div class="cover-sub t" data-en="App crashes on launch — symptoms, preliminary assessment &amp; proposed direction" data-zh="App 啟動即閃退 — 現象、初步判斷與處理方向">App crashes on launch — symptoms, preliminary assessment &amp; proposed direction</div>
   <div class="cover-meta">
-    <div class="meta-item">⚠️ 啟動即閃退</div>
-    <div class="meta-item">🧩 原生函式庫符號</div>
-    <div class="meta-item">🛠️ 系統層級調整</div>
-    <div class="meta-item">🕒 預計約 2 週</div>
+    <div class="meta-item t" data-en="⚠️ Crash on launch" data-zh="⚠️ 啟動即閃退">⚠️ Crash on launch</div>
+    <div class="meta-item t" data-en="🧩 Native library symbol" data-zh="🧩 原生函式庫符號">🧩 Native library symbol</div>
+    <div class="meta-item t" data-en="🛠️ System-level change" data-zh="🛠️ 系統層級調整">🛠️ System-level change</div>
+    <div class="meta-item t" data-en="🕒 ~2 weeks (est.)" data-zh="🕒 預計約 2 週">🕒 ~2 weeks (est.)</div>
   </div>
 </div>
 
 <!-- ══════════ SLIDE 2: 現象與判斷 ══════════ -->
 <div class="slide slide-content">
   <div class="slide-num">02 / 03</div>
-  <h2><span class="num">1</span>問題現象與初步判斷</h2>
+  <h2><span class="num">1</span><span class="t" data-en="Symptoms &amp; Preliminary Assessment" data-zh="問題現象與初步判斷">Symptoms &amp; Preliminary Assessment</span></h2>
   <div class="two-col">
     <div class="card">
       <div class="ic">⚠️</div>
-      <h3>觀察到的現象</h3>
-      <p>Kindle App 在本機上一經開啟即閃退、無法進入主畫面。</p>
-      <p>系統 Log 顯示：在載入 App 的原生函式庫（native library）階段，找不到所需的某個 C++ 符號。</p>
-      <div class="rbox"><strong>結果</strong>：App 無法完成啟動初始化，直接結束。</div>
+      <h3 class="t" data-en="Observed Symptom" data-zh="觀察到的現象">Observed Symptom</h3>
+      <p class="t" data-en="The Kindle app crashes immediately on launch and cannot reach its main screen." data-zh="Kindle App 在本機上一經開啟即閃退、無法進入主畫面。">The Kindle app crashes immediately on launch and cannot reach its main screen.</p>
+      <p class="t" data-en="System log shows: while loading the app's native library, a required C++ symbol cannot be found." data-zh="系統 Log 顯示：在載入 App 的原生函式庫（native library）階段，找不到所需的某個 C++ 符號。">System log shows: while loading the app's native library, a required C++ symbol cannot be found.</p>
+      <div class="rbox t" data-en="&lt;strong&gt;Result&lt;/strong&gt;: the app cannot finish startup initialization and exits." data-zh="&lt;strong&gt;結果&lt;/strong&gt;：App 無法完成啟動初始化，直接結束。"><strong>Result</strong>: the app cannot finish startup initialization and exits.</div>
     </div>
     <div class="card">
       <div class="ic">🔍</div>
-      <h3>初步判斷（推測）</h3>
-      <p>傾向是系統內建的 C++ 共用函式庫版本較舊，缺少 Kindle 新版本所需的部分符號。</p>
-      <div class="hbox">
-        <strong>關鍵點</strong><br>
-        系統設定使 App 啟動時被導向使用「系統版本」函式庫，而非「App 自帶版本」，因而對應不上而閃退。
-      </div>
+      <h3 class="t" data-en="Preliminary Assessment (tentative)" data-zh="初步判斷（推測）">Preliminary Assessment (tentative)</h3>
+      <p class="t" data-en="It appears the system's built-in C++ shared library is an older version, missing some symbols required by the newer Kindle build." data-zh="傾向是系統內建的 C++ 共用函式庫版本較舊，缺少 Kindle 新版本所需的部分符號。">It appears the system's built-in C++ shared library is an older version, missing some symbols required by the newer Kindle build.</p>
+      <div class="hbox t" data-en="&lt;strong&gt;Key point&lt;/strong&gt;&lt;br&gt;A system setting makes the app use the &#8216;system version&#8217; of the library at launch instead of the &#8216;app-bundled version&#8217;, so the symbols do not match and it crashes." data-zh="&lt;strong&gt;關鍵點&lt;/strong&gt;&lt;br&gt;系統設定使 App 啟動時被導向使用「系統版本」函式庫，而非「App 自帶版本」，因而對應不上而閃退。"><strong>Key point</strong><br>A system setting makes the app use the &#8216;system version&#8217; of the library at launch instead of the &#8216;app-bundled version&#8217;, so the symbols do not match and it crashes.</div>
     </div>
   </div>
 
-  <h3 style="margin-top:24px">推測的發生過程</h3>
+  <h3 style="margin-top:24px" class="t" data-en="Likely Sequence" data-zh="推測的發生過程">Likely Sequence</h3>
   <div class="flow">
-    <div class="fstep">App 啟動</div><div class="fsep">›</div>
-    <div class="fstep">載入原生函式庫</div><div class="fsep">›</div>
-    <div class="fstep">取用系統舊版函式庫</div><div class="fsep">›</div>
-    <div class="fstep bad">符號對應不上 · 閃退</div>
+    <div class="fstep t" data-en="App launches" data-zh="App 啟動">App launches</div><div class="fsep">›</div>
+    <div class="fstep t" data-en="Load native library" data-zh="載入原生函式庫">Load native library</div><div class="fsep">›</div>
+    <div class="fstep t" data-en="Use old system library" data-zh="取用系統舊版函式庫">Use old system library</div><div class="fsep">›</div>
+    <div class="fstep bad t" data-en="Symbol mismatch · crash" data-zh="符號對應不上 · 閃退">Symbol mismatch · crash</div>
   </div>
 
-  <div class="wbox" style="margin-top:18px">※ 以上為初步分析，符號與細節仍在確認中，最終以實際驗證為準。</div>
+  <div class="wbox t" style="margin-top:18px" data-en="※ This is a preliminary analysis; symbols and details are still being confirmed. Final conclusions are subject to verification." data-zh="※ 以上為初步分析，符號與細節仍在確認中，最終以實際驗證為準。">※ This is a preliminary analysis; symbols and details are still being confirmed. Final conclusions are subject to verification.</div>
 </div>
 
 <!-- ══════════ SLIDE 3: 修改方向與時程 ══════════ -->
 <div class="slide slide-content">
   <div class="slide-num">03 / 03</div>
-  <h2><span class="num">2</span>預計的修改方向與時程</h2>
+  <h2><span class="num">2</span><span class="t" data-en="Proposed Direction &amp; Schedule" data-zh="預計的修改方向與時程">Proposed Direction &amp; Schedule</span></h2>
   <div class="two-col">
     <div>
       <div class="card">
         <div class="ic">🛠️</div>
-        <h3>修改方向（暫定）</h3>
-        <p>規劃將系統內建的 C++ 共用函式庫，更新為「相容、符號較完整」的版本，讓 Kindle 啟動時能正確對應所需符號、恢復正常開啟。</p>
-        <p style="color:#64748b;font-size:13px">屬系統層級調整，會整合進 image 一併釋出。</p>
+        <h3 class="t" data-en="Proposed Direction (tentative)" data-zh="修改方向（暫定）">Proposed Direction (tentative)</h3>
+        <p class="t" data-en="We plan to update the system's built-in C++ shared library to a compatible version with a more complete symbol set, so Kindle can resolve the required symbols at launch and start normally." data-zh="規劃將系統內建的 C++ 共用函式庫，更新為「相容、符號較完整」的版本，讓 Kindle 啟動時能正確對應所需符號、恢復正常開啟。">We plan to update the system's built-in C++ shared library to a compatible version with a more complete symbol set, so Kindle can resolve the required symbols at launch and start normally.</p>
+        <p style="color:#64748b;font-size:13px" class="t" data-en="A system-level change, released integrated into the image." data-zh="屬系統層級調整，會整合進 image 一併釋出。">A system-level change, released integrated into the image.</p>
       </div>
       <div class="card" style="margin-top:16px">
         <div class="ic">🧩</div>
-        <h3>影響範圍評估</h3>
-        <p>初步比對顯示，此調整對系統其他內建功能應無明顯相依衝突；正式採用前會再做開機與相關功能的整體確認。</p>
+        <h3 class="t" data-en="Impact Assessment" data-zh="影響範圍評估">Impact Assessment</h3>
+        <p class="t" data-en="Initial comparison shows no obvious dependency conflict with other built-in system features; an overall boot and function check will be done before formal adoption." data-zh="初步比對顯示，此調整對系統其他內建功能應無明顯相依衝突；正式採用前會再做開機與相關功能的整體確認。">Initial comparison shows no obvious dependency conflict with other built-in system features; an overall boot and function check will be done before formal adoption.</p>
       </div>
     </div>
     <div>
-      <h3>後續作業時程</h3>
+      <h3 class="t" data-en="Schedule" data-zh="後續作業時程">Schedule</h3>
       <div class="tl">
-        <div class="seg"><div class="bar"></div><div class="dot2"></div><h4>調整與 build</h4><span>更新函式庫<br>產出 image</span></div>
-        <div class="seg"><div class="bar"></div><div class="dot2"></div><h4>整體驗證</h4><span>開機 · 啟動<br>閱讀流程</span></div>
-        <div class="seg"><div class="dot2"></div><h4>釋出更新</h4><span>提供<br>更新版本</span></div>
+        <div class="seg"><div class="bar"></div><div class="dot2"></div><h4 class="t" data-en="Change &amp; build" data-zh="調整與 build">Change &amp; build</h4><span class="t" data-en="Update library<br>build image" data-zh="更新函式庫<br>產出 image">Update library<br>build image</span></div>
+        <div class="seg"><div class="bar"></div><div class="dot2"></div><h4 class="t" data-en="Verification" data-zh="整體驗證">Verification</h4><span class="t" data-en="Boot · launch<br>reading flow" data-zh="開機 · 啟動<br>閱讀流程">Boot · launch<br>reading flow</span></div>
+        <div class="seg"><div class="dot2"></div><h4 class="t" data-en="Release" data-zh="釋出更新">Release</h4><span class="t" data-en="Provide<br>updated build" data-zh="提供<br>更新版本">Provide<br>updated build</span></div>
       </div>
 
       <div style="margin-top:22px;text-align:center">
-        <span class="eta">🕒 預計修改時間：約 2 週</span>
+        <span class="eta t" data-en="🕒 Estimated time: ~2 weeks" data-zh="🕒 預計修改時間：約 2 週">🕒 Estimated time: ~2 weeks</span>
       </div>
 
-      <h3 style="margin-top:24px">主要驗證項目</h3>
+      <h3 style="margin-top:24px" class="t" data-en="Key Verification Items" data-zh="主要驗證項目">Key Verification Items</h3>
       <ul>
-        <li><strong>開機</strong>：系統正常開機、無異常</li>
-        <li><strong>Kindle 啟動</strong>：可正常開啟、不再閃退</li>
-        <li><strong>閱讀流程</strong>：開書、閱讀等主要功能正常</li>
+        <li class="t" data-en="&lt;strong&gt;Boot&lt;/strong&gt;: system boots normally, no anomalies" data-zh="&lt;strong&gt;開機&lt;/strong&gt;：系統正常開機、無異常"><strong>Boot</strong>: system boots normally, no anomalies</li>
+        <li class="t" data-en="&lt;strong&gt;Kindle launch&lt;/strong&gt;: opens normally, no more crash" data-zh="&lt;strong&gt;Kindle 啟動&lt;/strong&gt;：可正常開啟、不再閃退"><strong>Kindle launch</strong>: opens normally, no more crash</li>
+        <li class="t" data-en="&lt;strong&gt;Reading flow&lt;/strong&gt;: opening books and reading work correctly" data-zh="&lt;strong&gt;閱讀流程&lt;/strong&gt;：開書、閱讀等主要功能正常"><strong>Reading flow</strong>: opening books and reading work correctly</li>
       </ul>
 
-      <div class="wbox">※ 時程為暫估，實際以驗證結果回覆為準。</div>
+      <div class="wbox t" data-en="※ Schedule is an estimate; actual timing to be confirmed after verification." data-zh="※ 時程為暫估，實際以驗證結果回覆為準。">※ Schedule is an estimate; actual timing to be confirmed after verification.</div>
     </div>
   </div>
 </div>
@@ -190,6 +187,19 @@ ul li strong { color:#e2e8f0; }
 </div>
 
 <script>
+  /* ===== language ===== */
+  let lang = 'en';
+  function applyLang(){
+    document.documentElement.lang = (lang==='zh'?'zh-TW':'en');
+    document.querySelectorAll('.t').forEach(el=>{
+      const v = el.dataset[lang];
+      if(v!==undefined) el.innerHTML = v;
+    });
+    document.getElementById('langBtn').textContent = (lang==='en' ? '🌐 中文' : '🌐 EN');
+  }
+  function toggleLang(){ lang = (lang==='en'?'zh':'en'); applyLang(); }
+
+  /* ===== slides ===== */
   let cur = 0;
   const slides = document.querySelectorAll('.slide');
   const total = slides.length;
@@ -215,6 +225,8 @@ ul li strong { color:#e2e8f0; }
     if(e.key==='ArrowRight'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();changeSlide(1);}
     else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();changeSlide(-1);}
   });
+
+  applyLang(); /* default English */
 </script>
 </body>
 </html>
