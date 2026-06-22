@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kindle 啟動閃退 — 根因分析與解決報告</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif; background:#0f1117; color:#e2e8f0; overflow:hidden; height:100vh; }
+.slides { width:100%; height:100vh; position:relative; }
+.slide { position:absolute; width:100%; height:100%; display:none; padding:46px 68px 84px; overflow:hidden; flex-direction:column; justify-content:center; }
+.slide.active { display:flex; }
+.slide-cover { background:linear-gradient(135deg,#0b1830 0%,#0f1117 55%,#0c1426 100%); align-items:center; text-align:center; justify-content:center; padding-bottom:50px; }
+.slide-content { background:#0f1117; }
+
+.cover-tag { font-size:13px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:#60a5fa; margin-bottom:18px; }
+.cover-title { font-size:46px; font-weight:800; line-height:1.18; background:linear-gradient(135deg,#e2e8f0 0%,#93c5fd 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:14px; }
+.cover-sub { font-size:18px; color:#94a3b8; margin-bottom:34px; }
+.cover-meta { display:flex; gap:13px; justify-content:center; flex-wrap:wrap; }
+.meta-item { background:rgba(96,165,250,.1); border:1px solid rgba(96,165,250,.3); border-radius:12px; padding:9px 18px; font-size:13px; color:#93c5fd; }
+
+h2 { font-size:26px; font-weight:700; color:#e2e8f0; margin-bottom:18px; padding-bottom:10px; border-bottom:2px solid rgba(96,165,250,.4); display:flex; align-items:center; gap:12px; }
+h2 .num { background:#2563eb; color:#fff; width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+h3 { font-size:14.5px; font-weight:700; color:#93c5fd; margin-bottom:9px; margin-top:14px; }
+h3:first-child { margin-top:0; }
+p { color:#94a3b8; line-height:1.7; font-size:14px; margin-bottom:7px; }
+
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+.three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+
+.card { background:#1e2030; border:1px solid #2d3148; border-radius:12px; padding:16px 18px; }
+.card .ic { font-size:22px; margin-bottom:8px; }
+.card-title { font-size:13.5px; font-weight:700; color:#93c5fd; margin-bottom:7px; }
+
+pre { background:#161927; border:1px solid #2d3148; border-left:3px solid #60a5fa; border-radius:10px; padding:13px 16px; font-family:'JetBrains Mono','Fira Code','Consolas',monospace; font-size:12px; line-height:1.65; color:#c9d1d9; overflow-x:auto; margin:7px 0; white-space:pre; }
+code { font-family:'JetBrains Mono','Fira Code','Consolas',monospace; font-size:11.5px; background:rgba(96,165,250,.1); padding:1px 5px; border-radius:4px; color:#93c5fd; }
+.cg{color:#4ade80;} .cy{color:#fbbf24;} .cb{color:#60a5fa;} .cr{color:#f87171;} .cz{color:#6b7280;} .co{color:#fb923c;} .cp{color:#c084fc;}
+
+.badge { display:inline-block; padding:2px 9px; border-radius:6px; font-size:11px; font-weight:600; }
+.badge-green{background:rgba(74,222,128,.15);color:#4ade80;} .badge-red{background:rgba(248,113,113,.15);color:#f87171;} .badge-blue{background:rgba(96,165,250,.15);color:#60a5fa;} .badge-amber{background:rgba(251,191,36,.15);color:#fbbf24;}
+
+table { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:7px; }
+th { background:rgba(96,165,250,.13); color:#93c5fd; padding:8px 11px; text-align:left; font-weight:600; border-bottom:2px solid rgba(96,165,250,.3); }
+td { padding:8px 11px; border-bottom:1px solid #1e2030; color:#94a3b8; vertical-align:top; }
+tr:last-child td { border-bottom:none; }
+td:first-child { color:#e2e8f0; font-weight:500; }
+
+.hbox { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.3); border-radius:10px; padding:12px 15px; margin:8px 0; font-size:13px; color:#bbf7d0; line-height:1.65; }
+.hbox strong{color:#86efac;}
+.wbox { background:rgba(251,191,36,.07); border:1px solid rgba(251,191,36,.3); border-radius:10px; padding:12px 15px; margin:8px 0; font-size:13px; color:#fde68a; line-height:1.65; }
+.wbox strong{color:#fbbf24;}
+.rbox { background:rgba(248,113,113,.07); border:1px solid rgba(248,113,113,.3); border-radius:10px; padding:12px 15px; margin:8px 0; font-size:13px; color:#fecaca; line-height:1.65; }
+.rbox strong{color:#f87171;}
+.kbox { background:rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.35); border-radius:10px; padding:13px 16px; font-size:14.5px; color:#bfdbfe; line-height:1.7; }
+.kbox strong{color:#dbeafe;}
+
+ul { list-style:none; } ul li { padding:4px 0 4px 16px; position:relative; color:#94a3b8; font-size:13.5px; line-height:1.6; } ul li::before { content:'▸'; position:absolute; left:0; color:#60a5fa; } ul li strong{color:#e2e8f0;}
+
+/* arch diagram boxes */
+.arch { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.ns { flex:1; min-width:240px; border-radius:12px; padding:14px 16px; }
+.ns.app { background:rgba(96,165,250,.07); border:1px solid rgba(96,165,250,.35); }
+.ns.sys { background:rgba(148,163,184,.06); border:1px solid #2d3148; }
+.ns .nh { font-size:13px; font-weight:700; margin-bottom:10px; color:#cbd5e0; }
+.lib { background:#1e2030; border:1px solid #2d3148; border-radius:8px; padding:9px 12px; font-size:12.5px; margin:6px 0; color:#e2e8f0; }
+.lib.ok { border-color:rgba(74,222,128,.5); }
+.lib.bad { border-color:rgba(248,113,113,.5); }
+.lib small { display:block; color:#64748b; font-size:11px; margin-top:2px; font-family:monospace; }
+.bigarrow { font-size:26px; color:#f87171; font-weight:800; }
+
+/* timeline (history) */
+.steps { display:flex; flex-direction:column; gap:9px; }
+.step { display:flex; align-items:flex-start; gap:13px; }
+.step-n { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; color:#fff; }
+.sn-ok{background:#16a34a;} .sn-bad{background:#dc2626;} .sn-fix{background:#2563eb;}
+.step-c strong { display:block; color:#e2e8f0; font-size:13.5px; margin-bottom:3px; }
+.step-c span { color:#94a3b8; font-size:12.5px; line-height:1.55; }
+.step-c code { font-size:11px; }
+
+.slide-num { position:absolute; top:20px; right:32px; font-size:11px; color:#334155; }
+.key-hint { position:fixed; top:16px; right:16px; font-size:11px; color:#334155; }
+.nav { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; z-index:100; }
+.nav button { background:rgba(96,165,250,.15); border:1px solid rgba(96,165,250,.35); color:#93c5fd; border-radius:9px; width:38px; height:38px; font-size:19px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.nav button:hover { background:rgba(96,165,250,.3); } .nav button:disabled { opacity:.3; cursor:not-allowed; }
+.page-info { font-size:12px; color:#64748b; min-width:54px; text-align:center; }
+.dots { display:flex; gap:5px; } .dot { width:6px; height:6px; border-radius:50%; background:#334155; cursor:pointer; } .dot.active { background:#60a5fa; width:18px; border-radius:3px; }
+</style>
+</head>
+<body>
+<div class="key-hint">← → 或空白鍵切換</div>
+<div class="slides">
+
+<!-- ═══ SLIDE 1: Cover ═══ -->
+<div class="slide slide-cover active">
+  <div class="cover-tag">Root Cause Analysis · Android 12 · E70P24 / B810 MobiScribe</div>
+  <div class="cover-title">Kindle 啟動閃退<br>根因分析與解決報告</div>
+  <div class="cover-sub">libc++_shared.so 版本不相容 — 根因、修正歷史、解法與驗證</div>
+  <div class="cover-meta">
+    <div class="meta-item">🎯 根因已定位</div>
+    <div class="meta-item">🔁 含修正歷史</div>
+    <div class="meta-item">✅ 已實機驗證</div>
+    <div class="meta-item">📦 修正涵蓋 2 個產品</div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 2: 結論 + 根因機制 + 架構圖 ═══ -->
+<div class="slide slide-content">
+  <div class="slide-num">02 / 06</div>
+  <h2><span class="num">1</span>根因機制（一句話結論）</h2>
+
+  <div class="kbox" style="margin-bottom:14px">
+    <strong>結論：</strong>系統內建的 <code>libc++_shared.so</code> 是舊版，缺少 Kindle 需要的 C++ 符號；又因它被列為「公開函式庫」而強制注入 App，<strong>蓋掉了 Kindle 自帶的完整版本</strong>，導致載入時找不到符號而閃退。
+  </div>
+
+  <h3>實際發生的崩潰</h3>
+  <pre><span class="cr">java.lang.UnsatisfiedLinkError: dlopen failed: cannot locate symbol</span>
+"<span class="cy">_ZTTNSt6__ndk119basic_ostringstreamIcNS_11char_traitsIcEENS_9allocatorIcEEEE</span>"
+  referenced by ".../com.amazon.kindle-.../lib/arm/<span class="cb">libKindleSDKFastMetricsJNI.so</span>"</pre>
+  <p style="font-size:12px;color:#64748b">符號 demangle ＝ <code>VTT for std::__ndk1::basic_ostringstream&lt;char&gt;</code></p>
+
+  <h3 style="margin-top:16px">架構圖：為什麼會載到「錯的」函式庫</h3>
+  <div class="arch">
+    <div class="ns app">
+      <div class="nh">🟦 Kindle App 的 linker namespace</div>
+      <div class="lib">libKindleSDKFastMetricsJNI.so<small>需要 → libc++_shared.so</small></div>
+      <div class="lib ok">libc++_shared.so（App 自帶 · 符號完整）<small>/data/app/.../lib/arm/ · 含 ostringstream ✔</small></div>
+    </div>
+    <div style="text-align:center">
+      <div class="bigarrow">⤵</div>
+      <div style="font-size:11px;color:#f87171;max-width:120px">public.libraries 設定<br>強制改用系統版本</div>
+    </div>
+    <div class="ns sys">
+      <div class="nh">⬜ 系統 default namespace</div>
+      <div class="lib bad">libc++_shared.so（系統版 · 舊／缺符號）<small>/system/lib/ · 無 ostringstream ✗</small></div>
+      <div style="font-size:11.5px;color:#f87171;margin-top:4px">→ 找不到符號 → <strong>閃退</strong></div>
+    </div>
+  </div>
+  <p style="font-size:11.5px;color:#64748b;margin-top:8px">關鍵：libc++_shared.so 被列在 <code>public.libraries.android.txt</code>，App namespace 因此被連到系統版本，而非自帶版本。</p>
+</div>
+
+<!-- ═══ SLIDE 3: 證據與驗證 ═══ -->
+<div class="slide slide-content">
+  <div class="slide-num">03 / 06</div>
+  <h2><span class="num">2</span>關鍵證據與安全性驗證</h2>
+  <div class="two-col">
+    <div>
+      <h3>① 不是 namespace 衝突，是「版本缺符號」</h3>
+      <p>兩顆同屬 <code>__ndk1</code> namespace，排除命名衝突；差別在系統版缺了整族 stringstream 符號。</p>
+      <table>
+        <tr><th>項目</th><th>系統版（舊）</th><th>Kindle 版</th></tr>
+        <tr><td>檔案大小</td><td>657,000</td><td>1,301,936</td></tr>
+        <tr><td>__ndk1 符號</td><td>1851</td><td>1912</td></tr>
+        <tr><td>匯出符號</td><td>2304</td><td>2337</td></tr>
+        <tr><td>basic_ostringstream</td><td><span class="badge badge-red">無 ✗</span></td><td><span class="badge badge-green">有 ✔</span></td></tr>
+      </table>
+      <div class="wbox" style="font-size:12px">Kindle 版相對系統版多出所需符號，但也少了 226 個（多為 compiler-rt builtin / 連結器符號 / libc++ debug 符號）。</div>
+    </div>
+    <div>
+      <h3>② 替換是否安全？— 全面掃描</h3>
+      <div class="card">
+        <div class="card-title">針對「Kindle 版缺少的 226 個符號」</div>
+        <p style="font-size:13px">掃描 image 內 <strong style="color:#e2e8f0">1013 個</strong> system / vendor 函式庫，檢查是否有人會用到這些符號：</p>
+        <div class="hbox" style="font-size:13.5px"><strong>結果：0 個</strong>函式庫 import 到任一缺失符號 → 替換對系統零影響。</div>
+      </div>
+      <h3>③ 開機驗證</h3>
+      <ul>
+        <li>換檔後重開機 <strong>正常開機</strong>，無 boot regression</li>
+        <li>佐證「系統服務不依賴那些缺失符號」的靜態結論</li>
+      </ul>
+      <p style="font-size:11.5px;color:#64748b">工具：<code>llvm-readelf -Ws</code> 比對符號、<code>readelf -d</code> 查相依、<code>/proc/&lt;pid&gt;/maps</code> 驗實際載入來源。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 4: 修正歷史（走錯路） ═══ -->
+<div class="slide slide-content">
+  <div class="slide-num">04 / 06</div>
+  <h2><span class="num">3</span>修正歷史：中途走錯路與更正</h2>
+  <div class="two-col">
+    <div>
+      <div class="steps">
+        <div class="step"><div class="step-n sn-ok">1</div><div class="step-c"><strong>根因判斷（正確）</strong><span>確認為「系統舊版 libc++ 缺符號 ＋ public.libraries 強制注入」。方向正確。</span></div></div>
+        <div class="step"><div class="step-n sn-bad">2</div><div class="step-c"><strong>改錯來源 ⚠️（中途錯誤）</strong><span>誤以為 <code>/system/lib</code> 那顆來自 <code>prebuilts/ndk</code>，替換了它並重 build、重燒機。</span></div></div>
+        <div class="step"><div class="step-n sn-bad">3</div><div class="step-c"><strong>重燒後仍閃退</strong><span>同一個 ostringstream 符號錯誤再現 → 證明改的不是真正來源。</span></div></div>
+        <div class="step"><div class="step-n sn-fix">4</div><div class="step-c"><strong>追 build 規則找到真來源</strong><span>查 ninja / PRODUCT_COPY_FILES，發現 <code>/system/lib</code> 其實是從 vendor prebuilt 複製來的。</span></div></div>
+        <div class="step"><div class="step-n sn-fix">5</div><div class="step-c"><strong>更正並驗證</strong><span>還原 prebuilts/ndk 的誤改，改正確的 vendor 來源；rebuild 後確認目標檔已含符號。</span></div></div>
+      </div>
+    </div>
+    <div>
+      <h3>錯誤的關鍵點：來源認錯</h3>
+      <div class="rbox">
+        <strong>❌ 一開始改的（無效）</strong><br>
+        <code style="font-size:10.5px">prebuilts/ndk/current/.../armeabi-v7a/libc++_shared.so</code><br>
+        這顆是給「NDK 編譯」用的，<strong>不會</strong>進到 /system/lib。
+      </div>
+      <div class="hbox">
+        <strong>✔ 真正要改的（有效）</strong><br>
+        <code style="font-size:10.5px">vendor/aw/public/prebuild/lib/libc++_shared.so</code><br>
+        透過 <code>PRODUCT_COPY_FILES</code> 複製成 /system/lib/libc++_shared.so。
+      </div>
+      <div class="wbox" style="font-size:12.5px"><strong>教訓：</strong>同名 .so 在 AOSP 樹中有多份；改動前必須用 build graph（ninja / module-info）確認「該安裝檔的真正來源」，不能靠檔名猜。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 5: 解法 + 路徑 + build flow ═══ -->
+<div class="slide slide-content">
+  <div class="slide-num">05 / 06</div>
+  <h2><span class="num">4</span>正確解法、檔案路徑與 Build 流程</h2>
+  <div class="two-col">
+    <div>
+      <h3>異動的檔案（絕對路徑）</h3>
+      <table>
+        <tr><th>檔案</th><th>動作</th></tr>
+        <tr><td><code style="font-size:10px">/mnt/aosp/B810_MobiScribe/vendor/aw/public/prebuild/lib/libc++_shared.so</code></td><td><span class="badge badge-green">已替換</span> 換成符號完整版</td></tr>
+        <tr><td><code style="font-size:10px">…/vendor/aw/public/prebuild/lib/libc++_shared.so.orig</code></td><td><span class="badge badge-blue">備份</span> 原始檔</td></tr>
+        <tr><td><code style="font-size:10px">…/prebuilts/ndk/current/sources/cxx-stl/llvm-libc++/libs/armeabi-v7a/libc++_shared.so</code></td><td><span class="badge badge-amber">已還原</span> 撤銷誤改</td></tr>
+      </table>
+      <h3 style="margin-top:12px">相關設定（佐證根因，未異動）</h3>
+      <ul>
+        <li><code style="font-size:10px">system/core/rootdir/etc/public.libraries.android.txt</code> 第 45 行列了 libc++_shared.so</li>
+        <li><code style="font-size:10px">device/softwinner/epic/E70P24_android.mk</code> 第 89 行：PRODUCT_COPY_FILES</li>
+        <li><code style="font-size:10px">device/softwinner/epic/EA0P04_android.mk</code> 第 87 行：同來源 → 兩產品一起修</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Build 流程：來源如何進到 /system/lib</h3>
+      <pre><span class="cg">vendor/aw/public/prebuild/lib/libc++_shared.so</span>
+        │  <span class="cz">（已換成符號完整版）</span>
+        ▼  <span class="cy">PRODUCT_COPY_FILES</span>
+   <span class="cz">device/softwinner/epic/E70P24_android.mk:89</span>
+        │
+        ▼  make systemimage（自動 strip）
+   <span class="cb">out/.../system/lib/libc++_shared.so</span>
+        │
+        ▼  燒錄
+   裝置 <span class="cb">/system/lib/libc++_shared.so</span>
+
+<span class="cr">✗ prebuilts/ndk/.../libc++_shared.so</span>
+   <span class="cz">→ 只供 NDK 編譯，不進 system image</span></pre>
+      <div class="hbox" style="font-size:12.5px"><strong>永久生效</strong>：重跑 <code>make systemimage</code> 後燒入即可；已先在工程機驗證重建出的目標檔含 6 個 ostringstream 符號（含目標符號）。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SLIDE 6: 驗證結果與狀態 ═══ -->
+<div class="slide slide-content">
+  <div class="slide-num">06 / 06</div>
+  <h2><span class="num">5</span>驗證結果與現況</h2>
+  <div class="three-col">
+    <div class="card"><div class="ic">🔬</div><div class="card-title">靜態分析</div><p style="font-size:12.5px">1013 個 system/vendor lib 全掃，<strong style="color:#86efac">0 個</strong>依賴缺失符號 → 替換安全。</p></div>
+    <div class="card"><div class="ic">⚙️</div><div class="card-title">Build 驗證</div><p style="font-size:12.5px">重建目標檔含 <strong style="color:#86efac">6 個</strong> ostringstream 符號，含崩潰所需的目標符號。</p></div>
+    <div class="card"><div class="ic">📱</div><div class="card-title">實機驗證</div><p style="font-size:12.5px">熱修＋重開機後 Kindle <strong style="color:#86efac">正常啟動不再閃退</strong>，crash log 乾淨。</p></div>
+  </div>
+
+  <div class="two-col" style="margin-top:16px">
+    <div>
+      <h3>目前狀態</h3>
+      <table>
+        <tr><th>項目</th><th>狀態</th></tr>
+        <tr><td>根因定位</td><td><span class="badge badge-green">完成</span></td></tr>
+        <tr><td>Tree 內來源修正</td><td><span class="badge badge-green">完成（2 產品）</span></td></tr>
+        <tr><td>實機熱修驗證</td><td><span class="badge badge-green">通過</span></td></tr>
+        <tr><td>正式 image 重建燒入</td><td><span class="badge badge-amber">待執行</span></td></tr>
+        <tr><td>開書／閱讀完整回歸</td><td><span class="badge badge-amber">建議補測</span></td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>後續建議</h3>
+      <ul>
+        <li>重跑 <strong>make systemimage</strong> 產出正式 image 並燒入驗收</li>
+        <li>補測<strong>開書、閱讀</strong>流程（reader 重型 JNI 開書才載入）</li>
+        <li>長期可評估：將 libc++_shared.so 自 <strong>public.libraries 移除</strong>，讓各 App 用自帶版本，根治版本綁定問題</li>
+      </ul>
+      <div class="hbox" style="font-size:12.5px"><strong>風險評估</strong>：本次替換對系統無已知相依衝突，開機與啟動皆已驗證正常。</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /slides -->
+
+<div class="nav">
+  <button id="prevBtn" onclick="changeSlide(-1)" disabled>‹</button>
+  <div class="dots" id="dots"></div>
+  <div class="page-info" id="pageInfo">1 / 6</div>
+  <button id="nextBtn" onclick="changeSlide(1)">›</button>
+</div>
+
+<script>
+  let cur=0;
+  const slides=document.querySelectorAll('.slide');
+  const total=slides.length;
+  const dotsEl=document.getElementById('dots');
+  slides.forEach((_,i)=>{const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i);dotsEl.appendChild(d);});
+  function goTo(n){
+    slides[cur].classList.remove('active'); dotsEl.children[cur].classList.remove('active');
+    cur=Math.max(0,Math.min(total-1,n));
+    slides[cur].classList.add('active'); dotsEl.children[cur].classList.add('active');
+    document.getElementById('pageInfo').textContent=(cur+1)+' / '+total;
+    document.getElementById('prevBtn').disabled=cur===0;
+    document.getElementById('nextBtn').disabled=cur===total-1;
+  }
+  function changeSlide(d){goTo(cur+d);}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='ArrowDown'){e.preventDefault();changeSlide(1);}
+    else if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();changeSlide(-1);}
+  });
+</script>
+</body>
+</html>
