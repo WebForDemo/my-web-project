@@ -96,10 +96,10 @@ ul { list-style:none; } ul li { padding:4px 0 4px 16px; position:relative; color
   <div class="cover-title">Kindle 啟動閃退<br>根因分析與解決報告</div>
   <div class="cover-sub">libc++_shared.so 版本不相容 — 根因、修正歷史、解法與驗證</div>
   <div class="cover-meta">
+    <div class="meta-item">📲 8.125→8.150 更新觸發</div>
     <div class="meta-item">🎯 根因已定位</div>
     <div class="meta-item">🔁 含修正歷史</div>
     <div class="meta-item">✅ 已實機驗證</div>
-    <div class="meta-item">📦 修正涵蓋 2 個產品</div>
   </div>
 </div>
 
@@ -108,17 +108,29 @@ ul { list-style:none; } ul li { padding:4px 0 4px 16px; position:relative; color
   <div class="slide-num">02 / 06</div>
   <h2><span class="num">1</span>根因機制（一句話結論）</h2>
 
-  <div class="kbox" style="margin-bottom:14px">
-    <strong>結論：</strong>系統內建的 <code>libc++_shared.so</code> 是舊版，缺少 Kindle 需要的 C++ 符號；又因它被列為「公開函式庫」而強制注入 App，<strong>蓋掉了 Kindle 自帶的完整版本</strong>，導致載入時找不到符號而閃退。
+  <div style="display:flex;gap:12px;margin-bottom:12px">
+    <div style="flex:1;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.4);border-radius:10px;padding:10px 14px">
+      <span class="badge badge-green">✔ 正常使用</span>
+      <span style="font-size:15px;color:#e2e8f0;font-weight:800;margin-left:8px">Kindle 8.125</span>
+      <span style="font-size:12px;color:#94a3b8;margin-left:6px">— 由 MobiStore App 下載安裝</span>
+    </div>
+    <div style="flex:1;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.45);border-radius:10px;padding:10px 14px">
+      <span class="badge badge-red">✗ 啟動閃退</span>
+      <span style="font-size:15px;color:#e2e8f0;font-weight:800;margin-left:8px">Kindle 8.135 → 8.150</span>
+      <span style="font-size:12px;color:#94a3b8;margin-left:6px">— Google Play 自動更新後</span>
+    </div>
   </div>
 
-  <h3>實際發生的崩潰</h3>
+  <div class="kbox" style="margin-bottom:12px">
+    <strong>結論：</strong>新版 Kindle（8.135 / 8.150）以較新 NDK 編譯、用到較新的 C++ 符號；而系統內建的 <code>libc++_shared.so</code> 是<strong>舊版、缺這些符號</strong>，又因被列為「公開函式庫」強制注入 App、<strong>蓋掉 Kindle 自帶的完整版本</strong>，載入時找不到符號而閃退。（8.125 尚未用到該符號，故正常。）
+  </div>
+
+  <h3>實際發生的崩潰（demangle ＝ <code>VTT for std::__ndk1::basic_ostringstream&lt;char&gt;</code>）</h3>
   <pre><span class="cr">java.lang.UnsatisfiedLinkError: dlopen failed: cannot locate symbol</span>
 "<span class="cy">_ZTTNSt6__ndk119basic_ostringstreamIcNS_11char_traitsIcEENS_9allocatorIcEEEE</span>"
   referenced by ".../com.amazon.kindle-.../lib/arm/<span class="cb">libKindleSDKFastMetricsJNI.so</span>"</pre>
-  <p style="font-size:12px;color:#64748b">符號 demangle ＝ <code>VTT for std::__ndk1::basic_ostringstream&lt;char&gt;</code></p>
 
-  <h3 style="margin-top:16px">架構圖：為什麼會載到「錯的」函式庫</h3>
+  <h3 style="margin-top:14px">架構圖：為什麼會載到「錯的」函式庫</h3>
   <div class="arch">
     <div class="ns app">
       <div class="nh">🟦 Kindle App 的 linker namespace</div>
