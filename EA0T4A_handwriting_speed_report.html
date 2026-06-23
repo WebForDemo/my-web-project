@@ -526,6 +526,98 @@ B 段：6.549 × (112 / 157) × (23.8095 / 960) × 1000 = 115.87 ms
   </div>
 </div>
 
+<div class="sec">
+  <div class="sec-t"><span class="n">11</span> YP 量測方式（尺規刻度法）</div>
+
+  <div class="card">
+    <h4 style="color:var(--cyan)">▎方法概念</h4>
+    <p>YP 量測方式是以<strong>實體尺規刻度</strong>作為固定基準的量測法。核心是先在畫面上建立兩條間距固定的基準線（<strong>10 cm</strong>，此數值必須在不同機台間維持一致），並把尺直接黏貼在機器上，避免錄製過程晃動造成判讀偏差。量測時統一以<strong>筆尖與墨跡通過 12 cm 刻度</strong>作為事件判讀點，記錄兩者所在的 frame 後相減換算成 ms，並重複三次取平均。</p>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--green)">▎量測步驟</h4>
+    <div class="steps">
+      <div class="step">
+        <h5>Step 1. 畫出兩條基準線</h5>
+        <p>先畫出間距 <span class="mono">10 cm</span> 的兩條線；此 10 cm 數值需在不同機台間<strong>固定一致</strong>，跨機台比較才有意義。</p>
+      </div>
+      <div class="step">
+        <h5>Step 2. 將尺黏貼上機器</h5>
+        <p>把尺固定黏貼在機器上，避免錄製時尺或機台晃動，影響刻度判讀。</p>
+      </div>
+      <div class="step">
+        <h5>Step 3. 補光</h5>
+        <p>加強照明，避免畫面太暗看不清刻度、筆尖與墨跡。</p>
+      </div>
+      <div class="step">
+        <h5>Step 4. 注意陰影遮擋</h5>
+        <p>劃線時注意陰影，手部有可能遮擋到刻度或事件點，需調整角度與光源位置。</p>
+      </div>
+      <div class="step">
+        <h5>Step 5. 記錄筆通過 12 cm 的 frame</h5>
+        <p>找出筆尖經過 <span class="mono">12 cm</span> 刻度時所在的影格。</p>
+      </div>
+      <div class="step">
+        <h5>Step 6. 記錄墨跡浮出於 12 cm 的 frame</h5>
+        <p>找出黑色墨跡首次浮出在 <span class="mono">12 cm</span> 刻度時所在的影格。</p>
+      </div>
+      <div class="step">
+        <h5>Step 7. 相減換算 ms</h5>
+        <p>兩個 frame 相減得到影格差，再以 <span class="mono">格數 ÷ 960 × 1000</span> 換算成毫秒。</p>
+      </div>
+      <div class="step">
+        <h5>Step 8. 量測三次取平均</h5>
+        <p>重複量測三次後取平均，降低單次判讀誤差，得到較穩定的代表值。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:var(--amber)">▎跨機台量測數據彙整</h4>
+    <p>以下為依此方式（<span class="mono">960 fps</span>，格數 ÷ 960 × 1000）量測各機台的結果。完整原始資料與影片連結見下方試算表。</p>
+    <div style="overflow-x:auto">
+      <table class="tb">
+        <tr><th>機台</th><th>架構</th><th>各次 ms</th><th>平均 ms</th></tr>
+        <tr>
+          <td>Mobiscribe Wave (C)</td>
+          <td>NTX Adraw</td>
+          <td><span class="mono">41.70 / 45.83 / 40.63</span></td>
+          <td><strong style="color:var(--green)">42.72</strong></td>
+        </tr>
+        <tr>
+          <td>MT8171 Public 7"</td>
+          <td>MTK GPU</td>
+          <td><span class="mono">81.25 / 71.88 / 76.04</span></td>
+          <td><strong>76.39</strong></td>
+        </tr>
+        <tr>
+          <td>E80T1A bn 8.5"</td>
+          <td>MTK GPU</td>
+          <td><span class="mono">90.63 / 101.04 / 104.17</span></td>
+          <td><strong>98.16</strong></td>
+        </tr>
+        <tr>
+          <td>EA0T4A 10" Updated</td>
+          <td>NTX Adraw</td>
+          <td><span class="mono">68.75 / 386.46 / 432.29 / 69.76 / 79.17</span></td>
+          <td><strong style="color:var(--red)">207.29</strong></td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin-top:8px">注：EA0T4A 平均值偏高，主要受兩筆異常大值（<span class="mono">386 / 432 ms</span>）拉抬；若排除異常，其餘三筆約落在 <span class="mono">69 ~ 79 ms</span>。建議回頭檢視該兩筆的判讀與量測條件是否一致。</p>
+  </div>
+
+  <div class="card">
+    <div class="video-card" style="margin-top:0">
+      <div class="title">YP 量測原始資料試算表</div>
+      <div class="desc">含各機台 Device / Architecture / Starting Frame / End Frame / Frame Difference / Milliseconds 及影片連結。</div>
+      <div class="video-link">
+        <a href="https://docs.google.com/spreadsheets/d/1w3JUuL_9N4CZ3hRdrpkvdm8oLaLGJD6a/edit?gid=313050555#gid=313050555" target="_blank" rel="noopener noreferrer">開啟量測資料試算表</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="note">EA0T4A Handwriting Speed Measurement Report · Frame-Based Latency Analysis</div>
 
 </div>
