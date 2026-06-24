@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTA kPayloadTimestampError 排查報告</title>
+<style>
+  :root{
+    --ground:#12161F;
+    --surface:#1A212C;
+    --surface-2:#222B38;
+    --line:#2C3744;
+    --text:#E6E9EF;
+    --muted:#8A93A3;
+    --faint:#5C6573;
+    --amber:#F2A33C;
+    --teal:#5BD6B0;
+    --danger:#E5736A;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--ground);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .bg{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:64px 64px;
+    opacity:.06;
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);
+  }
+
+  .app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
+
+  .bar{
+    display:flex;align-items:center;gap:16px;
+    padding:14px 24px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);
+    flex:0 0 auto;
+  }
+  .bar .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  .bar .id{color:var(--text)}
+  .bar .sep{color:var(--faint)}
+  .bar .right{margin-left:auto;display:flex;gap:18px}
+  .bar .k{color:var(--faint)}
+  .bar .v{color:var(--text)}
+
+  .stage{flex:1 1 auto;position:relative;overflow:hidden}
+  .page{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(24px,5vw,80px);
+    max-width:1100px;margin:0 auto;width:100%;
+    opacity:0;transform:translateY(14px);
+    transition:opacity .45s ease,transform .45s ease;
+    pointer-events:none;overflow-y:auto;
+  }
+  .page.is-active{opacity:1;transform:none;pointer-events:auto}
+
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--amber);margin-bottom:18px;display:flex;align-items:center;gap:12px;
+  }
+  .eyebrow .num{color:var(--faint)}
+  .ptitle{
+    font-family:var(--mono);font-weight:600;
+    font-size:clamp(26px,4.6vw,46px);line-height:1.12;letter-spacing:-.01em;
+    margin-bottom:22px;
+  }
+  .ptitle .hl{color:var(--amber)}
+  .ptitle .ok{color:var(--teal)}
+  .lede{font-size:clamp(15px,1.7vw,18px);color:var(--text);max-width:64ch;margin-bottom:8px}
+  .muted{color:var(--muted)}
+  p+p{margin-top:12px}
+
+  .cover-h{font-family:var(--mono);font-weight:600;letter-spacing:-.01em;
+    font-size:clamp(28px,5.6vw,56px);line-height:1.14;margin-bottom:22px}
+  .cover-h .hl{color:var(--amber)}
+  .cover-sub{font-size:clamp(15px,1.9vw,19px);color:var(--muted);max-width:52ch;margin-bottom:30px}
+  .cover-conflict{display:inline-flex;flex-wrap:wrap;align-items:center;gap:14px;
+    font-family:var(--mono);font-size:clamp(13px,1.7vw,17px);
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:16px 20px;margin-bottom:26px}
+  .cover-conflict .who{color:var(--faint);font-size:.82em;display:block;margin-bottom:3px;letter-spacing:.04em}
+  .cover-conflict .old b{color:var(--danger);font-weight:600}
+  .cover-conflict .new b{color:var(--text);font-weight:600}
+  .cover-conflict .op{color:var(--faint);font-size:1.3em}
+  .cover-conflict .blocked{color:var(--danger);border:1px solid rgba(229,115,106,.45);
+    border-radius:7px;padding:6px 12px;font-size:.85em;letter-spacing:.05em}
+  .cover-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;
+    font-family:var(--mono);font-size:13px;color:var(--faint)}
+  .errbadge{color:var(--danger);background:rgba(229,115,106,.1);
+    border:1px solid rgba(229,115,106,.3);border-radius:6px;padding:5px 12px;letter-spacing:.03em}
+
+  .grid{display:grid;gap:14px;margin-top:8px}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-2{grid-template-columns:1fr 1fr}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;
+  }
+  .card h4{font-family:var(--mono);font-size:13px;letter-spacing:.05em;color:var(--amber);margin-bottom:8px;font-weight:600}
+  .card.ok h4{color:var(--teal)}
+  .card.bad h4{color:var(--danger)}
+  .card p{font-size:14.5px;color:var(--muted)}
+  .card .big{font-family:var(--mono);font-size:20px;color:var(--text);font-weight:600}
+
+  .log{
+    background:#0C0F15;border:1px solid var(--line);border-left:3px solid var(--danger);
+    border-radius:10px;padding:16px 18px;font-family:var(--mono);font-size:13px;line-height:1.75;
+    color:#C7CEDA;overflow-x:auto;white-space:pre;margin-top:6px;
+  }
+  .log.ok{border-left-color:var(--teal)}
+  .log .e{color:var(--danger)}
+  .log .w{color:var(--amber)}
+  .log .g{color:var(--teal)}
+  .log .d{color:var(--faint)}
+  .log .arrow{color:var(--teal)}
+
+  .tl{display:flex;flex-direction:column;gap:12px;margin-top:8px;font-family:var(--mono)}
+  .row{display:grid;grid-template-columns:160px 1fr auto;align-items:center;gap:18px;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+  .row .lbl{color:var(--muted);font-size:13px}
+  .row .meter{height:8px;border-radius:5px;background:var(--surface-2);position:relative;overflow:hidden}
+  .row .meter span{position:absolute;inset:0 auto 0 0;border-radius:5px}
+  .row .val{font-size:14px;color:var(--text);white-space:nowrap}
+  .row.bad{border-color:rgba(229,115,106,.4)}
+  .row.bad .meter span{background:var(--danger)}
+  .row.ok{border-color:rgba(91,214,176,.4)}
+  .row.ok .meter span{background:var(--teal)}
+  .row.mid .meter span{background:var(--amber)}
+  .row .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .row.bad .tag{color:var(--danger)}
+  .row.ok .tag{color:var(--teal)}
+
+  .steps{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .step{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:start;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+  .step .n{font-family:var(--mono);color:var(--faint);font-size:13px;font-weight:600;min-width:22px}
+  .step .body{font-size:14.5px}
+  .step .body b{color:var(--text);font-family:var(--mono);font-weight:600}
+  .step .body span{color:var(--muted);display:block;margin-top:2px;font-size:13.5px}
+  .step .res{font-family:var(--mono);font-size:12px;letter-spacing:.05em;white-space:nowrap;padding-top:2px}
+  .step .res.no{color:var(--danger)}
+  .step .res.yes{color:var(--teal)}
+
+  .commit{font-family:var(--mono);font-size:13.5px;background:var(--surface);border:1px solid var(--line);
+    border-radius:10px;padding:14px 18px;margin-top:10px}
+  .commit .sha{color:var(--amber)}
+  .commit .arrow{color:var(--teal)}
+  .commit .file{color:var(--muted)}
+
+  .callout{border:1px solid rgba(242,163,60,.35);background:rgba(242,163,60,.07);
+    border-radius:10px;padding:14px 18px;margin-top:16px;font-size:14.5px}
+  .callout b{color:var(--amber);font-family:var(--mono)}
+  .callout.ok{border-color:rgba(91,214,176,.35);background:rgba(91,214,176,.07)}
+  .callout.ok b{color:var(--teal)}
+
+  ul.clean{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  ul.clean li{padding-left:26px;position:relative;font-size:15px;color:var(--text)}
+  ul.clean li::before{content:"\203A";position:absolute;left:6px;color:var(--amber);font-family:var(--mono);font-weight:700}
+  ul.clean li span{color:var(--muted)}
+
+  code{font-family:var(--mono);font-size:.92em;color:var(--amber);background:rgba(242,163,60,.08);
+    padding:1px 6px;border-radius:5px}
+
+  .nav{
+    flex:0 0 auto;display:flex;align-items:center;gap:20px;
+    padding:14px 24px;border-top:1px solid var(--line);
+  }
+  .nav button{
+    font-family:var(--mono);font-size:13px;letter-spacing:.04em;
+    background:var(--surface);color:var(--text);border:1px solid var(--line);
+    border-radius:8px;padding:9px 16px;cursor:pointer;transition:.2s;
+  }
+  .nav button:hover{border-color:var(--amber);color:var(--amber)}
+  .nav button:disabled{opacity:.3;cursor:not-allowed;border-color:var(--line);color:var(--text)}
+  .dots{display:flex;gap:9px;margin:0 auto}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px rgba(242,163,60,.6)}
+  .nav .count{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:64px;text-align:right}
+
+  button:focus-visible,.dots i:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+
+  @media(max-width:720px){
+    .cols-3,.cols-2{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr;gap:8px}
+    .row .val{white-space:normal}
+    .bar .right{display:none}
+    .step{grid-template-columns:auto 1fr}
+    .step .res{grid-column:2;justify-self:start}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .page{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<div class="app">
+  <header class="bar">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="id">OTA-DIAG</span>
+    <span class="sep">/</span>
+    <span>update_engine post-mortem</span>
+    <div class="right">
+      <span><span class="k">product</span> <span class="v">EA0T4A_A00</span></span>
+      <span><span class="k">err</span> <span class="v">51</span></span>
+      <span><span class="k">status</span> <span class="v" style="color:var(--teal)">RESOLVED</span></span>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <section class="page cover is-active">
+      <div class="eyebrow"><span class="num">00 / 09</span> 排查報告 · update_engine</div>
+      <h1 class="cover-h">OTA 更新被<span class="hl">防降級檢查</span>擋下</h1>
+      <p class="cover-sub">更新包裡 vendor 的 build 日期比手機上現有的還舊,系統把它當成「版本降級」拒絕安裝。這份報告記錄從卡關到解決的全程。</p>
+      <div class="cover-conflict">
+        <span class="old"><span class="who">更新包的 vendor</span><b>2026-06-04</b></span>
+        <span class="op">&lt;</span>
+        <span class="new"><span class="who">手機上現有的</span><b>2026-06-12</b></span>
+        <span class="op">&rarr;</span>
+        <span class="blocked">擋下</span>
+      </div>
+      <div class="cover-meta">
+        <span class="errbadge">ErrorCode 51 · kPayloadTimestampError</span>
+        <span>product EA0T4A_A00 · full payload</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">01 / 09</span> 現象</div>
+      <h2 class="ptitle">更新跑沒幾秒就<span class="hl">終止</span></h2>
+      <p class="lede">寫入 payload 的第一步就被擋下,三個 vendor 系列分區被判定「比裝置上的版本還舊」。</p>
+      <div class="log"><span class="w">W</span> hardware_android: Timestamp check failed: <span class="e">vendor</span> Partition: 1781249750  Update: 1780564526
+<span class="w">W</span> delta_performer: PartitionUpdate <span class="e">vendor</span> has an older version than partition on device.
+<span class="w">W</span> delta_performer: PartitionUpdate <span class="e">vendor_dlkm</span> ... older version ...
+<span class="w">W</span> delta_performer: PartitionUpdate <span class="e">odm_dlkm</span> ... older version ...
+<span class="e">E</span> delta_performer: Failed to parse manifest
+<span class="e">E</span> download_action: Error <span class="e">kPayloadTimestampError (51)</span> -- Terminating processing</div>
+      <div class="callout"><b>注意</b>　<code>Failed to parse manifest</code> 是誤導——manifest 沒壞,真正終止的原因是同一個錯誤碼 51(timestamp 降級)。</div>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">02 / 09</span> 根本原因</div>
+      <h2 class="ptitle">vendor 的 build 時間被<span class="hl">凍結</span>在舊日期</h2>
+      <p class="lede"><code>ro.vendor.build.date.utc</code> 不是來自 source 日期,而是 build 當下從 <code>out/build_date.txt</code> 抓的時間,寫進 <code>build.prop</code>。</p>
+      <div class="grid cols-3" style="margin-top:18px">
+        <div class="card">
+          <h4>① 時間來源</h4>
+          <p><code>out/build_date.txt</code> 第一次 build 抓一次,之後 incremental 一直沿用——這是刻意設計,讓增量編譯時間穩定。</p>
+        </div>
+        <div class="card">
+          <h4>② build.prop</h4>
+          <p>分區的 <code>build.prop</code> 只在「不存在時」才產生一次。已存在就被當 up-to-date,不重產。</p>
+        </div>
+        <div class="card bad">
+          <h4>③ 結果</h4>
+          <p>兩者都沿用舊的 → vendor 時間被釘死在「上次 clean build 的日期」,無論怎麼增量重編都不變。</p>
+        </div>
+      </div>
+      <div class="callout">一句話:<b>incremental build 不會更新 vendor 的 build 時間</b>,它停在最後一次乾淨編譯那天。</div>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">03 / 09</span> 時間軸對照</div>
+      <h2 class="ptitle">OTA 的 vendor 比裝置<span class="hl">舊 8 天</span></h2>
+      <div class="tl">
+        <div class="row mid">
+          <span class="lbl">OTA · system/gz</span>
+          <span class="meter"><span style="width:100%"></span></span>
+          <span class="val">2026-06-23 &nbsp; <span class="muted">1782191750</span></span>
+        </div>
+        <div class="row bad">
+          <span class="lbl">裝置現有 vendor</span>
+          <span class="meter"><span style="width:62%"></span></span>
+          <span class="val">2026-06-12 &nbsp; <span class="muted">1781249750</span> &nbsp;<span class="tag">基準線</span></span>
+        </div>
+        <div class="row bad">
+          <span class="lbl">OTA · vendor</span>
+          <span class="meter"><span style="width:50%"></span></span>
+          <span class="val">2026-06-04 &nbsp; <span class="muted">1780564526</span> &nbsp;<span class="tag">✕ 比基準舊</span></span>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:18px">同一包 OTA 裡,system 端是 6/23 的新時間,但 vendor / vendor_dlkm / odm_dlkm 卡在 6/04。比裝置上現有的 6/12 還舊 → update_engine 判定降級 → 擋。</p>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">04 / 09</span> 試過但無效</div>
+      <h2 class="ptitle">為什麼那些手段<span class="hl">都沒用</span></h2>
+      <div class="steps">
+        <div class="step">
+          <span class="n">A</span>
+          <span class="body"><b>手動改 build_date.txt</b><span>build.prop 早已存在、被當 up-to-date,新時間從沒被讀到。</span></span>
+          <span class="res no">✕ 無效</span>
+        </div>
+        <div class="step">
+          <span class="n">B</span>
+          <span class="body"><b>repo sync 最新 source</b><span>sync 只動 source,完全不碰 out/ 裡的舊產物。</span></span>
+          <span class="res no">✕ 無效</span>
+        </div>
+        <div class="step">
+          <span class="n">C</span>
+          <span class="body"><b>build.sh 自動刪 build.prop</b><span>改了沒重新 source,舊函式照跑;且 split-build 不會重產 build.prop。</span></span>
+          <span class="res no">✕ 無效</span>
+        </div>
+        <div class="step">
+          <span class="n">D</span>
+          <span class="body"><b>打包加 --override_timestamp</b><span>此參數只走 incremental OTA 路徑;你的是 full payload,對 per-partition 時間不生效。</span></span>
+          <span class="res no">✕ 無效</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">05 / 09</span> 真正有效</div>
+      <h2 class="ptitle">砍掉整個 <code class="ok">out</code> 重 build <span class="ok">✓</span></h2>
+      <p class="lede">關鍵在於它<strong>同時</strong>強制了「時間重抓」與「build.prop 重產」——前面每個單點手段各缺一半,這個一次補齊。</p>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card ok">
+          <h4>out 清空後發生什麼</h4>
+          <p><code>build_date.txt</code> 不存在 → 重抓當下時間。三個 <code>build.prop</code> 也不存在 → 重新產生並讀到新時間。</p>
+        </div>
+        <div class="card ok">
+          <h4>結果</h4>
+          <p class="big">→ 1782213174</p>
+          <p>三個分區全變 <strong>2026-06-23 19:12</strong>,新於裝置的 6/12 → 防降級檢查全過。</p>
+        </div>
+      </div>
+      <div class="callout ok">代價:等於全 clean,重編較久。<b>輕量等效</b> = 出 OTA 前 <code>rm out/build_date.txt</code> + 那三個 <code>build.prop</code>(尚未驗證,需測)。</div>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">06 / 09</span> 另一條路 · 雞生蛋</div>
+      <h2 class="ptitle">改 update_engine <span class="hl">繞過</span>檢查</h2>
+      <p class="lede">這兩筆 commit 直接關掉降級檢查,改法正確——但它必須<strong>已經跑在裝置上</strong>才生效。</p>
+      <div class="commit"><span class="sha">b12442c0</span> &nbsp;delta_performer.cc&nbsp; <span class="file">CheckTimestampError()</span> &nbsp;<span class="arrow">&rarr;</span>&nbsp; return kSuccess</div>
+      <div class="commit"><span class="sha">2abad906</span> &nbsp;hardware_android.cc&nbsp; <span class="file">AllowDowngrade()</span> &nbsp;<span class="arrow">&rarr;</span>&nbsp; return true</div>
+      <div class="callout"><b>雞生蛋</b>　驗證 OTA 的是裝置「當前 slot 上正在跑」的 update_engine。失敗 log 裡沒有出現新加的 <code>Skip partition version downgrade check.</code> → 代表裝置跑的還是<strong>舊的、沒改過</strong>的版本。你沒辦法靠 OTA 把「能放行 OTA 的 update_engine」送進去。</div>
+      <p class="muted" style="margin-top:14px">解:先用 <strong>fastboot 刷一次</strong>含這兩筆 commit 的版本進去,之後 OTA 才會 bypass。</p>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">07 / 09</span> 更新成功</div>
+      <h2 class="ptitle">重開機後的 snapshot <span class="ok">合併完成</span></h2>
+      <p class="lede">payload 已寫完、已重開進新 slot B,這段是背景把 virtual A/B 的 COW 合併回真正分區的收尾。</p>
+      <div class="log ok"><span class="d">...</span> cleanup_previous_update_action: Waiting for merge to complete: 59% &rarr; 99%
+<span class="g">I</span> snapshot: CheckTargetMergeState for system_b   <span class="arrow">&rarr;</span> <span class="g">MergeCompleted</span>
+<span class="g">I</span> snapshot: CheckTargetMergeState for vendor_b   <span class="arrow">&rarr;</span> <span class="g">MergeCompleted</span>
+<span class="g">I</span> snapshot: CheckMergeState for snapshots        <span class="arrow">&rarr;</span> <span class="g">MergeCompleted</span>
+<span class="g">I</span> cleanup_previous_update_action: Merge finished in <span class="g">63343ms</span>
+<span class="g">I</span> action_processor: finished CleanupPreviousUpdateAction <span class="g">kSuccess</span>
+<span class="g">I</span> update_attempter_android: Processing Done. Clearing update complete marker.</div>
+      <p class="muted" style="margin-top:14px">全程沒有 kPayloadTimestampError。所有分區的 B slot 都合併完成,流程正常結束。</p>
+    </section>
+
+    <section class="page">
+      <div class="eyebrow"><span class="num">08 / 09</span> 結論與後續</div>
+      <h2 class="ptitle">兩條獨立的「能更新」理由</h2>
+      <ul class="clean">
+        <li><strong style="color:var(--teal)">理由 A · timestamp 夠新</strong> — build 時間 &gt; 裝置現有版本就會過,跟 update_engine 有沒有改無關。<span>nuke-out 那次成功,靠的是這個。</span></li>
+        <li><strong style="color:var(--teal)">理由 B · 裝置已跑 bypass 版</strong> — 與 timestamp 無關,但前提是含 commit 的版本已在裝置上。<span>成功更新並重開後,這台已「轉正」。</span></li>
+      </ul>
+      <div class="grid cols-2" style="margin-top:22px">
+        <div class="card">
+          <h4>日後出 OTA · 防呆</h4>
+          <p>要出能蓋過舊機的 OTA → 確保 vendor 時間新於目標機(最穩:出包前清 out)。</p>
+        </div>
+        <div class="card">
+          <h4>下次驗證 bypass</h4>
+          <p>看 OTA log 有沒有 <code>Skip partition version downgrade check.</code> — 有 = bypass 生效。</p>
+        </div>
+      </div>
+      <p class="muted" style="margin-top:22px;font-family:var(--mono);font-size:12.5px">附註:ntx_addon/host_tools/build.sh 未納入 git,排查中的暫時改動已 byte-for-byte 還原。</p>
+    </section>
+
+  </main>
+
+  <nav class="nav">
+    <button id="prev" aria-label="上一頁">&lsaquo; Prev</button>
+    <div class="dots" id="dots" role="tablist" aria-label="頁面"></div>
+    <button id="next" aria-label="下一頁">Next &rsaquo;</button>
+    <span class="count" id="count">01 / 09</span>
+  </nav>
+</div>
+
+<script>
+  (function(){
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+    var total = pages.length;
+    var i = 0;
+    var dots = document.getElementById('dots');
+    var prev = document.getElementById('prev');
+    var next = document.getElementById('next');
+    var count = document.getElementById('count');
+
+    pages.forEach(function(p,idx){
+      var d = document.createElement('i');
+      d.setAttribute('role','tab');
+      d.setAttribute('aria-label','第 '+(idx+1)+' 頁');
+      d.tabIndex = 0;
+      d.addEventListener('click',function(){go(idx)});
+      d.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(idx)}});
+      dots.appendChild(d);
+    });
+    var dotEls = Array.prototype.slice.call(dots.children);
+
+    function pad(n){return (n<10?'0':'')+n}
+    function go(n){
+      i = Math.max(0, Math.min(total-1, n));
+      pages.forEach(function(p,idx){p.classList.toggle('is-active', idx===i)});
+      dotEls.forEach(function(d,idx){d.classList.toggle('on', idx===i)});
+      prev.disabled = i===0;
+      next.disabled = i===total-1;
+      count.textContent = pad(i+1)+' / '+pad(total);
+      var act = pages[i]; if(act){act.scrollTop=0}
+    }
+    prev.addEventListener('click',function(){go(i-1)});
+    next.addEventListener('click',function(){go(i+1)});
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='PageDown'){go(i+1)}
+      else if(e.key==='ArrowLeft'||e.key==='PageUp'){go(i-1)}
+      else if(e.key==='Home'){go(0)}
+      else if(e.key==='End'){go(total-1)}
+    });
+    var sx=null;
+    document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+    document.addEventListener('touchend',function(e){
+      if(sx===null)return;
+      var dx=e.changedTouches[0].clientX-sx;
+      if(Math.abs(dx)>50){go(dx<0?i+1:i-1)}
+      sx=null;
+    },{passive:true});
+
+    go(0);
+  })();
+</script>
+</body>
+</html>
