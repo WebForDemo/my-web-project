@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>開機過場畫面：原理、流程與修正</title>
+<style>
+  :root{
+    --ground:#12161F; --surface:#1A212C; --surface-2:#222B38; --line:#2C3744;
+    --text:#E6E9EF; --muted:#8A93A3; --faint:#5C6573;
+    --amber:#F2A33C; --teal:#5BD6B0; --danger:#E5736A; --violet:#9D8CF0;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ground);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:64px 64px;opacity:.06;
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);}
+  .app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
+
+  .bar{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);flex:0 0 auto}
+  .bar .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  .bar .id{color:var(--text)} .bar .sep{color:var(--faint)}
+  .bar .right{margin-left:auto;display:flex;gap:18px}
+  .bar .k{color:var(--faint)} .bar .v{color:var(--text)}
+
+  .stage{flex:1 1 auto;position:relative;overflow:hidden}
+  .page{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(24px,4.5vw,72px);max-width:1120px;margin:0 auto;width:100%;
+    opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease;
+    pointer-events:none;overflow-y:auto}
+  .page.is-active{opacity:1;transform:none;pointer-events:auto}
+
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--amber);margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  .eyebrow .num{color:var(--faint)}
+  .ptitle{font-family:var(--mono);font-weight:600;font-size:clamp(24px,4vw,42px);line-height:1.14;letter-spacing:-.01em;margin-bottom:18px}
+  .ptitle .hl{color:var(--amber)} .ptitle .ok{color:var(--teal)} .ptitle .vi{color:var(--violet)}
+  .lede{font-size:clamp(15px,1.7vw,18px);color:var(--text);max-width:66ch;margin-bottom:8px}
+  .muted{color:var(--muted)}
+  p+p{margin-top:12px}
+  strong{color:var(--text)}
+  code{font-family:var(--mono);font-size:.88em;color:var(--amber);background:rgba(242,163,60,.08);padding:1px 6px;border-radius:5px;word-break:break-all}
+
+  .cover-h{font-family:var(--mono);font-weight:600;letter-spacing:-.01em;font-size:clamp(26px,5vw,52px);line-height:1.16;margin-bottom:20px}
+  .cover-h .hl{color:var(--amber)}
+  .cover-sub{font-size:clamp(15px,1.9vw,19px);color:var(--muted);max-width:56ch;margin-bottom:30px}
+  .cover-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:var(--mono);font-size:13px;color:var(--faint)}
+  .pill{color:var(--teal);background:rgba(91,214,176,.1);border:1px solid rgba(91,214,176,.3);border-radius:6px;padding:5px 12px;letter-spacing:.03em}
+
+  .grid{display:grid;gap:14px;margin-top:8px}
+  .cols-2{grid-template-columns:1fr 1fr}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .card h4{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--amber);margin-bottom:8px;font-weight:600}
+  .card.ok h4{color:var(--teal)} .card.vi h4{color:var(--violet)} .card.bad h4{color:var(--danger)}
+  .card p{font-size:14px;color:var(--muted)}
+  .card .tag{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-bottom:10px;letter-spacing:.08em}
+
+  /* flow diagram */
+  .flow{display:flex;align-items:stretch;flex-wrap:wrap;margin-top:10px}
+  .fstep{flex:1 1 130px;min-width:120px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:13px 13px}
+  .fstep .ph{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .fstep .nm{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .fstep .im{font-family:var(--mono);font-size:11.5px;color:var(--amber);word-break:break-all}
+  .fstep .pt{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:6px;letter-spacing:.05em}
+  .fstep.sys{border-color:rgba(91,214,176,.35)} .fstep.sys .im{color:var(--teal)}
+  .fstep.focus{border-color:rgba(242,163,60,.55);box-shadow:0 0 0 1px rgba(242,163,60,.25)}
+  .farrow{display:flex;align-items:center;color:var(--faint);font-size:18px;padding:0 5px;font-family:var(--mono)}
+  .flow .farrow:last-child{display:none}
+
+  .rows{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .r{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+  .r .f{font-family:var(--mono);font-size:12.5px;color:var(--amber);word-break:break-all}
+  .r .d{font-size:13.5px;color:var(--muted)}
+
+  .steps{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+  .step .n{font-family:var(--mono);color:var(--amber);font-size:15px;font-weight:700;min-width:24px}
+  .step .body{font-size:14.5px} .step .body b{color:var(--text)} .step .body span{color:var(--muted);display:block;margin-top:3px;font-size:13.5px}
+
+  .code-block{background:#0C0F15;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;
+    padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#C7CEDA;overflow-x:auto;white-space:pre;margin-top:10px}
+  .code-block .c{color:var(--faint)} .code-block .k{color:var(--teal)} .code-block .r{color:var(--danger)} .code-block .a{color:var(--teal)} .code-block .d{color:var(--danger)}
+
+  .callout{border:1px solid rgba(242,163,60,.35);background:rgba(242,163,60,.07);border-radius:10px;padding:14px 18px;margin-top:16px;font-size:14.5px}
+  .callout b{color:var(--amber);font-family:var(--mono)}
+  .callout.ok{border-color:rgba(91,214,176,.35);background:rgba(91,214,176,.07)} .callout.ok b{color:var(--teal)}
+  .callout.vi{border-color:rgba(157,140,240,.35);background:rgba(157,140,240,.07)} .callout.vi b{color:var(--violet)}
+
+  ul.clean{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:9px}
+  ul.clean li{padding-left:24px;position:relative;font-size:14.5px;color:var(--text)}
+  ul.clean li::before{content:"\203A";position:absolute;left:5px;color:var(--amber);font-family:var(--mono);font-weight:700}
+  ul.clean li span{color:var(--muted)}
+
+  .nav{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:14px 24px;border-top:1px solid var(--line)}
+  .nav button{font-family:var(--mono);font-size:13px;letter-spacing:.04em;background:var(--surface);color:var(--text);
+    border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;transition:.2s}
+  .nav button:hover{border-color:var(--amber);color:var(--amber)}
+  .nav button:disabled{opacity:.3;cursor:not-allowed;border-color:var(--line);color:var(--text)}
+  .dots{display:flex;gap:9px;margin:0 auto}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px rgba(242,163,60,.6)}
+  .nav .count{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:64px;text-align:right}
+  button:focus-visible,.dots i:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+
+  @media(max-width:760px){
+    .cols-2,.cols-3{grid-template-columns:1fr}
+    .r{grid-template-columns:1fr;gap:6px}
+    .bar .right{display:none}
+    .farrow{transform:rotate(90deg)}
+  }
+  @media(prefers-reduced-motion:reduce){.page{transition:none}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<div class="app">
+  <header class="bar">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="id">BOOT-FLOW</span><span class="sep">/</span>
+    <span>開機過場畫面 原理與修正</span>
+    <div class="right">
+      <span><span class="k">product</span> <span class="v">EA0T4A_A00</span></span>
+      <span><span class="k">layer</span> <span class="v">frameworks/base</span></span>
+      <span><span class="k">display</span> <span class="v">e-ink 1860×2480</span></span>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <!-- 0 cover -->
+    <section class="page cover is-active">
+      <div class="eyebrow"><span class="num">00 / 07</span> 技術說明 · for review</div>
+      <h1 class="cover-h">開機那一張「過場畫面」<br>是什麼、<span class="hl">為什麼存在</span>、怎麼修</h1>
+      <p class="cover-sub">從按下電源鍵到進入桌面的完整流程;說明動畫與桌面之間那張過場畫面的來由、之前的客製 patch 怎麼做的,以及這次為什麼要更新它。</p>
+      <div class="cover-meta">
+        <span class="pill">power → launcher 全流程</span>
+        <span>SystemUserHomeActivity · ntx_boot_background.png</span>
+      </div>
+    </section>
+
+    <!-- 1 起因 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">01 / 07</span> 起因</div>
+      <h2 class="ptitle">換了開機動畫,卻在最後<span class="hl">閃出舊品牌圖</span></h2>
+      <p class="lede">更新開機動畫後,動畫播完、進桌面前,會閃一張舊的「mobiscribe / Loading…」畫面,與新動畫不連貫。</p>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card"><span class="tag">觀察到的現象</span><h4>動畫 → ？ → 桌面</h4><p>新動畫正常播放,但結尾多了一張舊品牌圖才跳桌面,在電子紙上「定格」得很明顯。</p></div>
+        <div class="card vi"><span class="tag">追查結果</span><h4>那是「過場畫面」</h4><p>它不是動畫的一部分,而是 <code>frameworks/base</code> 一筆客製 patch 放的過場底圖,沿用了<strong>舊動畫的最後一張</strong>。</p></div>
+      </div>
+      <div class="callout"><b>本質</b>　過場圖原設計 = 動畫最後一張,用來無縫銜接。動畫換新後它沒跟著換,才會露出舊圖。</div>
+    </section>
+
+    <!-- 2 為什麼需要過場 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">02 / 07</span> 原理</div>
+      <h2 class="ptitle">為什麼<span class="hl">需要</span>這張過場畫面</h2>
+      <p class="lede">開機動畫結束的那一刻,真正的桌面(launcher)還沒準備好。中間有一段「空窗期」,若不處理,畫面會閃黑或顯示殘影。</p>
+      <div class="grid cols-3" style="margin-top:16px">
+        <div class="card"><h4>① 有時間差</h4><p>系統開機完成 → 動畫被結束 → 但 launcher 還要時間載入。中間沒有東西可顯示。</p></div>
+        <div class="card"><h4>② 電子紙放大問題</h4><p>e-ink 是整頁刷新且會殘留上一張。空窗期容易出現黑屏或殘影,看起來像當機。</p></div>
+        <div class="card ok"><h4>③ 過場補洞</h4><p>用一張品牌靜圖把空窗期填滿,讓「動畫 → 靜圖 → 桌面」順暢,使用者無感。</p></div>
+      </div>
+      <div class="callout vi"><b>關鍵角色</b>　Android 內建一個「備援桌面」<code>SystemUserHomeActivity</code>(優先序最低的 HOME)。客製 patch 把它改造成只顯示一張全螢幕品牌圖,正好拿來當這段過場。</div>
+    </section>
+
+    <!-- 3 流程架構圖 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">03 / 07</span> 流程架構圖</div>
+      <h2 class="ptitle">按電源鍵到桌面,<span class="hl">完整五段</span></h2>
+      <div class="flow">
+        <div class="fstep"><div class="ph">Bootloader</div><div class="nm">LK</div><div class="im">uboot.bmp</div><div class="pt">logo 分區 · 尚未打通</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep"><div class="ph">Kernel</div><div class="nm">Kernel 啟動</div><div class="im">kernel.bmp</div><div class="pt">logo 分區</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep sys"><div class="ph">Android</div><div class="nm">開機動畫</div><div class="im">bootanimation.zip</div><div class="pt">system · 循環</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep sys focus"><div class="ph">過場</div><div class="nm">過場畫面</div><div class="im">ntx_boot_background.png</div><div class="pt">system · framework</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep sys"><div class="ph">Done</div><div class="nm">桌面</div><div class="im">nHome</div><div class="pt">launcher</div></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:18px">
+        <div class="card"><h4>logo 分區(Android 之前)</h4><p>uboot / kernel 圖,由 bootloader 與 kernel 直接畫,屬獨立 logo 分區。</p></div>
+        <div class="card ok"><h4>system 分區(Android 之後)</h4><p>開機動畫 + 過場圖 + launcher,都在 Android userspace,屬 system 分區。</p></div>
+      </div>
+      <p class="muted" style="margin-top:14px">第 ④ 段(過場)就是本報告主角——介於動畫與桌面之間的橋。</p>
+    </section>
+
+    <!-- 4 是誰畫的 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">04 / 07</span> 過場畫面是誰畫的</div>
+      <h2 class="ptitle"><span class="vi">SystemUserHomeActivity</span> — Android 的備援桌面</h2>
+      <p class="lede">它是 AOSP 內建、優先序最低的 HOME。當系統需要桌面、但真正的 launcher 還沒就緒時,系統會先落到它身上——正好涵蓋動畫結束後那一段。</p>
+      <div class="code-block"><span class="c">// core/res/AndroidManifest.xml — 它就是個 HOME，但優先序 -100（最低）</span>
+&lt;activity android:name="...SystemUserHomeActivity" android:systemUserOnly="true" ...&gt;
+  &lt;intent-filter android:priority="<span class="k">-100</span>"&gt;
+    &lt;action android:name="android.intent.action.MAIN" /&gt;
+    &lt;category android:name="android.intent.category.<span class="k">HOME</span>" /&gt;</div>
+      <ul class="clean" style="margin-top:16px">
+        <li><strong>原本</strong> — AOSP 預設它是近乎空白的備援畫面。</li>
+        <li><strong>客製後</strong> — 版面改成一張全螢幕品牌底圖(<code>ntx_boot_background.png</code>),拿來當開機過場。</li>
+        <li><strong>所以</strong> — 動畫結束 → 系統暫時落到這個備援 HOME(顯示品牌圖)→ nHome 就緒後接手。</li>
+      </ul>
+    </section>
+
+    <!-- 5 之前的 patch -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">05 / 07</span> 之前的 patch 改法</div>
+      <h2 class="ptitle">commit「Modify the transition screen during startup」</h2>
+      <p class="lede">這筆 <code>frameworks/base</code> 的客製 patch 共動了 5 處,把備援桌面改造成乾淨的品牌過場,並順手把開機提示框改成電子紙白底。</p>
+      <div class="rows">
+        <div class="r"><span class="f">res/layout/system_user_home.xml</span><span class="d">版面砍成全螢幕 FrameLayout,背景 = <code>@drawable/ntx_boot_background</code>(移除文字/進度條)</span></div>
+        <div class="r"><span class="f">res/drawable-nodpi/ntx_boot_background.png</span><span class="d">新增的過場底圖(當時 = 舊動畫最後一張)</span></div>
+        <div class="r"><span class="f">app/SystemUserHomeActivity.java</span><span class="d">加 immersive 全螢幕旗標,隱藏狀態列/導覽列,讓品牌圖滿版</span></div>
+        <div class="r"><span class="f">core/res/AndroidManifest.xml</span><span class="d">主題 <code>Translucent</code> → <code>DeviceDefault.NoActionBar</code>,讓底圖不透明、無標題列</span></div>
+        <div class="r"><span class="f">PhoneWindowManager.java</span><span class="d">開機提示框改白底黑字、進度條黑色(配合電子紙閱讀)</span></div>
+      </div>
+      <div class="callout"><b>設計意圖</b>　過場圖刻意設成「= 動畫最後一張」,讓動畫播完像定格再進桌面,銜接無縫。</div>
+    </section>
+
+    <!-- 6 本次修正 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">06 / 07</span> 本次修正</div>
+      <h2 class="ptitle">把過場圖<span class="ok">同步成新動畫</span></h2>
+      <p class="lede">動畫換新後,過場圖還停在舊動畫的最後一張,才會露出舊品牌圖。修法就是讓兩者重新對齊。</p>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="body"><b>更新開機動畫</b><span>新的 6 張取代 <code>bootanimation.zip</code>(1860×2480、Stored 不壓縮)。</span></span></div>
+        <div class="step"><span class="n">2</span><span class="body"><b>過場圖換成「新動畫的最後一張」</b><span>把 <code>ntx_boot_background.png</code> 換成新動畫第 6 張(同為 1860×2480 PNG,直接替換)。</span></span></div>
+        <div class="step"><span class="n">3</span><span class="body"><b>重 build system</b><span>兩者都在 system 分區,一次 build 一起生效。</span></span></div>
+      </div>
+      <div class="callout ok"><b>結果</b>　開機:新動畫 → 定格在新動畫最後一張 → 進桌面,不再出現舊的 mobiscribe Loading,銜接回到無縫。</div>
+    </section>
+
+    <!-- 7 結論 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">07 / 07</span> 改動檔案與結論</div>
+      <h2 class="ptitle">這次動到的<span class="ok">兩個檔</span></h2>
+      <div class="rows">
+        <div class="r"><span class="f">vendor/mediatek/proprietary/bootanimation/bootanimation.zip</span><span class="d">開機動畫(新 6 張)· system 分區</span></div>
+        <div class="r"><span class="f">frameworks/base/core/res/res/drawable-nodpi/ntx_boot_background.png</span><span class="d">過場底圖 = 新動畫最後一張 · framework-res(system)</span></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card"><h4>分屬不同 git repo</h4><p>bootanimation 與 frameworks/base 各自 commit。</p></div>
+        <div class="card"><h4>同在 system</h4><p>一次 <code>buildAndroidImage -t full</code> 兩者一起進 image。</p></div>
+      </div>
+      <div class="callout vi"><b>尚未處理</b>　bootloader/kernel 的開機 logo(<code>xga2480/*.bmp</code>,logo 分區)仍為 MTK 預設,如需自家圖另行置換。</div>
+    </section>
+
+  </main>
+
+  <nav class="nav">
+    <button id="prev" aria-label="上一頁">&lsaquo; Prev</button>
+    <div class="dots" id="dots" role="tablist" aria-label="頁面"></div>
+    <button id="next" aria-label="下一頁">Next &rsaquo;</button>
+    <span class="count" id="count">01 / 08</span>
+  </nav>
+</div>
+
+<script>
+  (function(){
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+    var total = pages.length, i = 0;
+    var dots = document.getElementById('dots');
+    var prev = document.getElementById('prev'), next = document.getElementById('next'), count = document.getElementById('count');
+    pages.forEach(function(p,idx){
+      var d = document.createElement('i');
+      d.setAttribute('role','tab'); d.setAttribute('aria-label','第 '+(idx+1)+' 頁'); d.tabIndex=0;
+      d.addEventListener('click',function(){go(idx)});
+      d.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(idx)}});
+      dots.appendChild(d);
+    });
+    var dotEls = Array.prototype.slice.call(dots.children);
+    function pad(n){return (n<10?'0':'')+n}
+    function go(n){
+      i = Math.max(0, Math.min(total-1, n));
+      pages.forEach(function(p,idx){p.classList.toggle('is-active', idx===i)});
+      dotEls.forEach(function(d,idx){d.classList.toggle('on', idx===i)});
+      prev.disabled=i===0; next.disabled=i===total-1;
+      count.textContent = pad(i+1)+' / '+pad(total);
+      if(pages[i]) pages[i].scrollTop=0;
+    }
+    prev.addEventListener('click',function(){go(i-1)});
+    next.addEventListener('click',function(){go(i+1)});
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='PageDown')go(i+1);
+      else if(e.key==='ArrowLeft'||e.key==='PageUp')go(i-1);
+      else if(e.key==='Home')go(0); else if(e.key==='End')go(total-1);
+    });
+    var sx=null;
+    document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+    document.addEventListener('touchend',function(e){if(sx===null)return;var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(dx<0?i+1:i-1);sx=null},{passive:true});
+    go(0);
+  })();
+</script>
+</body>
+</html>
