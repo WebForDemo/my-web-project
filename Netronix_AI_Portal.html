@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netronix AI Portal</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#070b16; --bg1:#0c1224; --side:rgba(255,255,255,.035);
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --text:#eef1fb; --muted:#8b93ad; --vio:#8b5cf6; --vio2:#a78bfa;
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
+  color:var(--text);display:flex;min-height:100vh;font-size:14px;position:relative;
+  background:var(--bg0)}
+/* 背景光暈 */
+.bgfx{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  background:
+   radial-gradient(620px 420px at 8% -6%, rgba(124,92,246,.30), transparent 60%),
+   radial-gradient(680px 460px at 100% 0%, rgba(20,140,170,.26), transparent 58%),
+   radial-gradient(700px 520px at 60% 110%, rgba(219,39,119,.16), transparent 60%),
+   linear-gradient(160deg,#070b16,#0c1326 60%,#0a1020)}
+.app-shell{position:relative;z-index:1;display:flex;width:100%}
+
+/* sidebar */
+.sb{width:258px;flex-shrink:0;background:var(--side);border-right:1px solid var(--line);
+  backdrop-filter:blur(14px);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+
+
+
+.sb-prof{display:flex;align-items:center;gap:12px;margin:6px 14px;padding:13px 14px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(255,255,255,.03));border:1px solid var(--line)}
+.sb-prof .av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c4dff);
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;box-shadow:0 6px 16px rgba(124,77,255,.5)}
+.sb-prof .nm{font-weight:800;font-size:14px}.sb-prof .rl{font-size:11.5px;color:var(--muted)}
+.sb-sec{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#5b6party;color:#5d6party}
+.sb-sec{font-size:11px;font-weight:700;letter-spacing:1.5px;color:#5d6580;padding:18px 22px 6px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:12px;padding:11px 22px;color:#aab1c6;text-decoration:none;
+  font-size:13.5px;font-weight:600;border-left:3px solid transparent;transition:.14s;cursor:pointer}
+.sb-link .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 8px currentColor}
+.sb-link:hover{background:rgba(255,255,255,.05);color:#fff}
+.sb-link.active{color:#fff;border-left-color:var(--vio);background:linear-gradient(90deg,rgba(139,92,246,.16),transparent)}
+.sb-foot{margin-top:auto;padding:18px 22px;font-size:11px;color:#5d6580}
+
+/* main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:14px 28px;
+  background:rgba(10,15,28,.6);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.search{flex:1;max-width:440px;position:relative}
+.search input{width:100%;padding:11px 14px 11px 40px;border:1px solid var(--line);border-radius:11px;
+  background:rgba(255,255,255,.05);color:var(--text);font:inherit;font-size:13.5px;outline:none;transition:.16s}
+.search input::placeholder{color:#6b7governing;color:#6b738c}
+.search input:focus{border-color:rgba(139,92,246,.6);box-shadow:0 0 0 3px rgba(139,92,246,.18);background:rgba(255,255,255,.08)}
+.search::before{content:"🔍";position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.55;font-size:13px}
+.top .right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.top .clock{font-size:12.5px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.top .me{display:flex;align-items:center;gap:9px}
+.top .me .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#7c4dff);display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}
+.top .me .nm{font-size:13px;font-weight:700}
+
+.content{padding:26px 28px 44px}
+.pagehead{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.pagehead .hi{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#a78bfa,#7c4dff);
+  display:grid;place-items:center;font-size:21px;box-shadow:0 10px 26px rgba(124,77,255,.5)}
+.pagehead h1{font-size:22px;font-weight:800}
+.pagehead p{font-size:12.5px;color:var(--muted);margin-top:2px}
+
+.ov{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;margin-bottom:28px}
+@media(max-width:860px){.ov{grid-template-columns:1fr}}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(12px);
+  box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.ov-card{padding:20px 22px}
+.ov-card h2{font-size:15px;font-weight:800}
+.ov-card .sub{font-size:12px;color:var(--muted);margin:3px 0 16px}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi{border:1px solid var(--line);border-radius:14px;padding:14px 15px;display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,.03);transition:.16s}
+.kpi:hover{border-color:var(--line2);transform:translateY(-2px)}
+.kpi .ki{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex-shrink:0;color:#fff}
+.kpi .kv{font-size:23px;font-weight:800;line-height:1}
+.kpi .kl{font-size:11.5px;color:var(--muted);margin-top:3px}
+.pie{display:flex;align-items:center;gap:22px}
+.donut{width:156px;height:156px;flex-shrink:0;transform-origin:50% 50%;animation:donIn .8s cubic-bezier(.2,.8,.3,1) both;
+  filter:drop-shadow(0 8px 22px rgba(0,0,0,.4))}
+@keyframes donIn{from{opacity:0;transform:scale(.82) rotate(-12deg)}to{opacity:1;transform:none}}
+.donut .seg{transition:stroke-width .15s}.donut:hover .seg{stroke-width:9}
+.legend{flex:1;display:flex;flex-direction:column;gap:13px;min-width:0}
+.lg{display:flex;align-items:center;gap:11px}
+.lg .sw{width:13px;height:13px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}
+.lg .lt{flex:1;min-width:0}.lg .lt b{font-size:14px}
+.lg .lt span{font-size:11px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg .lp{font-size:19px;font-weight:800}
+
+.sec-title2{font-size:16px;font-weight:800;margin:4px 4px 16px;display:flex;align-items:center;gap:9px}
+.sec-title2::before{content:"";width:4px;height:16px;border-radius:2px;background:linear-gradient(var(--vio2),var(--vio))}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.card{position:relative;overflow:hidden;border-radius:18px;padding:24px 22px;text-decoration:none;color:var(--text);
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px);min-height:168px;
+  display:flex;flex-direction:column;transition:transform .18s,box-shadow .18s,border-color .18s;
+  opacity:0;transform:translateY(16px);animation:rise .55s forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--c1),var(--c2))}
+.card::after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;right:-80px;top:-90px;
+  background:radial-gradient(circle, var(--gl), transparent 70%);opacity:.9}
+.card:hover{transform:translateY(-6px);border-color:var(--line2);box-shadow:0 22px 50px var(--gl)}
+.card h3{font-size:18px;font-weight:800;position:relative;letter-spacing:.3px}
+.card .desc{font-size:13px;color:var(--muted);margin-top:8px;flex:1;position:relative;line-height:1.65;max-width:90%}
+.card .go{margin-top:16px;font-size:13px;font-weight:800;position:relative;display:flex;align-items:center;gap:7px;
+  background:linear-gradient(90deg,var(--c2),var(--c1));-webkit-background-clip:text;background-clip:text;color:transparent}
+.card .go .ar{color:var(--c2);transition:transform .2s}.card:hover .go .ar{transform:translateX(5px)}
+.card.off{opacity:.5;cursor:default}.card.off::before{opacity:.4}.card.off:hover{transform:none;box-shadow:none;border-color:var(--line)}
+.card.off .go{background:none;-webkit-text-fill-color:var(--muted);color:var(--muted)}
+.card .tag{position:absolute;top:16px;right:16px;font-size:10.5px;font-weight:800;background:rgba(255,255,255,.1);color:var(--muted);padding:3px 10px;border-radius:99px}
+.empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:50px}
+@media(max-width:880px){.sb{display:none}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bgfx"></div>
+<div class="app-shell">
+
+<aside class="sb">
+  <div class="sb-prof"><div class="av">AI</div><div><div class="nm">AI 推動委員會</div><div class="rl">Netronix Portal</div></div></div>
+  <div class="sb-sec">應用程式</div>
+  <nav id="navlist"></nav>
+  <div class="sb-foot">© 2026 振曜科技<br>Netronix Technology</div>
+</aside>
+
+<div class="main">
+  <div class="top">
+    <div class="search"><input id="q" type="text" placeholder="搜尋應用程式…" oninput="render()"></div>
+    <div class="right"><div class="clock" id="clock"></div><div class="me"><div class="av">N</div><div class="nm">AI 推動委員會</div></div></div>
+  </div>
+  <div class="content">
+    <div class="pagehead"><div class="hi">🚀</div><div><h1 id="greet">AI 應用入口</h1><p>所有 AI 大使系統與工具，一站開啟</p></div></div>
+    <section class="ov" id="ov"></section>
+    <div class="sec-title2">應用程式</div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+</div>
+
+<script>
+const DASH={total:76, gold:14, hr:2419, sys:6, tracks:[
+  {name:"軌1", sub:"AWS Bedrock · 雲端", n:4,  hr:150,    gold:4, c:"#10b88e", c2:"#4dffce"},
+  {name:"軌2", sub:"自訂GPT / ChatGPT", n:30, hr:666.3,  gold:5, c:"#2a4d77", c2:"#6aa3e8"},
+  {name:"軌3", sub:"地端 On-Prem",       n:42, hr:1602.5, gold:5, c:"#ef8a0c", c2:"#ffc24d"},
+]};
+/* ===== 設定區：換網址改 url 即可 ===== */
+const APPS=[
+  {name:"AI 大使問卷管理系統", desc:"大使名單、繳交追蹤、單位總覽與統計", url:"https://strengthening-xbox-peer-capture.trycloudflare.com/admin", c1:"#fb7c9d",c2:"#f64f74",gl:"rgba(246,79,116,.30)"},
+  {name:"AI 大使痛點分析", desc:"痛點儀表板、三軌分類、優先排序與行動路線圖", url:"https://webfordemo.github.io/my-web-project/AI%E5%A4%A7%E4%BD%BF%E7%97%9B%E9%BB%9E%E5%88%86%E6%9E%90.html", c1:"#5b9bf6",c2:"#1e6fe0",gl:"rgba(30,111,224,.30)"},
+  {name:"AI 大使痛點回報包", desc:"線上填寫部門工作痛點問卷", url:"https://strengthening-xbox-peer-capture.trycloudflare.com/", c1:"#fbbf4d",c2:"#f59e0b",gl:"rgba(245,158,11,.30)"},
+  {name:"ChatGPT 新手入門", desc:"ChatGPT Web 版功能介紹與教學", url:"https://webfordemo.github.io/my-web-project/ChatGPT%E6%96%B0%E6%89%8B%E5%85%A5%E9%96%80_Web%E7%89%88.html", c1:"#a78bfa",c2:"#7c3aed",gl:"rgba(124,58,237,.34)"},
+  {name:"Netronix 簡報小助手", desc:"簡報小助手功能介紹", url:"https://webfordemo.github.io/my-web-project/ChatGPT%E6%96%B0%E6%89%8B%E5%85%A5%E9%96%80_Web%E7%89%88.html", c1:"#f472b6",c2:"#db2777",gl:"rgba(219,39,119,.30)"},
+  {name:"AI 大使簡報上傳系統", desc:"上傳簡報檔案至指定空間", url:"https://weed-combine-nature-exhibition.trycloudflare.com/", c1:"#34d6e6",c2:"#0891b2",gl:"rgba(8,145,178,.30)"},
+];
+/* ==================================== */
+const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function countUp(el,target){const dur=1000,st=performance.now();const f=t=>{const p=Math.min((t-st)/dur,1);el.textContent=Math.round(target*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
+function renderDash(){
+  const T=DASH.total, GAP=0; let acc=0;
+  const defs=DASH.tracks.map((t,i)=>`<linearGradient id="g${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${t.c2}"/><stop offset="1" stop-color="${t.c}"/></linearGradient>`).join("");
+  const arcs=DASH.tracks.map((t,i)=>{const pct=t.n/T*100,len=Math.max(pct-GAP,0.8),o=25-acc;acc+=pct;
+    return `<circle class="seg" cx="21" cy="21" r="15.915" fill="none" stroke="url(#g${i})" stroke-width="9" stroke-linecap="butt" stroke-dasharray="${len.toFixed(2)} ${(100-len).toFixed(2)}" stroke-dashoffset="${o.toFixed(2)}"/>`}).join("");
+  const donut=`<svg class="donut" viewBox="0 0 42 42"><defs>${defs}</defs><circle cx="21" cy="21" r="15.915" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="9"/>${arcs}<text x="21" y="20.4" text-anchor="middle" font-size="7.5" font-weight="800" fill="#eef1fb">${T}</text><text x="21" y="25.6" text-anchor="middle" font-size="3.2" fill="#8b93ad">痛點總數</text></svg>`;
+  const legend=DASH.tracks.map(t=>`<div class="lg"><span class="sw" style="color:${t.c2};background:linear-gradient(135deg,${t.c2},${t.c})"></span><div class="lt"><b>${t.name}</b><span>${t.sub} · 每月 ${t.hr} hr · ★${t.gold}</span></div><div class="lp">${Math.round(t.n/T*100)}%</div></div>`).join("");
+  const K=[["📌",DASH.total,"痛點總數","linear-gradient(135deg,#a78bfa,#7c4dff)"],["⭐",DASH.gold,"黃金痛點","linear-gradient(135deg,#fbbf24,#f59e0b)"],["⏱️",DASH.hr,"每月可省工時","linear-gradient(135deg,#f76b8a,#f64f74)"],["🧩",DASH.sys,"應用系統","linear-gradient(135deg,#34d6e6,#0891b2)"]];
+  const kpis=K.map(k=>`<div class="kpi"><div class="ki" style="background:${k[3]}">${k[0]}</div><div><div class="kv" data-v="${k[1]}">0</div><div class="kl">${k[2]}</div></div></div>`).join("");
+  document.getElementById("ov").innerHTML=
+    `<div class="glass ov-card"><h2>導入指標</h2><div class="sub">AI 痛點盤點概況（快照）</div><div class="kpis">${kpis}</div></div>`+
+    `<div class="glass ov-card"><h2>三軌分布</h2><div class="sub">痛點依導入軌道分類佔比</div><div class="pie">${donut}<div class="legend">${legend}</div></div></div>`;
+  document.querySelectorAll(".kv").forEach(el=>countUp(el,+el.dataset.v));
+}
+function render(){
+  const q=(document.getElementById("q").value||"").trim().toLowerCase();
+  const list=APPS.map((a,i)=>({a,i})).filter(o=>!q||(o.a.name+o.a.desc).toLowerCase().includes(q));
+  document.getElementById("grid").innerHTML=list.length?list.map(({a,i})=>{
+    const on=a.url&&a.url!=="#";
+    const st=`--c1:${a.c1};--c2:${a.c2};--gl:${a.gl};animation-delay:${i*70}ms`;
+    const at=on?`href="${esc(a.url)}" target="_blank" rel="noopener"`:`href="javascript:void(0)"`;
+    return `<a class="card ${on?'':'off'}" ${at} style="${st}">${on?'':'<span class="tag">設定中</span>'}
+      <h3>${esc(a.name)}</h3><div class="desc">${esc(a.desc)}</div>
+      <div class="go">${on?'開啟系統 <span class="ar">→</span>':'尚未設定網址'}</div></a>`;}).join(""):'<div class="empty">查無符合的應用程式</div>';
+  document.getElementById("navlist").innerHTML=APPS.map(a=>{
+    const on=a.url&&a.url!=="#";const at=on?`href="${esc(a.url)}" target="_blank" rel="noopener"`:`href="javascript:void(0)"`;
+    return `<a class="sb-link" ${at}><span class="dot" style="color:${a.c2};background:${a.c2}"></span>${esc(a.name)}</a>`;}).join("");
+}
+function clock(){const d=new Date(),p=n=>(""+n).padStart(2,"0"),w="日一二三四五六"[d.getDay()];
+  document.getElementById("clock").textContent=`${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())}（${w}）${p(d.getHours())}:${p(d.getMinutes())}`;
+  const h=d.getHours(),g=h<12?"早安":h<18?"午安":"晚安";document.getElementById("greet").textContent=`${g}，歡迎使用 AI 應用入口`;}
+clock();setInterval(clock,30000);renderDash();render();
+</script>
+</body>
+</html>
