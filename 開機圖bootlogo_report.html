@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BootLogo 開機圖機制與置換實作</title>
+<style>
+  :root{
+    --ground:#12161F; --surface:#1A212C; --surface-2:#222B38; --line:#2C3744;
+    --text:#E6E9EF; --muted:#8A93A3; --faint:#5C6573;
+    --amber:#F2A33C; --teal:#5BD6B0; --danger:#E5736A; --violet:#9D8CF0;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ground);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:64px 64px;opacity:.06;
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);}
+  .app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
+
+  .bar{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);flex:0 0 auto}
+  .bar .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  .bar .id{color:var(--text)} .bar .sep{color:var(--faint)}
+  .bar .right{margin-left:auto;display:flex;gap:18px}
+  .bar .k{color:var(--faint)} .bar .v{color:var(--text)}
+
+  .stage{flex:1 1 auto;position:relative;overflow:hidden}
+  .page{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(24px,4.5vw,72px);max-width:1120px;margin:0 auto;width:100%;
+    opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease;
+    pointer-events:none;overflow-y:auto}
+  .page.is-active{opacity:1;transform:none;pointer-events:auto}
+
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--amber);margin-bottom:16px;display:flex;align-items:center;gap:12px}
+  .eyebrow .num{color:var(--faint)}
+  .ptitle{font-family:var(--mono);font-weight:600;font-size:clamp(24px,4vw,42px);line-height:1.14;letter-spacing:-.01em;margin-bottom:18px}
+  .ptitle .hl{color:var(--amber)} .ptitle .ok{color:var(--teal)} .ptitle .vi{color:var(--violet)}
+  .lede{font-size:clamp(15px,1.7vw,18px);color:var(--text);max-width:66ch;margin-bottom:8px}
+  .muted{color:var(--muted)}
+  p+p{margin-top:12px}
+  strong{color:var(--text)}
+  code{font-family:var(--mono);font-size:.9em;color:var(--amber);background:rgba(242,163,60,.08);padding:1px 6px;border-radius:5px;word-break:break-all}
+
+  /* cover */
+  .cover-h{font-family:var(--mono);font-weight:600;letter-spacing:-.01em;font-size:clamp(28px,5.4vw,54px);line-height:1.14;margin-bottom:20px}
+  .cover-h .hl{color:var(--amber)}
+  .cover-sub{font-size:clamp(15px,1.9vw,19px);color:var(--muted);max-width:54ch;margin-bottom:30px}
+  .cover-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:var(--mono);font-size:13px;color:var(--faint)}
+  .pill{color:var(--teal);background:rgba(91,214,176,.1);border:1px solid rgba(91,214,176,.3);border-radius:6px;padding:5px 12px;letter-spacing:.03em}
+
+  /* cards */
+  .grid{display:grid;gap:14px;margin-top:8px}
+  .cols-2{grid-template-columns:1fr 1fr}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .card h4{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--amber);margin-bottom:8px;font-weight:600}
+  .card.ok h4{color:var(--teal)} .card.vi h4{color:var(--violet)} .card.bad h4{color:var(--danger)}
+  .card p{font-size:14px;color:var(--muted)}
+  .card .tag{font-family:var(--mono);font-size:11px;color:var(--faint);display:block;margin-bottom:10px;letter-spacing:.08em}
+
+  /* timeline (horizontal flow) */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-top:10px}
+  .fstep{flex:1 1 140px;min-width:130px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 14px;position:relative}
+  .fstep .ph{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .fstep .nm{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .fstep .im{font-family:var(--mono);font-size:12px;color:var(--amber)}
+  .fstep.android .im{color:var(--teal)}
+  .fstep.android{border-color:rgba(91,214,176,.35)}
+  .farrow{display:flex;align-items:center;color:var(--faint);font-size:20px;padding:0 6px;font-family:var(--mono)}
+  .flow .farrow:last-child{display:none}
+
+  /* pipeline (build) */
+  .pipe{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-top:12px}
+  .pbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-family:var(--mono);font-size:13px;text-align:center}
+  .pbox .t{color:var(--text);font-weight:600}
+  .pbox .s{color:var(--muted);font-size:11.5px;display:block;margin-top:3px}
+  .pbox.src{border-color:rgba(157,140,240,.4)} .pbox.src .t{color:var(--violet)}
+  .pbox.out{border-color:rgba(91,214,176,.4)} .pbox.out .t{color:var(--teal)}
+  .parrow{color:var(--amber);font-family:var(--mono);font-size:18px;padding:0 10px}
+
+  /* table-ish list */
+  .rows{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .r{display:grid;grid-template-columns:230px 1fr auto;gap:16px;align-items:center;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+  .r .f{font-family:var(--mono);font-size:13px;color:var(--amber)}
+  .r .d{font-size:14px;color:var(--muted)}
+  .r .b{font-family:var(--mono);font-size:11px;letter-spacing:.06em;white-space:nowrap;padding:3px 9px;border-radius:6px}
+  .b.must{color:var(--teal);border:1px solid rgba(91,214,176,.4)}
+  .b.skip{color:var(--faint);border:1px solid var(--line)}
+  .b.opt{color:var(--amber);border:1px solid rgba(242,163,60,.4)}
+
+  .steps{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+  .step .n{font-family:var(--mono);color:var(--amber);font-size:15px;font-weight:700;min-width:24px}
+  .step .body{font-size:14.5px}
+  .step .body b{color:var(--text)} .step .body span{color:var(--muted);display:block;margin-top:3px;font-size:13.5px}
+
+  .code-block{background:#0C0F15;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;
+    padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#C7CEDA;overflow-x:auto;white-space:pre;margin-top:10px}
+  .code-block .c{color:var(--faint)}
+  .code-block .k{color:var(--teal)}
+
+  .callout{border:1px solid rgba(242,163,60,.35);background:rgba(242,163,60,.07);border-radius:10px;padding:14px 18px;margin-top:16px;font-size:14.5px}
+  .callout b{color:var(--amber);font-family:var(--mono)}
+  .callout.bad{border-color:rgba(229,115,106,.4);background:rgba(229,115,106,.08)} .callout.bad b{color:var(--danger)}
+  .callout.ok{border-color:rgba(91,214,176,.35);background:rgba(91,214,176,.07)} .callout.ok b{color:var(--teal)}
+
+  ul.clean{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:9px}
+  ul.clean li{padding-left:24px;position:relative;font-size:14.5px;color:var(--text)}
+  ul.clean li::before{content:"\203A";position:absolute;left:5px;color:var(--amber);font-family:var(--mono);font-weight:700}
+  ul.clean li span{color:var(--muted)}
+
+  .nav{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:14px 24px;border-top:1px solid var(--line)}
+  .nav button{font-family:var(--mono);font-size:13px;letter-spacing:.04em;background:var(--surface);color:var(--text);
+    border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;transition:.2s}
+  .nav button:hover{border-color:var(--amber);color:var(--amber)}
+  .nav button:disabled{opacity:.3;cursor:not-allowed;border-color:var(--line);color:var(--text)}
+  .dots{display:flex;gap:9px;margin:0 auto}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px rgba(242,163,60,.6)}
+  .nav .count{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:64px;text-align:right}
+  button:focus-visible,.dots i:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+
+  @media(max-width:760px){
+    .cols-2,.cols-3{grid-template-columns:1fr}
+    .r{grid-template-columns:1fr;gap:6px}
+    .bar .right{display:none}
+    .farrow{transform:rotate(90deg)}
+    .pipe{flex-direction:column;align-items:stretch} .parrow{transform:rotate(90deg);text-align:center}
+  }
+  @media(prefers-reduced-motion:reduce){.page{transition:none}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<div class="app">
+  <header class="bar">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="id">BOOT-LOGO</span><span class="sep">/</span>
+    <span>開機圖機制與置換實作</span>
+    <div class="right">
+      <span><span class="k">product</span> <span class="v">EA0T4A_A00</span></span>
+      <span><span class="k">profile</span> <span class="v">xga2480</span></span>
+      <span><span class="k">panel</span> <span class="v">1860×2480</span></span>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <!-- 0 cover -->
+    <section class="page cover is-active">
+      <div class="eyebrow"><span class="num">00 / 08</span> 技術說明 · for review</div>
+      <h1 class="cover-h">開機圖(BootLogo)<br>是怎麼顯示的,以及<span class="hl">如何置換</span></h1>
+      <p class="cover-sub">從按下電源鍵到進入桌面,螢幕上的每一張圖由誰、在哪個階段畫出來;以及要換成自家圖時,該動哪裡、要符合什麼格式。</p>
+      <div class="cover-meta">
+        <span class="pill">EA0T4A_A00 · 電子紙 reader</span>
+        <span>logo 分區(A/B)· BMP 來源 · LK + Kernel 階段</span>
+      </div>
+    </section>
+
+    <!-- 1 兩個階段 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">01 / 08</span> 先建立觀念</div>
+      <h2 class="ptitle">開機畫面其實是<span class="hl">兩套不同系統</span>接力</h2>
+      <p class="lede">最容易混淆的一點:「開機圖」和「開機動畫」是兩個完全獨立的階段、不同檔案、不同機制。改錯地方就不會生效。</p>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card vi">
+          <span class="tag">階段一 · ANDROID 之前</span>
+          <h4>BootLogo（本報告主題）</h4>
+          <p>由 <strong>Bootloader(LK)與 Kernel</strong> 直接把圖畫到螢幕。圖是 <strong>BMP</strong>,打包進 <strong>logo 分區</strong>。在還沒有作業系統時就能顯示。</p>
+        </div>
+        <div class="card ok">
+          <span class="tag">階段二 · ANDROID 之後</span>
+          <h4>BootAnimation（另一套）</h4>
+          <p>Android 起來後由 <strong>SurfaceFlinger</strong> 播放 <code>bootanimation.zip</code>(一疊 PNG 循環)。位於 <code>system/media/</code>,屬 userspace。</p>
+        </div>
+      </div>
+      <div class="callout"><b>一句話</b>　BootLogo = 開機「最早」那幾張靜態圖(bootloader/kernel/充電/關機);BootAnimation = kernel 之後的循環動畫。本報告只談前者。</div>
+    </section>
+
+    <!-- 2 timeline -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">02 / 08</span> 顯示時間軸</div>
+      <h2 class="ptitle">從電源鍵到桌面,<span class="hl">誰先誰後</span></h2>
+      <div class="flow">
+        <div class="fstep"><div class="ph">Power On</div><div class="nm">Preloader</div><div class="im muted" style="color:var(--faint)">(通常黑屏)</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep"><div class="ph">Bootloader</div><div class="nm">LK</div><div class="im">uboot.bmp</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep"><div class="ph">Kernel</div><div class="nm">Kernel 啟動</div><div class="im">kernel.bmp</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep android"><div class="ph">Android</div><div class="nm">SurfaceFlinger</div><div class="im">bootanimation.zip</div></div>
+        <div class="farrow">&rarr;</div>
+        <div class="fstep android"><div class="ph">Done</div><div class="nm">桌面</div><div class="im">&nbsp;</div></div>
+      </div>
+      <p class="muted" style="margin-top:18px"><code>kernel.bmp</code> 是進 kernel 後的第一張圖,會<strong>靜止停留</strong>整個 kernel + init 載入期間,直到 Android 的 bootanimation 接手——所以它是使用者實際上盯著最久的一張。</p>
+      <div class="callout"><b>分支</b>　關機狀態插充電線 → 不開 Android,進入 <b>KPOC 充電模式</b>,顯示電池/充電 UI;關機時顯示 <code>power_off.bmp</code>。</div>
+    </section>
+
+    <!-- 3 各階段圖 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">03 / 08</span> 圖檔對照</div>
+      <h2 class="ptitle">哪張圖、什麼時候出現</h2>
+      <div class="rows">
+        <div class="r"><span class="f">*_uboot.bmp</span><span class="d">LK(bootloader)階段的圖</span><span class="b skip">尚未打通</span></div>
+        <div class="r"><span class="f">*_kernel.bmp</span><span class="d">進 Kernel 第一張,停留到 Android 接手(最主要)</span><span class="b must">一定換</span></div>
+        <div class="r"><span class="f">*_power_off.bmp</span><span class="d">關機畫面</span><span class="b must">一定換</span></div>
+        <div class="r"><span class="f">*_bat_* / battery</span><span class="d">充電模式:電池外框 + 灌電動畫 + 電量分段</span><span class="b opt">全換才動</span></div>
+        <div class="r"><span class="f">*_fast_charging_*</span><span class="d">偵測到快充時的專屬動畫 + 百分比</span><span class="b opt">全換才動</span></div>
+        <div class="r"><span class="f">*_low_battery*</span><span class="d">電量過低警告 / 無法開機</span><span class="b opt">全換才動</span></div>
+        <div class="r"><span class="f">*_num_0~9 / percent</span><span class="d">拼出電量百分比數字(85% 等)</span><span class="b opt">全換才動</span></div>
+        <div class="r"><span class="f">*_charger_ov.bmp</span><span class="d">充電器過壓警告</span><span class="b opt">全換才動</span></div>
+      </div>
+      <p class="muted" style="margin-top:14px">前綴 <code>xga2480_</code> 對應本機面板。最少換 kernel + power_off;要徹底去除 MTK 預設圖則全換。</p>
+    </section>
+
+    <!-- 4 build pipeline -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">04 / 08</span> Build 原理</div>
+      <h2 class="ptitle">從 BMP 到 <span class="vi">logo 分區</span> 的資料流</h2>
+      <p class="lede">原始 BMP 不會直接燒進去。build 會經過「轉 raw → 壓縮 → 打包」三步,產生 <code>logo.img</code> 燒進 logo 分區。</p>
+      <div class="pipe">
+        <div class="pbox src"><span class="t">xga2480/*.bmp</span><span class="s">原始素材(你改這裡)</span></div>
+        <span class="parrow">&rarr;</span>
+        <div class="pbox"><span class="t">bmp_to_raw_hwtcon</span><span class="s">BMP → raw(電子紙 T-CON)</span></div>
+        <span class="parrow">&rarr;</span>
+        <div class="pbox"><span class="t">zpipe (zlib)</span><span class="s">壓縮</span></div>
+        <span class="parrow">&rarr;</span>
+        <div class="pbox"><span class="t">logo.bin / logo.img</span><span class="s">boot_logo + boot_charging</span></div>
+        <span class="parrow">&rarr;</span>
+        <div class="pbox out"><span class="t">logo_a / logo_b</span><span class="s">燒進分區(A/B)</span></div>
+      </div>
+      <div class="grid cols-2" style="margin-top:18px">
+        <div class="card"><h4>boot_logo.raw</h4><p>uboot、kernel 等開機 logo,供 LK / Kernel 依索引讀取顯示。</p></div>
+        <div class="card"><h4>boot_charging.raw</h4><p>電池、充電、低電量、數字等充電模式 UI 圖,供 KPOC 充電流程使用。</p></div>
+      </div>
+      <div class="callout"><b>關鍵</b>　你只要丟「標準 BMP」進素材夾,轉 raw / 壓縮 / 打包都由 build rule 自動完成,不用自己做特規轉換。</div>
+    </section>
+
+    <!-- 5 profile -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">05 / 08</span> 解析度 Profile</div>
+      <h2 class="ptitle">為什麼是 <span class="hl">xga2480</span>,不是別的</h2>
+      <p class="lede">BootLogo 下有數十套 <code>xgaXXXX / fhd / wqhd …</code> 資料夾,每套對應一種面板解析度。build 只會挑一套——由產品設定決定。</p>
+      <div class="code-block"><span class="c"># device/ntx/EA0T4A_A00/ProjectConfig.mk</span>
+<span class="k">BOOT_LOGO = xga2480</span>     <span class="c"># ← 這行決定挑哪套素材夾</span>
+
+<span class="c"># logo/rules.mk:未設定時的預設</span>
+BOOT_LOGO ?= fhdplus2300</div>
+      <div class="grid cols-3" style="margin-top:16px">
+        <div class="card ok"><h4>本機正解</h4><p><code>xga2480</code><br>= 1860 × 2480(對上面板)</p></div>
+        <div class="card bad"><h4>常見誤改</h4><p><code>xga1680</code><br>= 1264 × 1680(別的面板,改了沒用)</p></div>
+        <div class="card"><h4>判斷依據</h4><p>看 <code>ProjectConfig.mk</code> 的 <code>BOOT_LOGO</code>,不要用猜的</p></div>
+      </div>
+      <div class="callout bad"><b>踩雷點</b>　改錯 profile(例如改 xga1680)build 根本不會用到,開機圖不會變。動手前先確認 <code>BOOT_LOGO</code> 的值。</div>
+    </section>
+
+    <!-- 6 實作 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">06 / 08</span> 實作步驟</div>
+      <h2 class="ptitle">如何把圖換成自家的</h2>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="body"><b>備好圖,轉成合格 BMP</b><span>kernel / power_off:1860×2480、24-bit BMP(BMP3、無壓縮、無 alpha)。PNG 要壓平透明。</span></span></div>
+        <div class="step"><span class="n">2</span><span class="body"><b>放進正確素材夾,沿用原檔名</b><span>覆蓋 <code>…/BootLogo/logo/xga2480/xga2480_kernel.bmp</code> 等。檔名不能改(build rule 寫死)。</span></span></div>
+        <div class="step"><span class="n">3</span><span class="body"><b>重新 build logo</b><span>產生新的 <code>logo.img</code>(build 自動跑 bmp_to_raw → zpipe → 打包)。</span></span></div>
+        <div class="step"><span class="n">4</span><span class="body"><b>燒 logo 分區並驗證</b><span>flash <code>logo.img</code> 到 logo_a/b,重開機看 kernel 圖是否換成自家圖。</span></span></div>
+      </div>
+      <div class="code-block"><span class="c"># PNG → 合格 BMP（ImageMagick）</span>
+convert in.png -resize 1860x2480! -background black -flatten -type TrueColor \
+  BMP3:.../BootLogo/logo/<span class="k">xga2480</span>/<span class="k">xga2480_kernel.bmp</span></div>
+    </section>
+
+    <!-- 7 注意事項 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">07 / 08</span> 限制與注意</div>
+      <h2 class="ptitle">容易出錯的<span class="hl">五件事</span></h2>
+      <ul class="clean">
+        <li><strong>profile 要對</strong> — 本機是 <code>xga2480</code>;改到 <code>xga1680</code> 等於沒改。<span>依 ProjectConfig.mk 確認。</span></li>
+        <li><strong>檔名不能改</strong> — build rule 依固定檔名抓圖,改名會抓不到。<span>只換內容,不動名稱。</span></li>
+        <li><strong>格式要符合</strong> — kernel/power_off = 1860×2480 / 24-bit BMP;PNG 的 alpha 要先壓平。</li>
+        <li><strong>uboot 尚未打通</strong> — <code>*_uboot.bmp</code> 是 LK 階段,目前改了不會顯示(且尺寸/位深不同),先擱置。</li>
+        <li><strong>logo 是獨立分區</strong> — 換圖要燒 logo 分區,不是 system;OTA / fastboot 都要包含它才會更新。</li>
+      </ul>
+    </section>
+
+    <!-- 8 結論 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">08 / 08</span> 本案結論</div>
+      <h2 class="ptitle">這台要動的<span class="ok">具體位置</span></h2>
+      <div class="card" style="margin-top:6px">
+        <h4>素材目錄(絕對路徑)</h4>
+        <p style="color:var(--text);font-family:var(--mono);font-size:13px;word-break:break-all">/mnt/aosp2/android16_mtk_vendor_v0mp5_aiv/vendor/mediatek/proprietary/external/BootLogo/logo/<span style="color:var(--teal)">xga2480/</span></p>
+      </div>
+      <div class="rows" style="margin-top:12px">
+        <div class="r"><span class="f">xga2480_kernel.bmp</span><span class="d">開機主圖</span><span class="b must">換</span></div>
+        <div class="r"><span class="f">xga2480_power_off.bmp</span><span class="d">關機圖</span><span class="b must">換</span></div>
+        <div class="r"><span class="f">其餘 bat_/fast_charging/…</span><span class="d">充電 UI</span><span class="b opt">全換才動</span></div>
+      </div>
+      <div class="callout ok"><b>待辦</b>　① PNG 轉 1860×2480 / 24-bit BMP　② 覆蓋上述檔(原檔名)　③ 重 build logo.img　④ 燒 logo 分區驗證</div>
+    </section>
+
+  </main>
+
+  <nav class="nav">
+    <button id="prev" aria-label="上一頁">&lsaquo; Prev</button>
+    <div class="dots" id="dots" role="tablist" aria-label="頁面"></div>
+    <button id="next" aria-label="下一頁">Next &rsaquo;</button>
+    <span class="count" id="count">01 / 09</span>
+  </nav>
+</div>
+
+<script>
+  (function(){
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+    var total = pages.length, i = 0;
+    var dots = document.getElementById('dots');
+    var prev = document.getElementById('prev'), next = document.getElementById('next'), count = document.getElementById('count');
+    pages.forEach(function(p,idx){
+      var d = document.createElement('i');
+      d.setAttribute('role','tab'); d.setAttribute('aria-label','第 '+(idx+1)+' 頁'); d.tabIndex=0;
+      d.addEventListener('click',function(){go(idx)});
+      d.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(idx)}});
+      dots.appendChild(d);
+    });
+    var dotEls = Array.prototype.slice.call(dots.children);
+    function pad(n){return (n<10?'0':'')+n}
+    function go(n){
+      i = Math.max(0, Math.min(total-1, n));
+      pages.forEach(function(p,idx){p.classList.toggle('is-active', idx===i)});
+      dotEls.forEach(function(d,idx){d.classList.toggle('on', idx===i)});
+      prev.disabled=i===0; next.disabled=i===total-1;
+      count.textContent = pad(i+1)+' / '+pad(total);
+      if(pages[i]) pages[i].scrollTop=0;
+    }
+    prev.addEventListener('click',function(){go(i-1)});
+    next.addEventListener('click',function(){go(i+1)});
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='PageDown')go(i+1);
+      else if(e.key==='ArrowLeft'||e.key==='PageUp')go(i-1);
+      else if(e.key==='Home')go(0); else if(e.key==='End')go(total-1);
+    });
+    var sx=null;
+    document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+    document.addEventListener('touchend',function(e){if(sx===null)return;var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(dx<0?i+1:i-1);sx=null},{passive:true});
+    go(0);
+  })();
+</script>
+</body>
+</html>
