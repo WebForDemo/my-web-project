@@ -179,11 +179,11 @@
       <div class="flow">
         <div class="fstep"><div class="ph">Bootloader</div><div class="nm">LK</div><div class="im">uboot.bmp</div><div class="pt">logo 分區 · 尚未打通</div></div>
         <div class="farrow">&rarr;</div>
-        <div class="fstep"><div class="ph">Kernel</div><div class="nm">Kernel 啟動</div><div class="im">kernel.bmp</div><div class="pt">logo 分區</div></div>
+        <div class="fstep"><div class="ph">Kernel</div><div class="nm">Kernel 啟動</div><div class="im">kernel.bmp</div><div class="pt">logo 分區 · 已換鯨魚</div></div>
         <div class="farrow">&rarr;</div>
         <div class="fstep sys"><div class="ph">Android</div><div class="nm">開機動畫</div><div class="im">bootanimation.zip</div><div class="pt">system · 循環</div></div>
         <div class="farrow">&rarr;</div>
-        <div class="fstep sys focus"><div class="ph">過場</div><div class="nm">過場畫面</div><div class="im">ntx_boot_background.png</div><div class="pt">system · framework</div></div>
+        <div class="fstep sys focus"><div class="ph">過場 ×2</div><div class="nm">過場畫面</div><div class="im">ntx_boot_background.png</div><div class="pt">system · framework + MtkSettings</div></div>
         <div class="farrow">&rarr;</div>
         <div class="fstep sys"><div class="ph">Done</div><div class="nm">桌面</div><div class="im">nHome</div><div class="pt">launcher</div></div>
       </div>
@@ -197,25 +197,20 @@
     <!-- 4 是誰畫的 -->
     <section class="page">
       <div class="eyebrow"><span class="num">04 / 07</span> 過場畫面是誰畫的</div>
-      <h2 class="ptitle"><span class="vi">SystemUserHomeActivity</span> — Android 的備援桌面</h2>
-      <p class="lede">它是 AOSP 內建、優先序最低的 HOME。當系統需要桌面、但真正的 launcher 還沒就緒時,系統會先落到它身上——正好涵蓋動畫結束後那一段。</p>
-      <div class="code-block"><span class="c">// core/res/AndroidManifest.xml — 它就是個 HOME，但優先序 -100（最低）</span>
-&lt;activity android:name="...SystemUserHomeActivity" android:systemUserOnly="true" ...&gt;
-  &lt;intent-filter android:priority="<span class="k">-100</span>"&gt;
-    &lt;action android:name="android.intent.action.MAIN" /&gt;
-    &lt;category android:name="android.intent.category.<span class="k">HOME</span>" /&gt;</div>
-      <ul class="clean" style="margin-top:16px">
-        <li><strong>原本</strong> — AOSP 預設它是近乎空白的備援畫面。</li>
-        <li><strong>客製後</strong> — 版面改成一張全螢幕品牌底圖(<code>ntx_boot_background.png</code>),拿來當開機過場。</li>
-        <li><strong>所以</strong> — 動畫結束 → 系統暫時落到這個備援 HOME(顯示品牌圖)→ nHome 就緒後接手。</li>
-      </ul>
+      <h2 class="ptitle">其實有<span class="vi">兩套</span>備援桌面(fallback home)</h2>
+      <p class="lede">Android 有兩個「備援桌面」。真正的 launcher 還沒就緒時,系統會先落到它們身上——正好涵蓋動畫結束後那一段。兩筆客製 patch 各塞了一張<strong>同樣</strong>的品牌過場圖。</p>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card vi"><span class="tag">frameworks/base</span><h4>SystemUserHomeActivity</h4><p>優先序最低(-100)的 HOME;system user 沒有其他 home 時的備援。</p></div>
+        <div class="card vi"><span class="tag">MtkSettings</span><h4>com.android.settings.FallbackHome</h4><p>開機完成 → 解鎖 → launcher 之間顯示(layout: <code>fallback_home_finishing_boot</code>)。<strong>實際較常看到的是這張。</strong></p></div>
+      </div>
+      <div class="callout"><b>關鍵</b>　兩者版面都被改成「全螢幕品牌底圖 <code>ntx_boot_background.png</code>」。<strong>只換一個,另一條路徑仍會露出舊圖</strong>——兩個都得換。</div>
     </section>
 
     <!-- 5 之前的 patch -->
     <section class="page">
       <div class="eyebrow"><span class="num">05 / 07</span> 之前的 patch 改法</div>
       <h2 class="ptitle">commit「Modify the transition screen during startup」</h2>
-      <p class="lede">這筆 <code>frameworks/base</code> 的客製 patch 共動了 5 處,把備援桌面改造成乾淨的品牌過場,並順手把開機提示框改成電子紙白底。</p>
+      <p class="lede">其實是<strong>兩筆同名 patch</strong>,分別改 <code>frameworks/base</code> 與 <code>MtkSettings</code> 的備援桌面,做法一模一樣——都把版面改成全螢幕品牌底圖。以 frameworks/base 那筆為例,動了 5 處:</p>
       <div class="rows">
         <div class="r"><span class="f">res/layout/system_user_home.xml</span><span class="d">版面砍成全螢幕 FrameLayout,背景 = <code>@drawable/ntx_boot_background</code>(移除文字/進度條)</span></div>
         <div class="r"><span class="f">res/drawable-nodpi/ntx_boot_background.png</span><span class="d">新增的過場底圖(當時 = 舊動畫最後一張)</span></div>
@@ -223,35 +218,39 @@
         <div class="r"><span class="f">core/res/AndroidManifest.xml</span><span class="d">主題 <code>Translucent</code> → <code>DeviceDefault.NoActionBar</code>,讓底圖不透明、無標題列</span></div>
         <div class="r"><span class="f">PhoneWindowManager.java</span><span class="d">開機提示框改白底黑字、進度條黑色(配合電子紙閱讀)</span></div>
       </div>
-      <div class="callout"><b>設計意圖</b>　過場圖刻意設成「= 動畫最後一張」,讓動畫播完像定格再進桌面,銜接無縫。</div>
+      <div class="callout"><b>雙胞胎</b>　<code>MtkSettings</code> 那筆對 <code>FallbackHome</code> 做同樣的事(layout + themes + FallbackHome.java + 同一張 <code>ntx_boot_background.png</code>)。兩張底圖**內容相同**,所以兩處都得一起更新。</div>
     </section>
 
     <!-- 6 本次修正 -->
     <section class="page">
       <div class="eyebrow"><span class="num">06 / 07</span> 本次修正</div>
       <h2 class="ptitle">把過場圖<span class="ok">同步成新動畫</span></h2>
-      <p class="lede">動畫換新後,過場圖還停在舊動畫的最後一張,才會露出舊品牌圖。修法就是讓兩者重新對齊。</p>
+      <p class="lede">讓整條視覺鏈重新對齊到新動畫,並一併把 bootloader/kernel 的開機 logo 也換成自家圖。</p>
       <div class="steps">
-        <div class="step"><span class="n">1</span><span class="body"><b>更新開機動畫</b><span>新的 6 張取代 <code>bootanimation.zip</code>(1860×2480、Stored 不壓縮)。</span></span></div>
-        <div class="step"><span class="n">2</span><span class="body"><b>過場圖換成「新動畫的最後一張」</b><span>把 <code>ntx_boot_background.png</code> 換成新動畫第 6 張(同為 1860×2480 PNG,直接替換)。</span></span></div>
-        <div class="step"><span class="n">3</span><span class="body"><b>重 build system</b><span>兩者都在 system 分區,一次 build 一起生效。</span></span></div>
+        <div class="step"><span class="n">1</span><span class="body"><b>更新開機動畫</b><span>新的 6 張取代 <code>bootanimation.zip</code>(1860×2480、Stored 不壓縮、白底)。</span></span></div>
+        <div class="step"><span class="n">2</span><span class="body"><b>兩處過場圖都換成「新動畫最後一張」</b><span>frameworks/base 與 MtkSettings 的 <code>ntx_boot_background.png</code> 同步換成新動畫第 6 張(鯨魚)。</span></span></div>
+        <div class="step"><span class="n">3</span><span class="body"><b>換 bootlogo(kernel / power_off)</b><span>PNG 轉 1860×2480 / 24-bit BMP(白底)取代 <code>xga2480_kernel.bmp</code>(鯨魚)與 <code>xga2480_power_off.bmp</code>(熊)。</span></span></div>
+        <div class="step"><span class="n">4</span><span class="body"><b>重 build + 刷機</b><span>system(動畫+過場)與 logo(bootlogo)分區一起產出;刷的 image 要在改動之後 build。</span></span></div>
       </div>
-      <div class="callout ok"><b>結果</b>　開機:新動畫 → 定格在新動畫最後一張 → 進桌面,不再出現舊的 mobiscribe Loading,銜接回到無縫。</div>
+      <div class="callout ok"><b>結果</b>　kernel(鯨魚)→ 動畫(鯨魚)→ 過場(鯨魚,兩處同步)→ 桌面,全鏈白底一致,不再出現舊的 mobiscribe Loading,也不黑白閃。</div>
     </section>
 
     <!-- 7 結論 -->
     <section class="page">
       <div class="eyebrow"><span class="num">07 / 07</span> 改動檔案與結論</div>
-      <h2 class="ptitle">這次動到的<span class="ok">兩個檔</span></h2>
+      <h2 class="ptitle">共動到 <span class="ok">5 個檔</span>,跨 4 個 git repo</h2>
       <div class="rows">
-        <div class="r"><span class="f">vendor/mediatek/proprietary/bootanimation/bootanimation.zip</span><span class="d">開機動畫(新 6 張)· system 分區</span></div>
-        <div class="r"><span class="f">frameworks/base/core/res/res/drawable-nodpi/ntx_boot_background.png</span><span class="d">過場底圖 = 新動畫最後一張 · framework-res(system)</span></div>
+        <div class="r"><span class="f">…/bootanimation/bootanimation.zip</span><span class="d">開機動畫(新 6 張)· bootanimation repo · system</span></div>
+        <div class="r"><span class="f">frameworks/base/…/drawable-nodpi/ntx_boot_background.png</span><span class="d">過場圖①(SystemUserHomeActivity)· frameworks/base · system</span></div>
+        <div class="r"><span class="f">…/MtkSettings/res/drawable-nodpi/ntx_boot_background.png</span><span class="d">過場圖②(FallbackHome)· MtkSettings · system</span></div>
+        <div class="r"><span class="f">…/BootLogo/logo/xga2480/xga2480_kernel.bmp</span><span class="d">開機圖(鯨魚)· BootLogo · <strong>logo 分區(vendor 樹)</strong></span></div>
+        <div class="r"><span class="f">…/BootLogo/logo/xga2480/xga2480_power_off.bmp</span><span class="d">關機圖(熊)· BootLogo · <strong>logo 分區(vendor 樹)</strong></span></div>
       </div>
-      <div class="grid cols-2" style="margin-top:16px">
-        <div class="card"><h4>分屬不同 git repo</h4><p>bootanimation 與 frameworks/base 各自 commit。</p></div>
-        <div class="card"><h4>同在 system</h4><p>一次 <code>buildAndroidImage -t full</code> 兩者一起進 image。</p></div>
+      <div class="grid cols-2" style="margin-top:14px">
+        <div class="card"><h4>4 個 repo 各自 commit</h4><p>bootanimation / frameworks/base / MtkSettings / BootLogo。</p></div>
+        <div class="card"><h4>兩個分區</h4><p>1~3 在 system、4~5 在 logo;<code>buildAndroidImage -t full</code> 一起產出。刷的 image 要在改動之後 build。</p></div>
       </div>
-      <div class="callout vi"><b>尚未處理</b>　bootloader/kernel 的開機 logo(<code>xga2480/*.bmp</code>,logo 分區)仍為 MTK 預設,如需自家圖另行置換。</div>
+      <div class="callout vi"><b>尚未處理</b>　只剩 <code>xga2480_uboot.bmp</code>(LK 階段,YP 說未打通、且規格為 1264×1680/8-bit),如需再另行置換。</div>
     </section>
 
   </main>
