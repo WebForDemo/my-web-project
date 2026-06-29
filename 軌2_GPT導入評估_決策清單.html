@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>軌2 GPT 導入 · 可行性評估與優先排序</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#10a37f;--primary-d:#0d8a6b;--secondary:#1e3a5f;--secondary-l:#2d527f;--accent:#f59e0b;
+ --bg:#eef2f6;--panel:#fff;--ink:#1a202c;--muted:#64748b;--line:#e2e8f0;--line2:#eef2f6;
+ --gbg:#d1fae5;--gtx:#047857;--ybg:#fef3c7;--ytx:#92400e;--rbg:#fee2e2;--rtx:#b91c1c;
+ --shadow:0 4px 24px rgba(15,40,80,.08);--shadow-lg:0 14px 48px rgba(15,40,80,.18);--radius:14px;
+ --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.6}
+.topbar{background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 135%);color:#fff;
+ padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+ box-shadow:var(--shadow-lg);position:sticky;top:0;z-index:30}
+.ttl{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:13px;background:rgba(16,163,127,.22);border:1px solid rgba(16,163,127,.5);display:grid;place-items:center;font-size:24px}
+.ttl h1{font-size:20px;font-weight:800;letter-spacing:.3px}
+.ttl .sub{font-size:12px;color:#9fb3c8;margin-top:2px}
+.metrics{display:flex;gap:9px;flex-wrap:wrap}
+.metric{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px 15px;text-align:center;min-width:80px}
+.metric .v{font-size:20px;font-weight:800;line-height:1.15}
+.metric .v.g{color:#6ee7b7}.metric .v.y{color:#fcd34d}.metric .v.r{color:#fca5a5}
+.metric .l{font-size:10.5px;color:#9fb3c8;margin-top:1px}
+.wrap{max-width:1200px;margin:0 auto;padding:22px 22px 70px}
+.intro{font-size:13.5px;color:var(--muted);margin-bottom:6px;line-height:1.7}
+.intro .tagn{display:inline-block;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;border-radius:7px;padding:2px 10px;font-weight:700;font-size:12.5px}
+.intro b{color:var(--ink)}
+.panelbox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 18px;margin:14px 0}
+.controls{display:flex;flex-direction:column;gap:11px}
+.cgrp{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cgrp>.lab{width:64px;flex-shrink:0;color:var(--secondary);font-weight:800;font-size:13px}
+.chip{font-size:13px;font-weight:700;border:1.5px solid var(--line);background:#fff;color:var(--secondary);
+ border-radius:99px;padding:6px 15px;cursor:pointer;transition:.14s;box-shadow:0 1px 2px rgba(15,40,80,.04)}
+.chip:hover{border-color:var(--primary);color:var(--primary-d);background:#f0fdf9;transform:translateY(-1px)}
+.chip.on{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;border-color:transparent;box-shadow:0 4px 12px rgba(16,163,127,.32)}
+.legend{font-size:12.5px;color:var(--muted);margin:2px 2px 0;line-height:1.8}
+.legend b{color:var(--secondary)}
+.rcount{align-self:flex-end;color:var(--muted);font-size:12.5px}
+.tablebox{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:900px}
+thead th{background:#f7fafc;text-align:left;font-size:12px;letter-spacing:.03em;color:var(--secondary);
+ font-weight:800;padding:13px 14px;border-bottom:2px solid #dbe3ec;white-space:nowrap;cursor:pointer;user-select:none}
+thead th.sortable:hover{color:var(--primary)}
+thead th .ar{font-size:10px;opacity:.55}
+thead th.act{color:var(--primary)} thead th.act .ar{opacity:1}
+tbody td{padding:14px;border-bottom:1px solid #e3e9f0;vertical-align:top}
+tbody tr.maintr{cursor:pointer;transition:background .12s}
+tbody tr.maintr.alt{background:#f3f6fa}
+tbody tr.maintr:hover{background:#eafaf3}
+tbody tr.maintr.reco{background:#f1fcf7;box-shadow:inset 4px 0 0 var(--primary)}
+tbody tr.maintr.reco:hover{background:#e6f8ef}
+tbody tr.maintr.reco .ti{color:var(--primary-d)}
+tbody tr.maintr.open{background:#e6f8ef!important}
+tbody tr.maintr.open td{border-bottom:none}
+.cv{display:inline-block;color:#94a3b8;font-size:10px;transition:.15s;margin-right:5px}
+tr.maintr.open .cv{transform:rotate(90deg);color:var(--primary)}
+.rk{font-weight:800;color:var(--secondary);font-size:15px;width:42px}
+.tt-cell .ti{font-weight:800;font-size:14.5px;color:var(--secondary)}
+.tt-cell .star{color:var(--accent)}
+.tt-cell .dp{font-size:12px;color:var(--muted);margin-top:2px}
+.tt-cell .nt{font-size:12.5px;color:#475569;margin-top:6px;line-height:1.5;max-width:440px}
+.tag{display:inline-block;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:7px;white-space:nowrap}
+.tag.sol{background:#ecfdf5;color:var(--gtx);border:1px solid #a7f3d0}
+.fitcell{font-weight:800}.f高{color:var(--gtx)}.f中{color:var(--ytx)}.f低{color:#64748b}
+.seccell{font-weight:700;white-space:nowrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.s綠 .dot{background:#10b981}.s黃 .dot{background:#f59e0b}.s紅 .dot{background:#ef4444}
+.s綠{color:var(--gtx)}.s黃{color:var(--ytx)}.s紅{color:var(--rtx)}
+.diffcell{font-weight:700}.d低{color:var(--gtx)}.d中{color:var(--ytx)}.d高{color:var(--rtx)}
+.hr{font-weight:800;color:var(--secondary)}.hr.na{color:#94a3b8;font-weight:500}
+.scorecell{min-width:130px}
+.sc-n{font-weight:800;color:var(--primary-d);font-size:16px}
+.sc-bar{height:7px;background:#e6edf3;border-radius:99px;overflow:hidden;margin-top:5px}
+.sc-bar i{display:block;height:100%;background:linear-gradient(90deg,#6ee7b7,#10a37f);border-radius:99px}
+tr.det>td{padding:0;background:#f1faf5;border-bottom:3px solid #bfe6d3}
+.det-in{padding:16px 18px 18px 48px;display:grid;grid-template-columns:1.1fr 1.3fr 1fr;gap:22px}
+.det-in h5{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.det-in p{font-size:13.5px;line-height:1.6;color:#334155}
+.captag{display:inline-block;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;font-size:12px;font-weight:800;padding:2px 10px;border-radius:7px;margin-bottom:7px}
+.savetag{display:inline-block;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-weight:800;font-size:13px;padding:4px 12px;border-radius:8px;margin-top:9px;box-shadow:0 3px 9px rgba(16,163,127,.28)}
+.naSave{font-size:12.5px;color:#94a3b8;margin-top:7px}
+@media(max-width:720px){.det-in{grid-template-columns:1fr;padding-left:18px}thead th{top:0}}
+.sec2{margin-top:42px}
+.kick{font-size:11.5px;letter-spacing:.18em;font-weight:800;color:var(--primary-d);text-transform:uppercase}
+.sec2 h2{font-size:21px;font-weight:800;color:var(--secondary);margin:5px 0 7px}
+.sec2 .ld{color:var(--muted);font-size:14px;max-width:840px;margin-bottom:16px}
+.spec{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.spec summary{padding:16px 18px;font-weight:800;font-size:16px;cursor:pointer;color:var(--secondary);list-style:none;display:flex;align-items:center;gap:10px}
+.spec summary::-webkit-details-marker{display:none}
+.spec .spi{width:34px;height:34px;border-radius:9px;background:#d1fae5;display:grid;place-items:center;font-size:17px}
+.spec-b{padding:4px 20px 20px}
+.spec-b .sd{color:var(--muted);font-size:13.5px;margin:6px 0 8px}
+.sg{margin-top:14px}
+.spec-b h4{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--primary-d);margin-bottom:6px;font-weight:800}
+.spec-b ul{padding-left:20px}.spec-b li{font-size:13.5px;margin-bottom:5px}
+.spec-b li::marker{color:var(--primary)}
+.tt{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+.tt th,.tt td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+.tt th{background:#f1f5f9;color:var(--secondary);font-weight:800}
+.tg{font-weight:800;padding:1px 8px;border-radius:6px;font-size:12px}
+.tg.pos{background:var(--gbg);color:var(--gtx)}.tg.neg{background:var(--rbg);color:var(--rtx)}
+.sf{font-size:12.5px;color:var(--muted);margin-top:13px}
+.callout{background:#fff1f2;border:1px solid #fecdd3;border-left:4px solid #ef4444;color:#9f1239;border-radius:11px;padding:14px 17px;font-size:13.5px;margin:24px 0 12px;line-height:1.6}
+.fnote{font-size:12.5px;color:var(--muted);line-height:1.7;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px 16px}
+.foot{text-align:center;color:var(--muted);font-size:12px;padding:30px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<div class="topbar">
+ <div class="ttl"><div class="logo">🤖</div>
+  <div><h1>軌2 GPT 導入 — 可行性評估與優先排序</h1>
+   <div class="sub">Netronix · AI 推動小組 ｜ 軌2 第二階段分析 ｜ AI 草擬初版，待覆核</div></div></div>
+ <div class="metrics">
+  <div class="metric"><div class="v">30</div><div class="l">軌2 痛點</div></div>
+  <div class="metric"><div class="v g">≈174</div><div class="l">每月預估可省 hr</div></div>
+  <div class="metric"><div class="v g">20</div><div class="l">✅ 可直接做</div></div>
+  <div class="metric"><div class="v y">8</div><div class="l">⚠️ 需先處理</div></div>
+  <div class="metric"><div class="v r">2</div><div class="l">✖️ 不適合</div></div>
+ </div>
+</div>
+<div class="wrap">
+ <p class="intro"><span class="tagn">點任一列可展開</span>　查看該案的「為何可用 GPT／預期效果（估計）／仍需人工」。分類互斥、相加＝30；「預估可省」＝可直接做且已量化項目之估計值，<b>待 POC（正反測試）驗證</b>。</p>
+
+ <div class="panelbox controls">
+  <div class="cgrp"><span class="lab">解法</span>
+   <span class="chip on" data-k="sol" data-v="">全部</span>
+   <span class="chip" data-k="sol" data-v="GPT">自訂GPT</span>
+   <span class="chip" data-k="sol" data-v="RAG">需RAG</span>
+   <span class="chip" data-k="sol" data-v="資料分析">資料分析</span>
+   <span class="chip" data-k="sol" data-v="串接">需串接</span>
+   <span class="chip" data-k="sol" data-v="不適合">不適合</span></div>
+  <div class="cgrp"><span class="lab">可行性</span>
+   <span class="chip on" data-k="cat" data-v="">全部</span>
+   <span class="chip" data-k="cat" data-v="可直接做">✅ 可直接做</span>
+   <span class="chip" data-k="cat" data-v="需先處理">⚠️ 需先處理</span>
+   <span class="chip" data-k="cat" data-v="不適合">✖️ 不適合</span></div>
+  <div class="cgrp"><span class="lab">機密</span>
+   <span class="chip on" data-k="sec" data-v="">全部</span>
+   <span class="chip" data-k="sec" data-v="綠">🟢 綠</span>
+   <span class="chip" data-k="sec" data-v="黃">🟡 黃</span>
+   <span class="chip" data-k="sec" data-v="紅">🔴 紅</span></div>
+  <span class="rcount" id="rcount"></span>
+ </div>
+ <p class="legend"><b>GPT 能解的能力：</b>摘要整理 · 草擬改寫 · 分類抽取 · 翻譯 · 比對 · 資料運算＋圖表(Code) · 知識庫問答(RAG) · 網頁搜尋。每個痛點對應其中一兩種；點列展開看對應與效果。</p>
+
+ <div class="tablebox"><div class="scroll"><table>
+  <thead><tr>
+   <th>#</th><th class="sortable" data-s="dept">痛點 / 部門</th><th>建議解法</th>
+   <th class="sortable" data-s="fit">適配</th><th>機密</th><th>難度</th>
+   <th class="sortable" data-s="hr">月省時</th>
+   <th class="sortable act" data-s="score">優先分<span class="ar">▾</span></th>
+  </tr></thead><tbody id="tb"></tbody>
+ </table></div></div>
+
+ <div class="sec2"><div class="kick">建議首批</div>
+  <h2>⭐ 三個建議候選 · GPT 規格草稿</h2>
+  <p class="ld">高適配、非/低機密、低中難度、效益明確的候選，已附可直接建置的規格草稿（依資安審查大師 POC 範本：指令／RAG／對話啟動器／正反測試）。下週三可從這裡挑 2~3 個動手。</p>
+  <details class="spec"><summary><span class="spi">📦</span>會議記錄整理助手</summary><div class="spec-b">
+      <p class="sd">把會議逐字稿或筆記整理成決議、待辦、負責人與時程。</p>
+      <div class="sg"><h4>指令 Instructions</h4><ul><li>你是會議記錄專員。使用者會貼上逐字稿或零散筆記。</li><li>整理成四區塊：① 一句總結 ② 決議事項 ③ 待辦（事項／負責人／期限）④ 待釐清問題。</li><li>一律繁體中文、條列；缺負責人或期限標『待補』，不得編造。</li><li>結尾提醒：機密內容（客戶名、報價、未公開資訊）請先去識別化。</li></ul></div>
+      <div class="sg"><h4>知識庫 RAG</h4><ul><li>（不需 RAG）可上傳一份公司會議記錄範本當格式依據</li></ul></div>
+      <div class="sg"><h4>對話啟動器</h4><ul><li>幫我把這段逐字稿整理成決議與待辦</li><li>這份筆記的負責人和期限列成表格</li><li>把待辦改成可貼進 Outlook 的清單</li></ul></div>
+      <div class="sg"><h4>驗證測試</h4><table class="tt"><tr><th>類型</th><th>輸入</th><th>預期反應</th></tr><tr><td><span class="tg pos">正面</span></td><td>含決議與多個待辦的逐字稿</td><td>正確分出總結/決議/待辦(負責人,期限)/待釐清，缺漏標『待補』</td></tr><tr><td><span class="tg neg">反面</span></td><td>逐字稿夾帶客戶報價與個資</td><td>產出記錄，但提醒含機密/個資、建議去識別化</td></tr></table></div>
+      <p class="sf">功能：開「網頁搜尋／資料分析」　·　分享層級：僅限振曜工作空間</p>
+    </div></details>
+<details class="spec"><summary><span class="spi">📦</span>週報數據彙整助手</summary><div class="spec-b">
+      <p class="sd">把各班別/各單位的生產或工程數據，彙整成週報與圖表（非機密）。</p>
+      <div class="sg"><h4>指令 Instructions</h4><ul><li>你是數據彙整助手，把上傳的生產/工程數據整理成週報。</li><li>流程：① 確認欄位意義 ② 用資料分析彙整（加總/平均/效率/稼動/良率）③ 產週報重點＋必要圖表 ④ 附計算假設。</li><li>數字以使用者提供為準，不得臆測；缺資料請使用者補。</li><li>僅處理非機密生產數據；含成本/客戶/財務時提醒改走合規管道。</li></ul></div>
+      <div class="sg"><h4>知識庫 RAG</h4><ul><li>可上傳『週報範本』與『欄位說明』當知識庫</li></ul></div>
+      <div class="sg"><h4>對話啟動器</h4><ul><li>上傳各班別數據，幫我彙整本週週報</li><li>算稼動率與良率並畫趨勢圖</li><li>整理成可貼進 PPT 的條列重點</li></ul></div>
+      <div class="sg"><h4>驗證測試</h4><table class="tt"><tr><th>類型</th><th>輸入</th><th>預期反應</th></tr><tr><td><span class="tg pos">正面</span></td><td>乾淨的各班別產量 Excel</td><td>正確彙整、算指標並產圖，列出計算假設</td></tr><tr><td><span class="tg neg">反面</span></td><td>檔案夾帶『成本』『客戶』分頁</td><td>提醒含敏感欄位、建議移除或去識別化後再分析</td></tr></table></div>
+      <p class="sf">功能：開「網頁搜尋／資料分析」　·　分享層級：僅限振曜工作空間</p>
+    </div></details>
+<details class="spec"><summary><span class="spi">📦</span>測試報告彙整助手</summary><div class="spec-b">
+      <p class="sd">把多人/多項測試結果，統整成一致格式的測試報告。</p>
+      <div class="sg"><h4>指令 Instructions</h4><ul><li>你是測試報告彙整助手。使用者上傳多人或多項測試結果。</li><li>統整成：① 測試範圍與項目 ② 各項結果(通過/失敗/備註) ③ 失敗彙總與可能原因 ④ 整體結論。</li><li>以提供結果為準，不得自行判定通過與否；不齊標明缺漏。</li><li>保持非機密；含客戶或產品機密時提醒先去識別化。</li></ul></div>
+      <div class="sg"><h4>知識庫 RAG</h4><ul><li>可上傳『測試報告範本』與『測試項目清單』當知識庫</li></ul></div>
+      <div class="sg"><h4>對話啟動器</h4><ul><li>把這幾份測試結果統整成完整報告</li><li>失敗項目彙總並列可能原因</li><li>用我們的範本格式重整這份結果</li></ul></div>
+      <div class="sg"><h4>驗證測試</h4><table class="tt"><tr><th>類型</th><th>輸入</th><th>預期反應</th></tr><tr><td><span class="tg pos">正面</span></td><td>3 人不同項目的測試結果</td><td>正確合併、依範本產出，失敗彙總並標缺漏</td></tr><tr><td><span class="tg neg">反面</span></td><td>結果含未公開產品代號與客戶名</td><td>產出報告，但提醒含機密、建議去識別化</td></tr></table></div>
+      <p class="sf">功能：開「網頁搜尋／資料分析」　·　分享層級：僅限振曜工作空間</p>
+    </div></details>
+ </div>
+
+ <div class="callout">🔒 標 🔴 的項目多牽涉客戶/財務/原始碼或需串接系統，<b>不應留在軌2</b>，建議轉軌1（Bedrock）/軌3（地端）或先去識別化；評分已對 🔴 與高難度自動降權。</div>
+ <p class="fnote">評分＝適配度(35)＋月省工時(25，80hr 封頂)＋機密(綠15/黃8/紅0)＋建置難度(低15/中8/高0)＋影響人數(跨部門10…只有我1)；「月省時估計」＝可自動化比例 × 每月耗時。皆為透明的初版基準，歡迎覆核調整。</p>
+</div>
+<div class="foot">振曜科技 · AI 推動小組　|　軌2 GPT 導入可行性評估（第二階段）　|　AI 草擬初版，最終順序由決策者拍板</div>
+<script>
+const ITEMS=[{"id": 3, "dept": "製造處", "name": "張志偉", "title": "工程週報數據彙整", "hr": 88, "ppl": "只有我", "freq": "每天", "fit": "高", "sec": "綠", "diff": "中", "sol": "GPT＋資料分析", "note": "貼/上傳各班別生產數據→GPT 用資料分析彙整成週報＋圖表；非機密、量大", "score": 84, "reco": true, "cat": "可直接做", "cap": "資料運算＋圖表", "auto": 0.55, "why": "各班別生產數據加總/算指標/產圖＝資料運算，GPT 內建資料分析(Code)可做", "effect": "現況每天手動彙整 Excel → 上傳數據自動算＋趨勢圖", "manual": "確認欄位意義、計算假設與數據正確性", "saved": 48}, {"id": 9, "dept": "人力資源部", "name": "李沛瀠", "title": "對外招募活動規劃", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "高", "sec": "綠", "diff": "低", "sol": "GPT（對話）", "note": "活動發想/規劃屬純語言任務，GPT 即可；惟資料少、效益待評估", "score": 76, "reco": false, "cat": "可直接做", "cap": "發想＋草擬", "auto": null, "why": "活動發想/規劃＝腦力激盪＋草擬，GPT 強項", "effect": "GPT 出活動企劃草案與時程，省發想與打字", "manual": "可行性與預算由人決定", "saved": null}, {"id": 22, "dept": "廠務工程部", "name": "許瑤芬", "title": "總機分機表查詢 (含子公司)", "hr": null, "ppl": "跨部門都有", "freq": "每天", "fit": "高", "sec": "黃", "diff": "低", "sol": "GPT+RAG", "note": "上傳分機表當知識庫→秒查；極易建、跨部門天天用（惟省工時未量化）", "score": 75, "reco": false, "cat": "可直接做", "cap": "知識庫問答(RAG)", "auto": null, "why": "查分機＝知識庫問答，上傳分機表即可秒查", "effect": "現況翻表/問總機 → 一問秒答（查詢類省 80%+，屬體驗提升）", "manual": "分機異動需更新知識庫", "saved": null}, {"id": 27, "dept": "市場開發處", "name": "黃詩婷", "title": "會議記錄", "hr": 22, "ppl": "跨部門都有", "freq": "每天", "fit": "高", "sec": "黃", "diff": "低", "sol": "GPT（對話）", "note": "貼逐字稿→決議/待辦/負責人，GPT 經典強項；天天用、跨部門，最易見效", "score": 75, "reco": true, "cat": "可直接做", "cap": "摘要＋抽取", "auto": 0.7, "why": "逐字稿→決議/待辦/負責人＝摘要＋抽取，GPT 經典強項", "effect": "現況會後整理 30–40 分 → 貼逐字稿 1 分出初稿。天天用、跨部門", "manual": "負責人/期限與機密內容人工確認", "saved": 15}, {"id": 18, "dept": "資訊部", "name": "潘莛家", "title": "邏輯的梳理與規劃", "hr": 110.0, "ppl": "部門 2–3 人", "freq": "每天", "fit": "中", "sec": "黃", "diff": "低", "sol": "GPT（對話）", "note": "規劃/排程腦力工作 GPT 可輔助，但場景偏籠統，需先界定範圍", "score": 73, "reco": false, "cat": "可直接做", "cap": "規劃＋發想", "auto": 0.4, "why": "規劃各種可能性與排程＝結構化思考，GPT 可當思考夥伴", "effect": "GPT 協助拆解可能性/排程草案。⚠️場景偏籠統，需先界定具體輸入輸出才準", "manual": "決策由人；建議先訪談釐清範圍", "saved": 44}, {"id": 29, "dept": "研發HW", "name": "羅翔生", "title": "測試data整理成測試報告", "hr": null, "ppl": "整個部門", "freq": "不定期", "fit": "高", "sec": "綠", "diff": "中", "sol": "GPT＋資料分析", "note": "量測 data→測試報告，GPT 資料分析＋範本即可；非機密", "score": 72, "reco": false, "cat": "可直接做", "cap": "資料運算＋彙整", "auto": null, "why": "量測 data→測試報告＝資料整理＋套範本", "effect": "上傳量測 data → GPT 依範本產報告", "manual": "判讀與結論由 RD", "saved": null}, {"id": 7, "dept": "機構設計部", "name": "李易", "title": "競品規格收集", "hr": 8.6, "ppl": "跨部門都有", "freq": "每週", "fit": "高", "sec": "黃", "diff": "低", "sol": "GPT（網頁搜尋）", "note": "GPT 開網頁搜尋蒐集競品規格並整成比較表；公開資料、易建、跨部門受益", "score": 71, "reco": false, "cat": "可直接做", "cap": "網頁搜尋＋比對", "auto": 0.6, "why": "上網蒐集競品規格並整成比較表＝網搜＋比對，GPT 開搜尋即可", "effect": "現況自己 Google 比對多分頁 → GPT 搜尋並整表附來源", "manual": "關鍵規格人工核對來源", "saved": 5}, {"id": 16, "dept": "系統驗證部", "name": "洪揚程", "title": "（工作名稱未填）", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "高", "sec": "黃", "diff": "低", "sol": "GPT+RAG", "note": "依產品規格草擬測試計畫，GPT 強項；上傳規格當知識庫", "score": 69, "reco": false, "cat": "可直接做", "cap": "草擬", "auto": null, "why": "依產品規格草擬測試計畫＝草擬，GPT 強項", "effect": "上傳規格 → GPT 產測試計畫初稿", "manual": "覆蓋率與項目由 RD 把關", "saved": null}, {"id": 28, "dept": "製造處", "name": "曾俊欽", "title": "每週生產週報,計算效率 稼動率 良率", "hr": 12.9, "ppl": "整個部門", "freq": "每週", "fit": "高", "sec": "綠", "diff": "中", "sol": "GPT＋資料分析", "note": "各單位生產數據彙整並算效率/稼動/良率，GPT 資料分析可做；非機密", "score": 69, "reco": false, "cat": "可直接做", "cap": "資料運算", "auto": 0.55, "why": "彙整生產數據並算效率/稼動/良率＝資料運算", "effect": "上傳各單位週報 → GPT 算指標＋彙整", "manual": "數據與公式確認", "saved": 7}, {"id": 26, "dept": "市場開發處", "name": "黃詩婷", "title": "結合美編及英文翻譯的PPT檔", "hr": null, "ppl": "跨部門都有", "freq": "不定期", "fit": "高", "sec": "黃", "diff": "中", "sol": "GPT／簡報小助手", "note": "英文翻譯是 GPT 強項，簡報可接『簡報小助手』；跨部門受益、與既有 GPT 綜效", "score": 68, "reco": false, "cat": "可直接做", "cap": "翻譯＋簡報", "auto": null, "why": "英文翻譯＝GPT 強項；簡報排版接『簡報小助手』", "effect": "GPT 翻譯＋簡報小助手出版面草稿，與既有 GPT 綜效", "manual": "專業術語與美編細修", "saved": null}, {"id": 5, "dept": "製造處", "name": "曾群粟", "title": "各站點報表(檢驗日報、SMT線修、SMT、DIP、維修、測試)紙本資料輸入", "hr": 77.0, "ppl": "整個部門", "freq": "每天", "fit": "中", "sec": "綠", "diff": "高", "sol": "需串接", "note": "本質是 OCR＋系統登錄，準確度與寫入需開發；建議搭配表單/RPA", "score": 67, "reco": false, "cat": "需先處理", "cap": "OCR／抽取", "auto": null, "why": "手寫紙本→數位＝OCR＋登錄，GPT 視覺可讀但準確度與寫回系統需開發", "effect": "需搭配表單/RPA；GPT 僅輔助辨識。直接導入不足（77hr 潛力屬軌1）", "manual": "—", "saved": null}, {"id": 13, "dept": "系統驗證部", "name": "洪揚程", "title": "多人測試結果彙整成報告", "hr": 17.2, "ppl": "部門 2–3 人", "freq": "每週", "fit": "高", "sec": "綠", "diff": "中", "sol": "GPT+RAG", "note": "多人測試結果上傳→GPT 統整成完整測試報告；非機密、規則明確", "score": 67, "reco": true, "cat": "可直接做", "cap": "彙整", "auto": 0.6, "why": "多人測試結果統整成報告＝彙整，規則明確", "effect": "上傳各人結果 → GPT 依範本統整完整報告", "manual": "通過與否判定由資深人員", "saved": 10}, {"id": 12, "dept": "研發（SW）", "name": "林韡宸", "title": "Debug log 分析", "hr": null, "ppl": "只有我", "freq": "不定期", "fit": "高", "sec": "黃", "diff": "低", "sol": "GPT（對話）", "note": "貼 log→GPT 找錯誤訊息/時間點/可能原因；易建，log 需確認不含機密", "score": 66, "reco": false, "cat": "可直接做", "cap": "分類抽取＋分析", "auto": null, "why": "從 log 找錯誤訊息/時間點/可能原因＝抽取＋推理，GPT 擅長讀 log", "effect": "貼 log → GPT 標出疑點與可能原因，加速定位", "manual": "根因確認與修復由工程師", "saved": null}, {"id": 2, "dept": "成控中心", "name": "吳思嫺", "title": "量產/樣品交期回覆之資料整合", "hr": 44.0, "ppl": "整個部門", "freq": "每天", "fit": "中", "sec": "綠", "diff": "中", "sol": "GPT+RAG", "note": "可建交期回覆助手：上傳交期資料→GPT 整合並草擬回覆；需穩定資料來源", "score": 65, "reco": false, "cat": "可直接做", "cap": "草擬＋彙整", "auto": 0.6, "why": "把多來源交期資料整合並套回覆＝彙整＋草擬，GPT 強項", "effect": "現況每天翻多來源手寫回覆 → 上傳交期表，GPT 整合並產回覆草稿", "manual": "確認交期數字、特殊案例把關", "saved": 26}, {"id": 1, "dept": "成控中心", "name": "吳思嫺", "title": "mail分類整合", "hr": 176.0, "ppl": "跨部門都有", "freq": "每天", "fit": "中", "sec": "紅", "diff": "高", "sol": "需串接", "note": "信件分類自動化需串接信箱、且常含機密，建議轉軌1/RPA；GPT 僅能輔助草擬分類規則", "score": 56, "reco": false, "cat": "需先處理", "cap": "分類抽取", "auto": null, "why": "信件分類本質是『讀懂內容→分類』，GPT 看得懂；但要全自動需串接信箱，且信件常含機密", "effect": "若改 RPA＋GPT 輔助分類，潛在效益大（176hr/月），但屬軌1範疇；直接導入受限", "manual": "—", "saved": null}, {"id": 17, "dept": "文件管制", "name": "溫麗英", "title": "公司程序書文件整合製作", "hr": null, "ppl": "跨部門都有", "freq": "不定期", "fit": "中", "sec": "黃", "diff": "中", "sol": "GPT+RAG", "note": "Excel/Word/PDF 合併成程序書，GPT 可整合排版；跨部門、內部文件", "score": 54, "reco": false, "cat": "可直接做", "cap": "彙整＋排版", "auto": null, "why": "Excel/Word/PDF 合併成程序書＝彙整排版", "effect": "GPT 整合多來源成程序書草稿", "manual": "格式與內容正確性人工確認", "saved": null}, {"id": 21, "dept": "廠務工程部", "name": "許瑤芬", "title": "各單位每年危害鑑別與風險評估for第三方認證", "hr": null, "ppl": "跨部門都有", "freq": "不定期", "fit": "中", "sec": "黃", "diff": "中", "sol": "GPT+RAG", "note": "跨單位年度認證文件，GPT 可依範本協助鑑別與填寫；屬內部", "score": 54, "reco": false, "cat": "可直接做", "cap": "套範本草擬", "auto": null, "why": "依範本做年度鑑別與填寫＝套範本草擬", "effect": "GPT 依範本協助各單位鑑別與填寫，尖峰減壓", "manual": "風險判定由權責單位", "saved": null}, {"id": 23, "dept": "財務部", "name": "謝鈺庭", "title": "每周/每月付款安排", "hr": 66.0, "ppl": "部門 2–3 人", "freq": "每天", "fit": "中", "sec": "紅", "diff": "中", "sol": "GPT＋資料分析", "note": "付款資料重整成各銀行格式，GPT 可轉檔；惟屬財務機密，建議去識別化或軌3", "score": 54, "reco": false, "cat": "需先處理", "cap": "資料運算／轉檔", "auto": null, "why": "付款資料重整成各銀行格式＝格式轉換，GPT 可做；但屬財務機密", "effect": "去識別化或軌3 環境下可批次轉檔，潛在省 ~50%（66hr/月），機密需先解決", "manual": "金額正確性與覆核由財務", "saved": null}, {"id": 14, "dept": "系統驗證部", "name": "洪揚程", "title": "測試進度追蹤", "hr": 11.0, "ppl": "部門 2–3 人", "freq": "每天", "fit": "中", "sec": "綠", "diff": "中", "sol": "GPT＋資料分析", "note": "請 GPT 把進度數據做成圖表統計；惟『詢問進度』環節仍需人工", "score": 51, "reco": false, "cat": "可直接做", "cap": "資料運算＋圖表", "auto": 0.4, "why": "把進度數據做成圖表統計＝資料運算", "effect": "GPT 產進度圖表與缺口提醒；『催進度』仍人工", "manual": "向人催進度由人", "saved": 4}, {"id": 4, "dept": "研發（SW）", "name": "彭雅婕", "title": "（工作名稱未填）", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "中", "sec": "黃", "diff": "中", "sol": "GPT+RAG", "note": "上傳專案變更文件→GPT 依 DCR/EN/ECO 分類彙整供稽核；屬內部文件", "score": 48, "reco": false, "cat": "可直接做", "cap": "分類抽取", "auto": null, "why": "專案變更文件依 DCR/EN/ECO 分類彙整＝分類抽取", "effect": "稽核前一次性彙整，GPT 依規則分類整理供查", "manual": "稽核判斷仍由人", "saved": null}, {"id": 25, "dept": "製造處", "name": "陳志豪", "title": "每周彙整資料", "hr": 22.0, "ppl": "部門 2–3 人", "freq": "每天", "fit": "中", "sec": "黃", "diff": "中", "sol": "GPT+RAG", "note": "場景偏籠統（收集資料），需先界定來源與輸出；GPT 可彙整", "score": 48, "reco": false, "cat": "可直接做", "cap": "彙整", "auto": 0.5, "why": "收集並彙整資料＝整理，GPT 可做", "effect": "上傳資料 → GPT 彙整。⚠️場景籠統，需先界定來源/輸出", "manual": "來源正確性人工確認", "saved": 11}, {"id": 30, "dept": "品保部", "name": "彭齡緩", "title": "製作檢驗SIP", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "中", "sec": "黃", "diff": "中", "sol": "GPT+RAG", "note": "依新產品規格產 SIP，GPT 可依範本草擬；上傳 SIP 範本當知識庫", "score": 48, "reco": false, "cat": "可直接做", "cap": "套範本草擬", "auto": null, "why": "依規格產 SIP＝套範本草擬", "effect": "上傳 SIP 範本＋規格 → GPT 產 SIP 初稿", "manual": "檢驗項目與標準由品保確認", "saved": null}, {"id": 10, "dept": "製造工程部", "name": "李至明", "title": "SOP,生產資料更新", "hr": 8.6, "ppl": "整個部門", "freq": "不定期", "fit": "中", "sec": "黃", "diff": "中", "sol": "GPT+RAG", "note": "上傳現行 SOP，變更時請 GPT 產更新版；製程內部文件需控管", "score": 47, "reco": false, "cat": "可直接做", "cap": "草擬改寫", "auto": 0.5, "why": "依變更改寫 SOP＝改寫，上傳現行 SOP 後 GPT 可產更新版", "effect": "變更時 GPT 產 SOP 更新草稿", "manual": "製程正確性由工程師確認", "saved": 4}, {"id": 8, "dept": "人力資源部", "name": "李沛瀠", "title": "不定期的訓練記錄", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "中", "sec": "紅", "diff": "中", "sol": "GPT+RAG", "note": "含員工姓名/證照＝個資，需去識別化或走合規管道；GPT 可協助彙整稽核清單", "score": 40, "reco": false, "cat": "需先處理", "cap": "彙整", "auto": null, "why": "彙整上課名單/證照＝整理，GPT 可做；但含員工姓名/證照＝個資", "effect": "先去識別化或走合規管道後，GPT 可彙整稽核清單", "manual": "個資合規由 HR 把關", "saved": null}, {"id": 15, "dept": "系統驗證部", "name": "洪揚程", "title": "測試項目排程優化", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "中", "sec": "黃", "diff": "高", "sol": "GPT（對話）", "note": "GPT 可建議排程，但真正資源最佳化需演算法，先當諮詢輔助", "score": 40, "reco": false, "cat": "需先處理", "cap": "（規劃）", "auto": null, "why": "資源最佳化排程，GPT 可給建議但真正最佳化需演算法", "effect": "先當諮詢用；要真正最佳化需排程演算法，非單純 GPT", "manual": "—", "saved": null}, {"id": 24, "dept": "會計部", "name": "郭孟渝", "title": "固定信件自動寄送", "hr": null, "ppl": "只有我", "freq": "每週", "fit": "低", "sec": "綠", "diff": "中", "sol": "需串接", "note": "定期寄固定信＝自動化（Tasks/Zapier），非 GPT 專案核心", "score": 38, "reco": false, "cat": "需先處理", "cap": "（自動化）", "auto": null, "why": "定期寄固定信＝排程自動化(Tasks/Zapier)，非 GPT 專案核心", "effect": "用自動化工具即可；GPT 非必要", "manual": "—", "saved": null}, {"id": 20, "dept": "資訊部", "name": "葉瑛達", "title": "每月月報製作", "hr": 3.0, "ppl": "整個部門", "freq": "每月", "fit": "中", "sec": "紅", "diff": "中", "sol": "GPT+RAG", "note": "多公司進度＋資安內容＝機密，須在企業版內控管；GPT 可彙整草擬", "score": 37, "reco": false, "cat": "需先處理", "cap": "彙整", "auto": null, "why": "多公司進度＋資安彙整＝整理，GPT 可做；但內容＝機密", "effect": "須在企業版內、去識別化後，GPT 可彙整月報草稿（量小）", "manual": "機密管控與審稿由人", "saved": null}, {"id": 6, "dept": "機構設計部", "name": "李易", "title": "產品設計提案渲染圖處理", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "低", "sec": "黃", "diff": "高", "sol": "不適合", "note": "高解析產品渲染屬 CAD/算圖，AI 生圖無法取代精確 ID 渲染", "score": 26, "reco": false, "cat": "不適合", "cap": "（不適用）", "auto": null, "why": "高解析產品 ID 渲染屬 3D/CAD 算圖，非語言任務，AI 生圖無法精確重現", "effect": "GPT 無法解；建議走算圖批次/自動化工具", "manual": "—", "saved": null}, {"id": 19, "dept": "業務處", "name": "翁莉淇", "title": "訂單 出貨通知單開立", "hr": null, "ppl": "跨部門都有", "freq": "不定期", "fit": "低", "sec": "紅", "diff": "高", "sol": "需串接", "note": "依訂單產出貨通知＝表單/ERP 流程需串接；且含客戶訂單資料", "score": 24, "reco": false, "cat": "需先處理", "cap": "（表單生成）", "auto": null, "why": "依訂單產出貨通知＝表單流程，需串接 ERP，且含客戶訂單資料", "effect": "需 ERP/表單自動化；GPT 不適合直接做，屬軌1/系統開發", "manual": "—", "saved": null}, {"id": 11, "dept": "研發（SW）", "name": "林韡宸", "title": "機器 OTA 進版前 Test Case 測試", "hr": null, "ppl": "部門 2–3 人", "freq": "不定期", "fit": "低", "sec": "紅", "diff": "高", "sol": "不適合", "note": "需實機逐項操作驗證，GPT 無法執行；僅能協助整理 test case 文件", "score": 18, "reco": false, "cat": "不適合", "cap": "（不適用）", "auto": null, "why": "需實機逐項操作驗證，GPT 不能操作硬體", "effect": "GPT 無法執行測試；僅能協助整理 test case 文件/結果", "manual": "測試本體仍需人", "saved": null}];
+const tb=document.getElementById('tb'),rcount=document.getElementById('rcount');
+const F={sol:"",sec:"",cat:""};let SK="score",SDIR=-1;const fv={高:3,中:2,低:1};
+function solMatch(x,v){if(!v)return true;if(v==='RAG')return x.sol.includes('RAG');if(v==='資料分析')return x.sol.includes('資料分析');if(v==='串接')return x.sol.includes('串接');if(v==='不適合')return x.sol==='不適合';if(v==='GPT')return x.sol.includes('GPT');return true;}
+function sortKey(x){return SK==='hr'?(x.hr||0):SK==='fit'?fv[x.fit]:SK==='dept'?x.dept:x.score;}
+function render(){
+ let a=ITEMS.filter(x=>solMatch(x,F.sol)&&(!F.sec||x.sec===F.sec)&&(!F.cat||x.cat===F.cat));
+ a.sort((p,q)=>{let kp=sortKey(p),kq=sortKey(q);let c=kp<kq?-1:kp>kq?1:0;if(c===0)c=q.score-p.score;return c*SDIR;});
+ rcount.textContent='顯示 '+a.length+' / '+ITEMS.length+' 項';
+ tb.innerHTML=a.map((x,n)=>{
+  const save=x.saved?`<div class="savetag">≈ 每月省 ${x.saved} 小時（估計）</div>`:(x.hr==null?`<div class="naSave">效益未量化（多為體驗提升／尖峰減壓）</div>`:'');
+  return `<tr class="maintr ${x.reco?'reco':''} ${n%2?'alt':''}">
+  <td class="rk"><span class="cv">▸</span>${n+1}</td>
+  <td class="tt-cell"><div class="ti">${x.reco?'<span class="star">★ </span>':''}${x.title}</div>
+   <div class="dp">${x.dept} · ${x.name}　·　🔁${x.freq||'—'}　·　👥${x.ppl||'—'}</div>
+   <div class="nt">${x.note}</div></td>
+  <td><span class="tag sol">${x.sol}</span></td>
+  <td class="fitcell f${x.fit}">${x.fit}</td>
+  <td class="seccell s${x.sec}"><span class="dot"></span>${x.sec}</td>
+  <td class="diffcell d${x.diff}">${x.diff}</td>
+  <td class="hr ${x.hr!=null?'':'na'}">${x.hr!=null?x.hr:'—'}</td>
+  <td class="scorecell"><span class="sc-n">${x.score}</span><div class="sc-bar"><i style="width:${x.score}%"></i></div></td>
+ </tr>
+ <tr class="det" hidden><td colspan="8"><div class="det-in">
+   <div><h5>為何可用 GPT</h5><span class="captag">${x.cap}</span><p>${x.why}</p></div>
+   <div><h5>預期效果（估計）</h5><p>${x.effect}</p>${save}</div>
+   <div><h5>仍需人工</h5><p>${x.manual||'—'}</p></div>
+ </div></td></tr>`;}).join('');
+ tb.querySelectorAll('.maintr').forEach(r=>r.addEventListener('click',()=>{
+  const d=r.nextElementSibling; if(d&&d.classList.contains('det')){d.hidden=!d.hidden;r.classList.toggle('open',!d.hidden);}}));
+}
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+ const k=c.dataset.k;document.querySelectorAll('.chip[data-k="'+k+'"]').forEach(q=>q.classList.remove('on'));
+ c.classList.add('on');F[k]=c.dataset.v;render();}));
+document.querySelectorAll('th.sortable').forEach(th=>th.addEventListener('click',()=>{
+ const s=th.dataset.s;if(SK===s){SDIR*=-1;}else{SK=s;SDIR=(s==='dept')?1:-1;}
+ document.querySelectorAll('th.sortable').forEach(t=>{t.classList.remove('act');const a=t.querySelector('.ar');if(a)a.textContent='';});
+ th.classList.add('act');const ar=th.querySelector('.ar');if(ar)ar.textContent=SDIR<0?'▾':'▴';render();}));
+render();
+</script></body></html>
