@@ -201,19 +201,24 @@ unbuffer echo ok          <span class="c"># 印出 ok = 環境正常</span></div
     <!-- 4 六參數講解 -->
     <section class="page">
       <div class="eyebrow"><span class="num">04 / 06</span> 六個參數講解</div>
-      <h2 class="ptitle">releasePlatformVersion 的 <span class="hl">6 個參數</span></h2>
+      <h2 class="ptitle">6 個參數,<span class="hl">用白話講</span></h2>
+      <p class="lede">這 6 個欄位分兩組:<strong>第 2、3、4 合起來是「去哪裡、拿哪一份原始碼清單」</strong>;<strong>第 1、5、6 是「這次要做什麼」</strong>。</p>
+      <div class="callout vi"><b>比喻</b>　把「原始碼清單(manifest)」想成一本「這個版本要用到哪些程式碼」的<strong>總目錄</strong>。要翻到正確那一份,需要三層定位:<br>
+      　• 第 3 欄 = <strong>去哪個倉庫拿</strong>(哪台伺服器)<br>
+      　• 第 4 欄 = <strong>倉庫裡哪一條「版本線」</strong>(同一個倉庫同時養好幾條線:內部 / 對外 / 台北… 各自獨立更新,我們用「內部」這條 <code>ntx_hsrd</code>)<br>
+      　• 第 2 欄 = <strong>那條線裡的哪一份清單</strong>(對應哪個產品:b0=system / v0=vendor)</div>
       <table class="t">
-        <thead><tr><th class="n">#</th><th>參數(以 _s 為例)</th><th>意義</th></tr></thead>
+        <thead><tr><th class="n">#</th><th>參數(以 _s 為例)</th><th>白話意思</th></tr></thead>
         <tbody>
-          <tr><td class="n">1</td><td><code>hpnote_v1.0.0_s</code></td><td>要開的 <strong>branch name</strong>(結尾 _s / _v)</td></tr>
-          <tr><td class="n">2</td><td><code>t-alps-release-b0.mp5-aiv-hpnote_s</code></td><td>要下載的 <strong>manifest</strong>,選對應的;可到 <code>.repo/manifests</code> 查找</td></tr>
-          <tr><td class="n">3</td><td><code>ssh://ntx-sw@192.168.101.12/…/manifest.git</code></td><td>manifest 來源,<strong>要用 ssh</strong></td></tr>
-          <tr><td class="n">4</td><td><code>ntx_hsrd</code></td><td>這個就是 <strong>remote</strong>(理論上還有對外跟台北的)</td></tr>
-          <tr><td class="n">5</td><td><code>1</code></td><td><strong>1 代表要上傳</strong></td></tr>
-          <tr><td class="n">6</td><td><code>/mnt/aosp2/android16_mtk_system_b0mp5_aiv</code></td><td>本地路徑,做 <strong>release 資訊蒐集</strong></td></tr>
+          <tr><td class="n">1</td><td><code>hpnote_v1.0.0_s</code></td><td>這次<strong>版本要叫什麼名字</strong>。系統會拿它去:在每個程式碼庫開一個同名標記、當產出的檔名、寫進版本資訊。結尾一定要 <code>_s</code>(system)或 <code>_v</code>(vendor)</td></tr>
+          <tr><td class="n">2</td><td><code>t-alps-release-b0.mp5-aiv-hpnote_s</code></td><td>要拿<strong>哪一份</strong>原始碼清單(對應哪個產品)。不加 <code>.xml</code>;不確定就到 <code>.repo/manifests</code> 看有哪些</td></tr>
+          <tr><td class="n">3</td><td><code>ssh://ntx-sw@192.168.101.12/…/manifest.git</code></td><td>去<strong>哪裡</strong>拿這份清單(哪台伺服器)。在自己電腦跑<strong>一定要用 ssh 網址</strong></td></tr>
+          <tr><td class="n">4</td><td><code>ntx_hsrd</code></td><td>要拿倉庫裡<strong>哪一條「版本線」</strong>的清單。一個倉庫同時養好幾條平行的線(內部 / 對外 / 台北各一條),<code>ntx_hsrd</code> 就是<strong>我們內部</strong>這條;做完也把這次版本記錄寫回這條線。<span style="color:var(--faint)">(技術上叫 git 的 branch,當成「版本線」理解就好)</span></td></tr>
+          <tr><td class="n">5</td><td><code>1</code></td><td>做完<strong>要不要上傳</strong>到伺服器:<code>0</code> = 只留在自己電腦、<code>1</code> = 上傳</td></tr>
+          <tr><td class="n">6</td><td><code>/mnt/aosp2/android16_mtk_system_b0mp5_aiv</code></td><td>這次要在<strong>哪一棵程式碼</strong>上做發佈。system 填 system 那棵、vendor 填 vendor 那棵</td></tr>
         </tbody>
       </table>
-      <div class="callout"><b>s / v 差異</b>　只有第 1(版本名 _s/_v)、第 2(基底 manifest,b0/v0 對應 hpnote_s/hpnote_v)、第 6(路徑)不同;第 3、4、5 兩棵樹一樣。</div>
+      <div class="callout"><b>s / v 差異</b>　只有第 1(版本名 _s/_v)、第 2(清單 b0/v0)、第 6(哪棵樹)不同;第 3、4、5 兩棵樹完全一樣。</div>
     </section>
 
     <!-- 5 完整流程 -->
