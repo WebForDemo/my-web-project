@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>平台版本發佈流程 releasePlatformVersion</title>
+<style>
+  :root{
+    --ground:#12161F; --surface:#1A212C; --surface-2:#222B38; --line:#2C3744;
+    --text:#E6E9EF; --muted:#8A93A3; --faint:#5C6573;
+    --amber:#F2A33C; --teal:#5BD6B0; --danger:#E5736A; --violet:#9D8CF0;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ground);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:64px 64px;opacity:.06;
+    -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);
+    mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,#000 35%,transparent 100%);}
+  .app{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column}
+
+  .bar{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);flex:0 0 auto}
+  .bar .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  .bar .id{color:var(--text)} .bar .sep{color:var(--faint)}
+  .bar .right{margin-left:auto;display:flex;gap:18px}
+  .bar .k{color:var(--faint)} .bar .v{color:var(--text)}
+
+  .stage{flex:1 1 auto;position:relative;overflow:hidden}
+  .page{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(24px,4.5vw,72px);max-width:1120px;margin:0 auto;width:100%;
+    opacity:0;transform:translateY(14px);transition:opacity .45s ease,transform .45s ease;
+    pointer-events:none;overflow-y:auto}
+  .page.is-active{opacity:1;transform:none;pointer-events:auto}
+
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--amber);margin-bottom:14px;display:flex;align-items:center;gap:12px}
+  .eyebrow .num{color:var(--faint)}
+  .ptitle{font-family:var(--mono);font-weight:600;font-size:clamp(22px,3.6vw,38px);line-height:1.14;letter-spacing:-.01em;margin-bottom:14px}
+  .ptitle .hl{color:var(--amber)} .ptitle .ok{color:var(--teal)} .ptitle .vi{color:var(--violet)}
+  .lede{font-size:clamp(14px,1.6vw,17px);color:var(--text);max-width:70ch;margin-bottom:8px}
+  .muted{color:var(--muted)}
+  p+p{margin-top:10px}
+  strong{color:var(--text)}
+  code{font-family:var(--mono);font-size:.86em;color:var(--amber);background:rgba(242,163,60,.08);padding:1px 6px;border-radius:5px;word-break:break-all}
+
+  .cover-h{font-family:var(--mono);font-weight:600;letter-spacing:-.01em;font-size:clamp(26px,5vw,52px);line-height:1.16;margin-bottom:18px}
+  .cover-h .hl{color:var(--amber)}
+  .cover-sub{font-size:clamp(15px,1.9vw,19px);color:var(--muted);max-width:58ch;margin-bottom:28px}
+  .cover-meta{display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-family:var(--mono);font-size:13px;color:var(--faint)}
+  .pill{color:var(--teal);background:rgba(91,214,176,.1);border:1px solid rgba(91,214,176,.3);border-radius:6px;padding:5px 12px;letter-spacing:.03em}
+
+  .grid{display:grid;gap:14px;margin-top:8px}
+  .cols-2{grid-template-columns:1fr 1fr}
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card h4{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--amber);margin-bottom:8px;font-weight:600}
+  .card.ok h4{color:var(--teal)} .card.vi h4{color:var(--violet)} .card.bad h4{color:var(--danger)}
+  .card p{font-size:13.5px;color:var(--muted)}
+
+  .code-block{background:#0C0F15;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;
+    padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#C7CEDA;overflow-x:auto;white-space:pre;margin-top:10px}
+  .code-block.sys{border-left-color:var(--violet)} .code-block.vnd{border-left-color:var(--teal)}
+  .code-block .c{color:var(--faint)} .code-block .k{color:var(--teal)} .code-block .a{color:var(--amber)} .code-block .v{color:var(--violet)} .code-block .p{color:#7FB0E8}
+
+  .steps{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:13px 16px}
+  .step .n{font-family:var(--mono);color:var(--amber);font-size:15px;font-weight:700;min-width:22px}
+  .step .body{font-size:14px} .step .body b{color:var(--text)} .step .body span{color:var(--muted);display:block;margin-top:2px;font-size:13px}
+
+  .callout{border:1px solid rgba(242,163,60,.35);background:rgba(242,163,60,.07);border-radius:10px;padding:13px 16px;margin-top:14px;font-size:14px}
+  .callout b{color:var(--amber);font-family:var(--mono)}
+  .callout.bad{border-color:rgba(229,115,106,.4);background:rgba(229,115,106,.08)} .callout.bad b{color:var(--danger)}
+  .callout.ok{border-color:rgba(91,214,176,.35);background:rgba(91,214,176,.07)} .callout.ok b{color:var(--teal)}
+
+  table.t{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  table.t th,table.t td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  table.t th{font-family:var(--mono);color:var(--amber);font-weight:600;font-size:12px;letter-spacing:.05em;background:var(--surface)}
+  table.t td{color:var(--muted)} table.t td code{font-size:.9em}
+  table.t .n{font-family:var(--mono);color:var(--teal);font-weight:700;text-align:center;width:38px}
+  table.t .sys b{color:var(--violet)} table.t .vnd b{color:var(--teal)}
+
+  ul.clean{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:8px}
+  ul.clean li{padding-left:24px;position:relative;font-size:14px;color:var(--text)}
+  ul.clean li::before{content:"\203A";position:absolute;left:5px;color:var(--amber);font-family:var(--mono);font-weight:700}
+  ul.clean li span{color:var(--muted)}
+
+  .nav{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:14px 24px;border-top:1px solid var(--line)}
+  .nav button{font-family:var(--mono);font-size:13px;letter-spacing:.04em;background:var(--surface);color:var(--text);
+    border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;transition:.2s}
+  .nav button:hover{border-color:var(--amber);color:var(--amber)}
+  .nav button:disabled{opacity:.3;cursor:not-allowed;border-color:var(--line);color:var(--text)}
+  .dots{display:flex;gap:9px;margin:0 auto}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;transition:.2s}
+  .dots i.on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px rgba(242,163,60,.6)}
+  .nav .count{font-family:var(--mono);font-size:13px;color:var(--muted);min-width:64px;text-align:right}
+  button:focus-visible,.dots i:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+
+  @media(max-width:760px){
+    .cols-2,.cols-4{grid-template-columns:1fr}
+    .bar .right{display:none}
+    table.t,table.t tbody,table.t tr,table.t td,table.t th{display:block}
+    table.t th{display:none}
+  }
+  @media(prefers-reduced-motion:reduce){.page{transition:none}}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<div class="app">
+  <header class="bar">
+    <span class="dot" aria-hidden="true"></span>
+    <span class="id">RELEASE</span><span class="sep">/</span>
+    <span>releasePlatformVersion 操作流程</span>
+    <div class="right">
+      <span><span class="k">ver</span> <span class="v">hpnote_v1.0.0</span></span>
+      <span><span class="k">scope</span> <span class="v">_s + _v</span></span>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <!-- 0 cover -->
+    <section class="page cover is-active">
+      <div class="eyebrow"><span class="num">00 / 06</span> 操作手冊 · SOP</div>
+      <h1 class="cover-h">平台版本發佈<br><span class="hl">releasePlatformVersion</span></h1>
+      <p class="cover-sub">壓一版 hpnote_v1.0.0:把 system / vendor 兩棵樹同步到最新 → 更新發佈工具 → 解除 conda 環境 → 跑 releasePlatformVersion 上傳,system 與 vendor 各一次。</p>
+      <div class="cover-meta">
+        <span class="pill">sync → 工具 → 環境 → release</span>
+        <span>s 與 v 各一次 · upload = 1</span>
+      </div>
+    </section>
+
+    <!-- 1 概念 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">01 / 06</span> 一次搞懂</div>
+      <h2 class="ptitle">吃 <span class="hl">6 個參數</span>,做 <span class="ok">5 件事</span></h2>
+      <p class="lede"><strong>參數數量 ≠ 做幾件事</strong>。6 是你要「輸入」給它的東西;它拿到後內部做的是下面 5 個步驟。(6 參數版 vs 舊 4 參數版,只是把「網址、remote」從寫死改成由你輸入,做的事沒變。)</p>
+      <table class="t">
+        <thead><tr><th class="n">#</th><th>內部步驟</th><th>做什麼</th></tr></thead>
+        <tbody>
+          <tr><td class="n">1</td><td><code>repo init + sync</code></td><td>用基底 manifest 把樹切到該版本基底並同步</td></tr>
+          <tr><td class="n">2</td><td><code>createGlobalBranch</code></td><td>在所有 repo 建版本 branch</td></tr>
+          <tr><td class="n">3</td><td><code>mergeVersionBranch</code></td><td>合併版本分支</td></tr>
+          <tr><td class="n">4</td><td><code>updateVersionFiles</code></td><td>buildinfo_sys / vnd 寫入版本號並 commit</td></tr>
+          <tr><td class="n">5</td><td><code>createVersionManifest</code></td><td>產生釘版本的 release manifest xml</td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><b>s/v 各一次</b>　版本名結尾**必須** <code>_s</code> 或 <code>_v</code>。system(b0)與 vendor(v0)是兩棵樹、各自發佈,所以跑兩次、得兩支 xml(`hpnote_v1.0.0_s.xml` / `hpnote_v1.0.0_v.xml`)。</div>
+    </section>
+
+    <!-- 2 前置 A：兩棵樹 sync + checkout 到最新 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">02 / 06</span> 前置 A · 同步到最新</div>
+      <h2 class="ptitle">system / vendor 都 <span class="hl">sync + checkout 到最新</span></h2>
+      <p class="lede">兩棵樹都要先 sync、切到對應 branch、reset 對齊遠端最新,確保 release 抓到的是最新內容。</p>
+      <div class="code-block sys"><span class="c"># System 樹</span>
+cd /mnt/aosp2/android16_mtk_system_b0mp5_aiv
+repo sync
+repo forall -p -cv "git fetch hsrd7"           <span class="c"># 不 fetch，下面 reset --hard 會找不到 remote ref</span>
+repo forall -p -cv "git checkout -b hpnote_s"
+repo forall -p -cv "git checkout hpnote_s"
+repo forall -p -cv "git branch -u hsrd7/hpnote_s"
+repo forall -p -cv "git reset --hard hsrd7/hpnote_s"
+repo forall -p -cv "git pull"</div>
+      <div class="code-block vnd"><span class="c"># Vendor 樹</span>
+cd /mnt/aosp2/android16_mtk_vendor_v0mp5_aiv
+repo sync
+repo forall -p -cv "git fetch hsrd7"
+repo forall -p -cv "git checkout -b hpnote_v"
+repo forall -p -cv "git checkout hpnote_v"
+repo forall -p -cv "git branch -u hsrd7/hpnote_v"
+repo forall -p -cv "git reset --hard hsrd7/hpnote_v"
+repo forall -p -cv "git pull"</div>
+      <div class="callout bad"><b>注意</b>　<code>reset --hard</code> 會覆蓋各 repo 本地未推送的改動;確認你的修正都已 push 到對應遠端 branch 再做。</div>
+    </section>
+
+    <!-- 3 前置 B：更新 build.sh + 解除 conda -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">03 / 06</span> 前置 B · 工具與環境</div>
+      <h2 class="ptitle">更新 build.sh + <span class="hl">解除 conda</span></h2>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="body"><b>確認 build.sh 更新到 hs_master_s 最新版</b><span>6 參數版的 <code>releasePlatformVersion</code> 只在 <code>hs_master_s</code>。把 ntx_addon/host_tools 對齊 master:</span></span></div>
+      </div>
+      <div class="code-block"><span class="c"># 確認 /mnt/aosp2/android16_mtk_system_b0mp5_aiv/ntx_addon/host_tools/build.sh 為 hs_master_s 最新</span>
+cd /mnt/aosp2/android16_mtk_system_b0mp5_aiv/ntx_addon/host_tools
+git fetch hsrd7
+git merge hsrd7/hs_master_s        <span class="c"># fast-forward,拿到 6 參數版</span></div>
+      <div class="steps" style="margin-top:12px">
+        <div class="step"><span class="n">2</span><span class="body"><b>解除 anaconda,確認 unbuffer 正常</b><span>conda 的 tclsh 沒有 Expect,會讓 <code>unbuffer repo sync</code> 失敗(can't find package Expect)。解除 conda 讓系統 tclsh 生效。</span></span></div>
+      </div>
+      <div class="code-block">conda deactivate          <span class="c"># 提示字元前面不再有 (base)</span>
+unbuffer echo ok          <span class="c"># 印出 ok = 環境正常</span></div>
+      <div class="callout"><b>為什麼</b>　① 6 參數工具只在 hs_master_s。② <code>unbuffer</code> 需要系統 tclsh 的 Expect;conda 環境會用到 anaconda 的 tclsh(無 Expect)導致 repo sync 失敗。</div>
+    </section>
+
+    <!-- 4 六參數講解 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">04 / 06</span> 六個參數講解</div>
+      <h2 class="ptitle">releasePlatformVersion 的 <span class="hl">6 個參數</span></h2>
+      <table class="t">
+        <thead><tr><th class="n">#</th><th>參數(以 _s 為例)</th><th>意義</th></tr></thead>
+        <tbody>
+          <tr><td class="n">1</td><td><code>hpnote_v1.0.0_s</code></td><td>要開的 <strong>branch name</strong>(結尾 _s / _v)</td></tr>
+          <tr><td class="n">2</td><td><code>t-alps-release-b0.mp5-aiv-hpnote_s</code></td><td>要下載的 <strong>manifest</strong>,選對應的;可到 <code>.repo/manifests</code> 查找</td></tr>
+          <tr><td class="n">3</td><td><code>ssh://ntx-sw@192.168.101.12/…/manifest.git</code></td><td>manifest 來源,<strong>要用 ssh</strong></td></tr>
+          <tr><td class="n">4</td><td><code>ntx_hsrd</code></td><td>這個就是 <strong>remote</strong>(理論上還有對外跟台北的)</td></tr>
+          <tr><td class="n">5</td><td><code>1</code></td><td><strong>1 代表要上傳</strong></td></tr>
+          <tr><td class="n">6</td><td><code>/mnt/aosp2/android16_mtk_system_b0mp5_aiv</code></td><td>本地路徑,做 <strong>release 資訊蒐集</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="callout"><b>s / v 差異</b>　只有第 1(版本名 _s/_v)、第 2(基底 manifest,b0/v0 對應 hpnote_s/hpnote_v)、第 6(路徑)不同;第 3、4、5 兩棵樹一樣。</div>
+    </section>
+
+    <!-- 5 完整流程 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">05 / 06</span> 完整流程</div>
+      <h2 class="ptitle">解除環境後,<span class="ok">直接上傳</span></h2>
+      <div class="code-block">conda deactivate
+unbuffer echo ok
+cd /mnt/aosp2/android16_mtk_system_b0mp5_aiv</div>
+      <div class="code-block sys"><span class="c"># system (_s)</span>
+releasePlatformVersion <span class="v">hpnote_v1.0.0_s</span> <span class="a">t-alps-release-b0.mp5-aiv-hpnote_s</span> ssh://ntx-sw@192.168.101.12/mnt/android_fw_images/mtk/android16_mirror/platform/manifest.git ntx_hsrd <span class="a">1</span> /mnt/aosp2/android16_mtk_system_b0mp5_aiv</div>
+      <div class="code-block vnd"><span class="c"># vendor (_v)</span>
+releasePlatformVersion <span class="k">hpnote_v1.0.0_v</span> <span class="a">t-alps-release-v0.mp5-aiv-hpnote_v</span> ssh://ntx-sw@192.168.101.12/mnt/android_fw_images/mtk/android16_mirror/platform/manifest.git ntx_hsrd <span class="a">1</span> /mnt/aosp2/android16_mtk_vendor_v0mp5_aiv</div>
+      <div class="callout ok"><b>完成</b>　兩條都成功 = 打版本完成,產出 <code>hpnote_v1.0.0_s.xml</code> + <code>hpnote_v1.0.0_v.xml</code> 兩支 release manifest。</div>
+    </section>
+
+    <!-- 6 重點 -->
+    <section class="page">
+      <div class="eyebrow"><span class="num">06 / 06</span> 重點整理</div>
+      <h2 class="ptitle">執行前掃一眼</h2>
+      <ul class="clean">
+        <li><strong>順序</strong> — 兩棵樹 sync+checkout 到最新 → 更新 build.sh(hs_master_s)→ <code>conda deactivate</code> + <code>unbuffer echo ok</code> → 跑 release。</li>
+        <li><strong>第 3 參數</strong> — 一律 <code>ssh://…</code>,不是 <code>/mnt/android_fw_images/…</code>(那是伺服器本機路徑,你電腦沒有)。</li>
+        <li><strong>第 2 參數(基底 manifest)</strong> — 選對應產品/分支的那支:system 用 <code>…b0…hpnote_s</code>、vendor 用 <code>…v0…hpnote_v</code>;不確定到 <code>.repo/manifests</code> 找。</li>
+        <li><strong>第 4 參數 remote</strong> — <code>ntx_hsrd</code>(對內);若要對外/台北另有對應 remote。</li>
+        <li><strong>reset --hard</strong> — 會覆蓋未推送的本地改動,修正先 push。</li>
+        <li><strong>conda</strong> — 沒解除會卡在 <code>unbuffer: can't find package Expect</code>。</li>
+      </ul>
+      <div class="callout"><b>產出</b>　system 與 vendor 各一支 release manifest,共兩支,即完成版本發佈。</div>
+    </section>
+
+  </main>
+
+  <nav class="nav">
+    <button id="prev" aria-label="上一頁">&lsaquo; Prev</button>
+    <div class="dots" id="dots" role="tablist" aria-label="頁面"></div>
+    <button id="next" aria-label="下一頁">Next &rsaquo;</button>
+    <span class="count" id="count">01 / 07</span>
+  </nav>
+</div>
+
+<script>
+  (function(){
+    var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+    var total = pages.length, i = 0;
+    var dots = document.getElementById('dots');
+    var prev = document.getElementById('prev'), next = document.getElementById('next'), count = document.getElementById('count');
+    pages.forEach(function(p,idx){
+      var d = document.createElement('i');
+      d.setAttribute('role','tab'); d.setAttribute('aria-label','第 '+(idx+1)+' 頁'); d.tabIndex=0;
+      d.addEventListener('click',function(){go(idx)});
+      d.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(idx)}});
+      dots.appendChild(d);
+    });
+    var dotEls = Array.prototype.slice.call(dots.children);
+    function pad(n){return (n<10?'0':'')+n}
+    function go(n){
+      i = Math.max(0, Math.min(total-1, n));
+      pages.forEach(function(p,idx){p.classList.toggle('is-active', idx===i)});
+      dotEls.forEach(function(d,idx){d.classList.toggle('on', idx===i)});
+      prev.disabled=i===0; next.disabled=i===total-1;
+      count.textContent = pad(i+1)+' / '+pad(total);
+      if(pages[i]) pages[i].scrollTop=0;
+    }
+    prev.addEventListener('click',function(){go(i-1)});
+    next.addEventListener('click',function(){go(i+1)});
+    document.addEventListener('keydown',function(e){
+      if(e.key==='ArrowRight'||e.key==='PageDown')go(i+1);
+      else if(e.key==='ArrowLeft'||e.key==='PageUp')go(i-1);
+      else if(e.key==='Home')go(0); else if(e.key==='End')go(total-1);
+    });
+    var sx=null;
+    document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+    document.addEventListener('touchend',function(e){if(sx===null)return;var dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(dx<0?i+1:i-1);sx=null},{passive:true});
+    go(0);
+  })();
+</script>
+</body>
+</html>
