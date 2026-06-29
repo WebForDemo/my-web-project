@@ -96,8 +96,10 @@ tr.det>td{padding:0;background:#f1faf5;border-bottom:3px solid #bfe6d3}
 .spec-b h4{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--primary-d);margin-bottom:6px;font-weight:800}
 .spec-b ul{padding-left:20px}.spec-b li{font-size:13.5px;margin-bottom:5px}
 .spec-b li::marker{color:var(--primary)}
-.tt{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
-.tt th,.tt td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+.tt{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;table-layout:fixed}
+.tt th,.tt td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;word-break:break-word;overflow-wrap:anywhere}
+.tt th:nth-child(1),.tt td:nth-child(1){width:52px}
+.tt th:nth-child(2),.tt td:nth-child(2){width:33%}
 .tt th{background:#f1f5f9;color:var(--secondary);font-weight:800}
 .tg{font-weight:800;padding:1px 8px;border-radius:6px;font-size:12px}
 .tg.pos{background:var(--gbg);color:var(--gtx)}.tg.neg{background:var(--rbg);color:var(--rtx)}
@@ -142,14 +144,16 @@ tr.det>td{padding:0;background:#f1faf5;border-bottom:3px solid #bfe6d3}
 .gc-foot{margin-top:auto;display:flex;flex-wrap:wrap;gap:6px;padding-top:8px;border-top:1px dashed var(--line)}
 .gc-foot .tag{font-size:11.5px;padding:2px 9px}
 .gc-foot .seccell{font-weight:700;border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 9px;font-size:11.5px}
-.gc-hint{margin-top:9px;font-size:12px;font-weight:800;color:var(--primary-d);display:flex;align-items:center;gap:5px}
-.gcard{cursor:pointer}
-.gcard:hover .gc-hint{gap:9px}
+.gc-hint{margin-top:11px;font-size:13px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-d));
+ border-radius:9px;padding:9px 12px;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;cursor:pointer}
+.gc-hint.alt{background:#eef2f6;color:var(--secondary)}
+.gcard:hover .gc-hint{box-shadow:0 4px 13px rgba(16,163,127,.32);gap:9px}
+.gcard:hover .gc-hint.alt{box-shadow:0 4px 13px rgba(30,58,95,.18)}
 /* modal */
 .modal-bg{position:fixed;inset:0;background:rgba(15,30,50,.58);display:none;z-index:100;overflow-y:auto;padding:28px 16px}
 .modal-bg.open{display:block;animation:mfade .18s ease}
 @keyframes mfade{from{opacity:0}to{opacity:1}}
-.modal{max-width:720px;margin:10px auto;background:var(--panel);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden}
+.modal{max-width:720px;width:100%;margin:10px auto;background:var(--panel);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden}
 .modal-h{position:relative;padding:20px 24px;color:#fff;background:linear-gradient(135deg,#1a2744,#0d8a6b)}
 .modal-h.sp-fix{background:linear-gradient(135deg,#92400e,#d97706)}
 .modal-h.sp-no{background:linear-gradient(135deg,#7f1d1d,#dc2626)}
@@ -159,12 +163,18 @@ tr.det>td{padding:0;background:#f1faf5;border-bottom:3px solid #bfe6d3}
 .modal-x{position:absolute;top:14px;right:16px;width:32px;height:32px;border-radius:9px;border:none;cursor:pointer;
  background:rgba(255,255,255,.18);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center}
 .modal-x:hover{background:rgba(255,255,255,.32)}
-.modal-b{padding:20px 24px 24px}
+.modal-b{padding:18px 20px 22px}
+.ttwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .m-sg{margin-bottom:16px}
 .m-sg h4{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--primary-d);font-weight:800;margin-bottom:7px}
 .m-sg ul{padding-left:19px}.m-sg li{font-size:13.5px;margin-bottom:5px;line-height:1.55}
 .m-sg li::marker{color:var(--primary)}
 .m-sg p{font-size:13.5px;line-height:1.6;color:#334155}
+.m-test{border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:9px;background:#f7fafc}
+.m-test .tg{display:inline-block;margin-bottom:6px}
+.m-test .mtl{font-size:13px;line-height:1.55;margin-top:3px;display:flex;gap:8px}
+.m-test .mtl b{flex-shrink:0;min-width:58px;color:var(--muted);font-weight:700;font-size:12px;padding-top:1px}
+.m-test .mtl span{color:#334155}
 .m-foot{font-size:12.5px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--line);padding-top:10px}
 .foot{text-align:center;color:var(--muted);font-size:12px;padding:30px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -878,6 +888,7 @@ function renderGrid(){
    const save=x.saved?`<span class="gc-save">≈ 每月省 ${x.saved} 小時（估）</span>`:'';
    const ul=a=>'<ul>'+a.map(t=>`<li>${t}</li>`).join('')+'</ul>';
    const hint = x.spec?'📦 點看 GPT 規格 →':'ℹ️ 點看原因與前置條件 →';
+   const hintcls = x.spec?'':' alt';
    return `<article class="gcard cat-${cls}" data-id="${x.id}">
      <div class="gc-ill"><svg class="ill"><use href="#ill-${x.ill}"></use></svg><span class="gc-score">${x.score}<small> 分</small></span></div>
      <div class="gc-body">
@@ -887,19 +898,20 @@ function renderGrid(){
       <div class="gc-block gc-imp"><span class="lbl">用 GPT 可改善</span>${ul(x.improve)}</div>
       ${save}
       <div class="gc-foot"><span class="tag sol">${x.sol}</span><span class="seccell s${x.sec}"><span class="dot"></span>${x.sec}</span></div>
-      <div class="gc-hint">${hint}</div>
+      <div class="gc-hint${hintcls}">${hint}</div>
      </div></article>`;}).join('');
   return `<section class="gsec ${cls}"><div class="gsec-h">${label}<span class="cnt">${arr.length}</span></div><div class="grid">${cards}</div></section>`;
  }).join('');
- root.querySelectorAll('.gcard').forEach(c=>c.addEventListener('click',()=>{
-  const x=ITEMS.find(i=>i.id==c.dataset.id); if(x) openModal(x);
+ root.querySelectorAll('.gc-hint').forEach(h=>h.addEventListener('click',e=>{
+  e.stopPropagation();
+  const c=h.closest('.gcard'); const x=ITEMS.find(i=>i.id==c.dataset.id); if(x) openModal(x);
  }));
 }
 // 規格彈窗
 const modal=document.getElementById('modal'),modalc=document.getElementById('modalc');
 function openModal(x){
  let body;
- const tg=t=>`<tr><td><span class="tg ${t.k==='正面'?'pos':'neg'}">${t.k}</span></td><td>${t.i}</td><td>${t.o}</td></tr>`;
+ const tg=t=>`<div class="m-test"><span class="tg ${t.k==='正面'?'pos':'neg'}">${t.k}</span><div class="mtl"><b>輸入</b><span>${t.i}</span></div><div class="mtl"><b>預期反應</b><span>${t.o}</span></div></div>`;
  const li=a=>a.map(t=>`<li>${t}</li>`).join('');
  if(x.spec){const s=x.spec;
   body=`<div class="modal-h"><button class="modal-x" aria-label="關閉">×</button><div class="mt">${x.dept} · ${x.name}　·　優先分 ${x.score}</div><h3>📦 ${s.name}</h3><div class="mdesc">${s.desc}</div></div>
@@ -907,7 +919,7 @@ function openModal(x){
     <div class="m-sg"><h4>指令 Instructions</h4><ul>${li(s.instr)}</ul></div>
     <div class="m-sg"><h4>知識庫 RAG</h4><ul>${li(s.rag)}</ul></div>
     <div class="m-sg"><h4>對話啟動器</h4><ul>${li(s.starters)}</ul></div>
-    <div class="m-sg"><h4>驗證測試</h4><table class="tt"><tr><th>類型</th><th>輸入</th><th>預期反應</th></tr>${s.tests.map(tg).join('')}</table></div>
+    <div class="m-sg"><h4>驗證測試</h4>${s.tests.map(tg).join('')}</div>
     <p class="m-foot">功能：開「網頁搜尋／資料分析」　·　分享層級：僅限振曜工作空間　·　<b>AI 草擬，待覆核</b></p>
    </div>`;
  }else if(x.pre){const p=x.pre,no=p.kind==='no';
