@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鼎新 TIPTOP ERP × AI 對接 · 可行性評估</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#10a37f;--primary-d:#0d8a6b;--secondary:#1e3a5f;--secondary-l:#2d527f;--accent:#f59e0b;
+ --bg:#eef2f6;--panel:#fff;--ink:#1a202c;--muted:#64748b;--line:#e2e8f0;--line2:#eef2f6;
+ --gbg:#d1fae5;--gtx:#047857;--ybg:#fef3c7;--ytx:#92400e;--rbg:#fee2e2;--rtx:#b91c1c;
+ --shadow:0 4px 24px rgba(15,40,80,.08);--shadow-lg:0 14px 48px rgba(15,40,80,.18);--radius:14px;
+ --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65}
+.topbar{background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 135%);color:#fff;
+ padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;box-shadow:var(--shadow-lg)}
+.ttl{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:13px;background:rgba(16,163,127,.22);border:1px solid rgba(16,163,127,.5);display:grid;place-items:center;font-size:23px}
+.ttl h1{font-size:20px;font-weight:800;letter-spacing:.3px}
+.ttl .sub{font-size:12px;color:#9fb3c8;margin-top:2px}
+.metrics{display:flex;gap:9px;flex-wrap:wrap}
+.metric{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px 15px;text-align:center;min-width:86px}
+.metric .v{font-size:17px;font-weight:800;line-height:1.2}
+.metric .v.g{color:#6ee7b7}.metric .v.r{color:#fca5a5}.metric .v.y{color:#fcd34d}
+.metric .l{font-size:10.5px;color:#9fb3c8;margin-top:2px}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 22px 70px}
+.verdict{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--primary);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 22px;margin-bottom:22px}
+.verdict h2{font-size:18px;color:var(--secondary);margin-bottom:6px}
+.verdict p{font-size:15px;color:#334155}
+.verdict b{color:var(--primary-d)}
+.sec{margin-bottom:30px}
+.kick{font-size:11.5px;letter-spacing:.16em;font-weight:800;color:var(--primary-d);text-transform:uppercase}
+.sec>h2{font-size:20px;font-weight:800;color:var(--secondary);margin:5px 0 14px;display:flex;align-items:center;gap:9px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+.card p{font-size:14.5px;color:#334155;margin-bottom:7px}.card p:last-child{margin-bottom:0}
+.card b{color:var(--secondary)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:#f1f5f9;border:1px solid var(--line);border-radius:7px;padding:2px 7px;color:#334155}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.feat{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px}
+.feat .fi{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;margin-bottom:9px;background:var(--gbg)}
+.feat.b .fi{background:#dbeafe}.feat.o .fi{background:var(--ybg)}.feat.p .fi{background:#ede9fe}
+.feat h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin-bottom:4px}
+.feat p{font-size:13.5px;color:#475569;line-height:1.55}
+.risk{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-left:4px solid;border-radius:12px;padding:14px 17px;margin-bottom:11px}
+.risk.r1{border-left-color:var(--rtx)}.risk.r2{border-left-color:var(--ytx)}.risk.r3{border-left-color:var(--secondary)}.risk.r4{border-left-color:var(--primary)}
+.risk .ic{font-size:23px;flex-shrink:0;line-height:1.3}
+.risk h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin-bottom:3px}
+.risk p{font-size:13.5px;color:#475569;line-height:1.55}
+.risk p b{color:var(--rtx)}
+/* flow */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;overflow-x:auto}
+.fbox{flex:1;min-width:150px;background:#f7fafc;border:1px solid var(--line);border-radius:12px;padding:13px 14px;text-align:center}
+.fbox .ft{font-size:14px;font-weight:800;color:var(--secondary)}
+.fbox .fd{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.fbox.ai{background:#ecfdf5;border-color:#a7f3d0}.fbox.mid{background:#eff6ff;border-color:#bfdbfe}
+.farr{display:grid;place-items:center;font-size:22px;color:var(--primary);padding:0 6px;flex-shrink:0}
+.flownote{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;position:relative;border-top:4px solid var(--primary)}
+.step .sn{font-size:12px;font-weight:800;color:var(--primary-d);letter-spacing:.05em}
+.step h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin:3px 0 7px}
+.step ul{padding-left:17px}.step li{font-size:13px;color:#475569;margin-bottom:4px;line-height:1.5}
+.step.s0{border-top-color:var(--muted)}.step.s3{border-top-color:var(--accent)}
+table.cmp{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:13.5px}
+table.cmp th,table.cmp td{padding:11px 13px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+table.cmp th{background:#f7fafc;color:var(--secondary);font-weight:800;font-size:12.5px}
+table.cmp tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:6px;white-space:nowrap}
+.t-low{background:var(--gbg);color:var(--gtx)}.t-mid{background:var(--ybg);color:var(--ytx)}.t-high{background:var(--rbg);color:var(--rtx)}
+.chk{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 20px;list-style:none}
+.chk li{font-size:14px;color:#334155;padding:10px 0 10px 30px;border-bottom:1px solid var(--line2);position:relative;line-height:1.5}
+.chk li:last-child{border-bottom:none}
+.chk li::before{content:"☐";position:absolute;left:2px;top:9px;color:var(--primary);font-size:18px;font-weight:700}
+.chk li b{color:var(--secondary)}
+.callout{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid var(--primary);border-radius:11px;padding:14px 17px;font-size:14px;color:#1c5a44;line-height:1.6;margin-top:8px}
+.foot{text-align:center;color:var(--muted);font-size:12px;padding:28px;border-top:1px solid var(--line);margin-top:10px}
+@media(max-width:560px){.flow{flex-direction:column}.farr{transform:rotate(90deg);padding:6px 0}}
+[hidden]{display:none!important}
+.vtabs{background:var(--panel);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(15,40,80,.05)}
+.vtabs-in{max-width:1280px;margin:0 auto;display:flex;gap:4px;padding:0 22px}
+.vtab{padding:14px 20px;border:none;background:none;cursor:pointer;font:inherit;font-size:15px;font-weight:800;color:var(--muted);border-bottom:3px solid transparent;transition:.15s}
+.vtab:hover{color:var(--primary)}.vtab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.xwrap{max-width:1280px;margin:0 auto;padding:24px 22px 70px}
+.xintro{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:14px;font-size:14.5px;color:#334155;line-height:1.65}
+.xintro b{color:var(--secondary)}
+.xlegend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.xtag{font-size:12.5px;font-weight:800;padding:4px 11px;border-radius:7px}
+.xtag.sec{background:var(--rbg);color:var(--rtx)}.xtag.tech{background:#e0e7ff;color:#3730a3}
+.xcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.xcard-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);background:#f7fafc}
+.xcard-h h3{font-size:16px;font-weight:800;color:var(--secondary)}
+.xbody{display:grid;grid-template-columns:1fr 1fr}
+.xcode{background:#0f1d2e;padding-bottom:14px}
+.xbar{display:flex;align-items:center;gap:7px;padding:11px 15px}
+.xbar i{width:11px;height:11px;border-radius:50%}
+.xbar i:nth-child(1){background:#ff5f56}.xbar i:nth-child(2){background:#ffbd2e}.xbar i:nth-child(3){background:#27c93f}
+.xbar span{margin-left:6px;font-size:11px;color:#6b8199;font-family:ui-monospace,monospace;letter-spacing:.06em}
+.xcode pre{margin:0;padding:2px 16px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;color:#cdd9e5;overflow-x:auto;white-space:pre}
+.xt{color:#7ee2c7}.xv{color:#ffd479}.xk{color:#9db8d8}
+.xexp{padding:15px 18px;border-left:1px solid var(--line)}
+.fmap{display:flex;flex-direction:column;gap:9px}
+.frow{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5}
+.fc{flex-shrink:0;font-family:ui-monospace,monospace;font-size:12px;background:#eef2f6;color:#0f5132;border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap;min-width:104px;text-align:center}
+.frow span{color:#334155;padding-top:1px}.frow b{color:var(--secondary)}
+.frow.sec .fc{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.frow.unk .fc{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}
+.frow.unk span{color:#94a3b8}
+.xnote{margin-top:13px;font-size:13px;color:#1c5a44;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:9px;padding:9px 12px;line-height:1.55}
+.xnote b{color:var(--primary-d)}
+.xsum{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.xsum .box{border-radius:13px;padding:16px 18px;border:1px solid;box-shadow:var(--shadow)}
+.xsum .ok{background:#ecfdf5;border-color:#a7f3d0}.xsum .gap{background:#fff7ed;border-color:#fed7aa}
+.xsum h4{font-size:14.5px;font-weight:800;margin-bottom:9px}
+.xsum .ok h4{color:var(--gtx)}.xsum .gap h4{color:#9a3412}
+.xsum ul{padding-left:18px}.xsum li{font-size:13.5px;margin-bottom:5px;line-height:1.5;color:#334155}
+@media(max-width:720px){.xbody{grid-template-columns:1fr}.xexp{border-left:none;border-top:1px solid var(--line)}.xsum{grid-template-columns:1fr}}
+.archwrap{max-width:1280px;margin:0 auto;padding:24px 22px 70px}
+.archcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+.arch-h{font-size:18px;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:9px}
+.arch-sub{font-size:13px;color:var(--muted);margin:4px 0 20px}
+.flowv{display:flex;flex-direction:column;align-items:center}
+.node{width:100%;max-width:560px;border:1.5px solid var(--line);border-radius:13px;padding:13px 18px;background:#fff;box-shadow:var(--shadow);text-align:center;position:relative}
+.node .nt{font-size:16px;font-weight:800;color:var(--secondary)}
+.node .nd{font-size:12.5px;color:var(--muted);margin-top:3px}
+.node.user{background:linear-gradient(135deg,#1a2744,#2d527f);border-color:#1a2744}
+.node.user .nt{color:#fff}.node.user .nd{color:#9fb3c8}
+.node.dgw{border-color:var(--primary);background:#f0fdf9}
+.badge-dgw{position:absolute;top:-10px;left:16px;background:var(--primary);color:#fff;font-size:11px;font-weight:800;padding:2px 10px;border-radius:99px}
+.conn{display:flex;align-items:center;justify-content:center;gap:12px;padding:9px 0;color:var(--secondary-l)}
+.conn .ar{font-size:22px;line-height:1}
+.conn .chip2{font-size:12px;color:var(--primary-d);background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:5px 11px;max-width:300px;text-align:left;line-height:1.4}
+.future{margin-top:14px;border:2px dashed #cbd5e1;border-radius:14px;padding:18px;background:#f8fafc}
+.future-h{font-size:14px;font-weight:800;color:#475569;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.frow2{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}
+.fnode{flex:1;min-width:128px;border:1.5px dashed #94a3b8;border-radius:11px;padding:12px;background:#fff;text-align:center}
+.fnode.ai{border-color:var(--primary);background:#f0fdf9}
+.fnode .nt{font-size:14px;font-weight:800;color:var(--secondary)}
+.fnode .nd{font-size:11.5px;color:var(--muted);margin-top:3px}
+.farr2{display:grid;place-items:center;font-size:20px;color:#94a3b8;padding:0 7px}
+.fnote2{font-size:12.5px;color:#64748b;margin-top:13px;line-height:1.55}
+.fnote2 b{color:var(--secondary)}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.gcardx{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;border-top:4px solid var(--primary)}
+.gcardx .gname{font-size:16px;font-weight:800;color:var(--secondary)}
+.gcardx .gtag{font-size:11px;font-weight:800;color:var(--primary-d);background:#d1fae5;border-radius:6px;padding:1px 8px;margin-left:7px}
+.gcardx dl{margin:0}.gcardx dt{font-size:11px;font-weight:800;color:var(--muted);margin-top:9px;letter-spacing:.04em}
+.gcardx dd{font-size:13.5px;color:#334155;line-height:1.55;margin:2px 0 0}
+@media(max-width:600px){.frow2{flex-direction:column}.farr2{transform:rotate(90deg);padding:6px 0}}
+.archmain{display:flex;gap:18px;align-items:stretch}
+.stack{flex:1.8;display:flex;flex-direction:column}
+.panels{flex:1;display:flex;flex-direction:column;gap:12px}
+.band{border:1.5px solid var(--line);border-radius:13px;padding:12px 14px;background:#fff;box-shadow:var(--shadow)}
+.band-l{font-size:11px;font-weight:800;letter-spacing:.05em;color:var(--muted);margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.dgw-tag{background:var(--primary);color:#fff;font-size:10.5px;font-weight:800;padding:1px 9px;border-radius:99px}
+.z-front{background:linear-gradient(135deg,#1a2744,#2d527f);border-color:#1a2744}
+.z-front .band-l{color:#9fb3c8}
+.z-app{background:#f7fafc}
+.z-dgw{background:#f0fdf9;border-color:#a7f3d0}
+.z-data{background:#fff7ed;border-color:#fed7aa}
+.bnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bn{flex:1;min-width:158px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;box-shadow:0 1px 2px rgba(15,40,80,.05)}
+.bn b{display:block;font-size:15px;color:var(--secondary);font-weight:800}
+.bn span{font-size:12px;color:var(--muted)}
+.z-front .bn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)}
+.z-front .bn b{color:#fff}.z-front .bn span{color:#cfe0ec}
+.bn.ghost{background:transparent;border-style:dashed;opacity:.75}
+.bn.core{flex:0 0 auto}
+.sectag{background:var(--rbg);color:var(--rtx);font-weight:800;font-size:12px;padding:3px 10px;border-radius:7px}
+.mods{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+.mod{display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:1px solid #a7f3d0;border-radius:10px;padding:8px 6px;min-width:60px;font-size:12px;font-weight:700;color:var(--secondary)}
+.mod i{font-size:19px;font-style:normal}
+.bconn{display:flex;align-items:center;justify-content:center;gap:12px;padding:7px 0;color:var(--secondary-l);font-size:13px;font-weight:700}
+.xmlchip{font-style:normal;font-size:12px;color:var(--primary-d);background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:4px 10px;font-weight:600}
+.spanel{border-radius:13px;padding:14px 15px;border:1px solid;font-size:13px;line-height:1.55}
+.spanel .sp-h{font-size:14px;font-weight:800;margin-bottom:6px}
+.spanel p{color:#475569;margin:0}.spanel b{color:var(--secondary)}
+.p-sec{background:#fff1f2;border-color:#fecdd3}.p-sec .sp-h{color:var(--rtx)}
+.p-track{background:#eff6ff;border-color:#bfdbfe}.p-track .sp-h{color:#1e3a8a}
+.p-ai{background:#f8fafc;border:2px dashed #94a3b8}.p-ai .sp-h{color:#475569}
+.aiflow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:7px 0 9px}
+.aiflow span{background:#fff;border:1px dashed #94a3b8;border-radius:7px;padding:3px 8px;font-size:12px;font-weight:700;color:var(--secondary)}
+.aiflow span.hl{border-color:var(--primary);background:#f0fdf9;color:var(--primary-d)}
+.aiflow i{color:#94a3b8;font-style:normal}
+@media(max-width:820px){.archmain{flex-direction:column}}
+.svgwrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:var(--shadow);padding:10px}
+.svgwrap svg{display:block;min-width:920px}
+.svgcap{font-size:13px;color:#475569;margin:13px 2px;line-height:1.65}
+.svgcap b{color:var(--primary-d)}
+.panels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:760px){.panels-row{grid-template-columns:1fr}}
+</style></head><body>
+<div class="topbar">
+ <div class="ttl"><div class="logo">🔗</div>
+  <div><h1>鼎新 TIPTOP ERP × AI 對接 — 可行性評估</h1>
+   <div class="sub">Netronix · AI 推動小組 ｜ 評估範圍：讀取／查詢／分析 ｜ AI 協助評估初版，待 IT／鼎新原廠確認</div></div></div>
+ <div class="metrics">
+  <div class="metric"><div class="v g">技術可行</div><div class="l">介接管道存在</div></div>
+  <div class="metric"><div class="v r">🔴 機密</div><div class="l">資料分級</div></div>
+  <div class="metric"><div class="v y">軌1 / 軌3</div><div class="l">不可用軌2</div></div>
+  <div class="metric"><div class="v">只讀</div><div class="l">本期範圍</div></div>
+ </div>
+</div>
+<div class="vtabs"><div class="vtabs-in">
+ <button class="vtab active" data-v="arch" type="button">🗺️ 架構與名詞</button>
+ <button class="vtab" data-v="xml" type="button">📄 介接檔解析</button>
+ <button class="vtab" data-v="eval" type="button">📊 可行性評估</button>
+</div></div>
+
+<div id="view-arch"><div class="archwrap">
+ <div class="archcard">
+  <div class="arch-h">🗺️ 系統怎麼串的（現況）</div>
+  <div class="arch-sub">你分析的那份 XML，就是在下面這條路上交換的「一張簽核單」。</div>
+  <div class="svgwrap"><svg viewBox="0 0 1400 640" width="100%" font-family="-apple-system,'Noto Sans TC','Microsoft JhengHei',sans-serif" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <marker id="ah" markerWidth="11" markerHeight="11" refX="8" refY="3.2" orient="auto"><path d="M0,0 L8.5,3.2 L0,6.4 Z" fill="#2d527f"/></marker>
+    <marker id="ahg" markerWidth="11" markerHeight="11" refX="8" refY="3.2" orient="auto"><path d="M0,0 L8.5,3.2 L0,6.4 Z" fill="#8aa0bb"/></marker>
+   </defs>
+   <rect x="296" y="34" width="1078" height="576" rx="12" fill="#eef2fb" stroke="#aec3e6" stroke-width="2"/>
+   <text x="1356" y="62" text-anchor="end" font-size="20" font-weight="800" fill="#1e3a5f">公司內網（地端環境）</text>
+   <text x="314" y="64" font-size="22">🔒</text>
+
+   <!-- actors -->
+   <text x="62" y="152" text-anchor="middle" font-size="38">👤</text><text x="62" y="184" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">採購</text>
+   <text x="62" y="322" text-anchor="middle" font-size="38">👤</text><text x="62" y="354" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">業務</text>
+   <text x="62" y="492" text-anchor="middle" font-size="38">👤</text><text x="62" y="524" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">各部門</text>
+   <line x1="100" y1="150" x2="322" y2="150" stroke="#8aa0bb" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ahg)"/>
+   <line x1="100" y1="320" x2="322" y2="320" stroke="#8aa0bb" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ahg)"/>
+   <line x1="100" y1="490" x2="322" y2="490" stroke="#8aa0bb" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ahg)"/>
+   <text x="211" y="308" text-anchor="middle" font-size="14" fill="#5b6b7f">建立簽核單</text>
+
+   <!-- task cards -->
+   <rect x="330" y="104" width="120" height="92" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="390" y="134" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">核價單</text><text x="390" y="176" text-anchor="middle" font-size="26">💲</text>
+   <rect x="330" y="274" width="120" height="92" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="390" y="304" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">請購單</text><text x="390" y="346" text-anchor="middle" font-size="26">🧾</text>
+   <rect x="330" y="444" width="120" height="92" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="390" y="474" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">簽核單</text><text x="390" y="516" text-anchor="middle" font-size="26">📋</text>
+
+   <!-- task -> system -->
+   <line x1="452" y1="150" x2="576" y2="308" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="452" y1="320" x2="576" y2="324" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="452" y1="490" x2="576" y2="340" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <text x="508" y="300" text-anchor="middle" font-size="14" fill="#5b6b7f">送出簽核</text>
+
+   <!-- inner system box -->
+   <rect x="560" y="182" width="474" height="300" rx="10" fill="#eafaf1" stroke="#86d5b0" stroke-width="2"/>
+   <text x="1018" y="210" text-anchor="end" font-size="17" font-weight="800" fill="#0d8a6b">鼎新整合系統</text>
+   <text x="578" y="212" font-size="18">🔄</text>
+   <text x="715" y="276" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d8a6b">XML Web Service</text>
+   <!-- inner stages -->
+   <rect x="580" y="294" width="118" height="84" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="639" y="330" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1e3a5f">NaNaWeb</text><text x="639" y="352" text-anchor="middle" font-size="12" fill="#64748b">簽核網站</text>
+   <rect x="728" y="294" width="130" height="84" rx="8" fill="#fdf3da" stroke="#d9a441" stroke-width="2"/><text x="793" y="330" text-anchor="middle" font-size="14.5" font-weight="800" fill="#8a5a12">EasyFlow</text><text x="793" y="352" text-anchor="middle" font-size="12" fill="#a06a1e">簽核中介</text>
+   <rect x="888" y="294" width="122" height="84" rx="8" fill="#fdf3da" stroke="#d9a441" stroke-width="2"/><text x="949" y="330" text-anchor="middle" font-size="14.5" font-weight="800" fill="#8a5a12">TIPTOP</text><text x="949" y="352" text-anchor="middle" font-size="12" fill="#a06a1e">核心 ERP</text>
+   <line x1="698" y1="336" x2="726" y2="336" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="858" y1="336" x2="886" y2="336" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+
+   <!-- system -> modules -->
+   <line x1="1012" y1="336" x2="1176" y2="140" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="260" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="380" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="500" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <text x="1110" y="318" text-anchor="middle" font-size="13.5" fill="#5b6b7f">讀寫資料</text>
+
+   <!-- modules -->
+   <rect x="1180" y="100" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="134" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">採購</text><text x="1254" y="164" text-anchor="middle" font-size="22">📦</text>
+   <rect x="1180" y="220" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="254" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">核價</text><text x="1254" y="284" text-anchor="middle" font-size="22">💲</text>
+   <rect x="1180" y="340" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="374" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">庫存</text><text x="1254" y="404" text-anchor="middle" font-size="22">🏬</text>
+   <rect x="1180" y="460" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="494" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">財務</text><text x="1254" y="524" text-anchor="middle" font-size="22">💰</text>
+  </svg></div>
+  <p class="svgcap">📄 你分析的那份 XML，就是「<b>NaNaWeb → EasyFlow</b>」這條 <b>XML Web Service</b> 上交換的一張簽核單；<b>TIPTOP</b> 才是各模組資料的家。（鼎新產品：EasyFlow、TIPTOP）</p>
+
+  <div class="panels-row">
+   <div class="spanel p-sec"><div class="sp-h">🔒 資料分級</div><p>核價／客戶／財務＝<b>🔴 機密</b>，<b>不可進公開 ChatGPT</b>。</p></div>
+   <div class="spanel p-track"><div class="sp-h">🧭 三軌定位</div><p>此系統屬 <b>軌3 地端</b>（內網 192.168.x）。接 AI 只能走 <b>軌1 私有雲／軌3 地端</b>。</p></div>
+   <div class="spanel p-ai"><div class="sp-h">🔮 未來 AI 接點</div>
+    <div class="aiflow"><span>TIPTOP</span><i>⇢</i><span>中介層</span><i>⇢</i><span class="hl">私有 AI</span><i>⇢</i><span>查詢／分析</span></div>
+    <p>虛線＝尚未建置。AI <b>不接</b> EasyFlow 簽核管道，而是另接 TIPTOP <b>查詢 API</b>。</p></div>
+  </div>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">📖 名詞白話講解</div>
+  <div class="arch-sub">用一句白話＋生活比喻＋在這份檔的角色，看懂這五個名詞。</div>
+  <div class="gloss">
+   <div class="gcardx"><div class="gname">ERP</div>
+    <dl><dt>白話</dt><dd>企業資源規劃系統：把採購、庫存、生產、財務集中管理的核心系統。</dd>
+    <dt>比喻</dt><dd>公司的「中央大腦＋總帳本」。</dd>
+    <dt>在這份檔</dt><dd>是個泛稱；你們用的那套 ERP 就是 TIPTOP。</dd></dl></div>
+   <div class="gcardx"><div class="gname">TIPTOP<span class="gtag">鼎新</span></div>
+    <dl><dt>白話</dt><dd>鼎新（Digiwin）出的那套 ERP，你們公司用的就是它。</dd>
+    <dt>比喻</dt><dd>你們實際在用的「那個品牌的倉庫＋帳本」。</dd>
+    <dt>在這份檔</dt><dd>資料的家：apmi255、pmi/pmj 欄位、TPServer 都是它的。</dd></dl></div>
+   <div class="gcardx"><div class="gname">EasyFlow<span class="gtag">鼎新</span></div>
+    <dl><dt>白話</dt><dd>鼎新的簽核流程平台（工作流／簽核中介）。</dd>
+    <dt>比喻</dt><dd>跑簽核的「傳送帶＋收發室」。</dd>
+    <dt>在這份檔</dt><dd>負責把簽核在網頁與 ERP 間傳：EFSiteName、EFLogonID 是它的。</dd></dl></div>
+   <div class="gcardx"><div class="gname">XML Web Service</div>
+    <dl><dt>白話</dt><dd>用 XML 格式、透過網路讓兩套系統互相呼叫／交換資料的介面。</dd>
+    <dt>比喻</dt><dd>系統之間講話的「共通語言＋電話線」。</dd>
+    <dt>在這份檔</dt><dd>你看到那份 XML，就是經這條線交換的內容。</dd></dl></div>
+   <div class="gcardx"><div class="gname">NaNaWeb</div>
+    <dl><dt>白話</dt><dd>一個簽核網站——員工在網頁上簽核的入口。</dd>
+    <dt>比喻</dt><dd>員工按「同意／取消」的「網頁櫃台」。</dd>
+    <dt>在這份檔</dt><dd>發出這個請求的那一端（SenderIP）。</dd></dl></div>
+  </div>
+ </div>
+</div></div>
+
+<div id="view-eval" hidden><div class="wrap">
+
+ <div class="verdict">
+  <h2>📌 一句話結論</h2>
+  <p><b>技術上可行</b>——TIPTOP 有 XML Web Service 可程式化介接；但因資料含客戶/定價/財務（🔴 機密），<b>不能接公開 ChatGPT（軌2）</b>，必須走<b>私有 AI（軌1 私有雲 或 軌3 地端）</b>。建議架構為「<b>中介層 ＋ 私有 AI、只讀不寫、人工把關</b>」，並<b>先用去識別化匯出做 PoC</b>（不需先建基建）再分階段擴大。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">現況解讀</div>
+  <h2>📄 這份介接檔告訴我們什麼</h2>
+  <div class="card">
+   <p>提供的 <span class="mono">tiptop_erp_webservice.xml</span> 是鼎新 <b>EasyFlow 簽核中介交換</b>封包（含 <span class="mono">EFSiteName=NaNaWeb</span>、<span class="mono">EFLogonID</span>、<span class="mono">RequestMethod=SetStatus</span>、程式 <span class="mono">apmi255</span>），內容是一張<b>核價單</b>：客戶、料號、品名、幣別 USD、單價、數量。</p>
+   <p>✅ <b>正面訊號</b>：證明 TIPTOP <b>能用 XML Web Service 進出資料</b>，不是只能鎖在資料庫裡 —— 這是「能不能接 AI」的前提，成立。</p>
+   <p>⚠️ <b>兩點要注意</b>：①這支介面是「<b>簽核流程的寫入/狀態交換</b>」，不是查詢用；本期要做「讀」，需另確認查詢類 API。 ②封包內容<b>全是機密資料</b>（客戶、定價）。</p>
+  </div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">可行性依據</div>
+  <h2>✅ 為什麼可行</h2>
+  <div class="grid">
+   <div class="feat"><div class="fi">🔌</div><h3>有正式介接管道</h3><p>TIPTOP 提供 XML Web Service／中介交換，可由程式呼叫取得結構化資料。</p></div>
+   <div class="feat b"><div class="fi">🧱</div><h3>資料是結構化的</h3><p>欄位清楚（料號、客戶、數量、交期…），很適合 AI 查詢、彙整與分析。</p></div>
+   <div class="feat o"><div class="fi">🧠</div><h3>正中 AI 強項</h3><p>查詢問答、報表彙整、趨勢分析 —— 正是 AI（尤其搭配資料分析）最擅長的事。</p></div>
+   <div class="feat p"><div class="fi">🪜</div><h3>可分階段</h3><p>從「去識別化匯出分析」起步，再逐步接 API，風險與投入可控。</p></div>
+  </div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">關鍵風險與前提</div>
+  <h2>⚠️ 四個必須先處理的點</h2>
+  <div class="risk r1"><div class="ic">🔴</div><div><h3>資料機密性（最關鍵）</h3><p>客戶／定價／財務＝公司最高敏感資料（你們三軌中的軌3）。<b>絕對不能送進公開 ChatGPT（軌2）</b>，否則等同把客戶報價外送。接 AI 只能走<b>私有雲（軌1）或地端（軌3）</b>。</p></div></div>
+  <div class="risk r2"><div class="ic">🔍</div><div><h3>需確認「查詢類」介面</h3><p>本檔是簽核回寫。要做「讀／查詢／分析」需確認 TIPTOP 開放的<b>查詢 Web Service／API</b>（EasyFlow 偏簽核；鼎新另有 GP／T100 web service 或 API，須問 IT／原廠）。</p></div></div>
+  <div class="risk r3"><div class="ic">🧩</div><div><h3>不直連 DB、不自動寫回</h3><p>AI <b>不應直連 ERP 資料庫</b>，中間要有中介層做權限／去識別化／稽核；ERP 是帳務真實來源，<b>AI 不自動寫入</b>，寫入類一律「AI 草擬 → 人工確認」。</p></div></div>
+  <div class="risk r4"><div class="ic">🏗️</div><div><h3>這是系統整合專案（非軌2）</h3><p>屬軌1／軌3，需 <b>RD／IT ＋ 鼎新原廠或 SI</b> 投入，加上私有 AI 基建。與「易用即用的 ChatGPT」是兩回事，須先評估基建與預算。</p></div></div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">建議架構</div>
+  <h2>🗺️ 怎麼接才安全（只讀）</h2>
+  <div class="flow">
+   <div class="fbox"><div class="ft">TIPTOP ERP</div><div class="fd">Web Service／查詢 API</div></div>
+   <div class="farr">→</div>
+   <div class="fbox mid"><div class="ft">中介層 / API 閘道</div><div class="fd">權限控管 · 欄位過濾／去識別化 · 全程稽核</div></div>
+   <div class="farr">→</div>
+   <div class="fbox ai"><div class="ft">私有 AI</div><div class="fd">軌1 私有雲(不訓練)<br>或 軌3 地端 LLM</div></div>
+   <div class="farr">→</div>
+   <div class="fbox"><div class="ft">使用者</div><div class="fd">查詢問答／分析報表</div></div>
+  </div>
+  <p class="flownote">🔒 原則：<b>單向只讀</b>為主；資料不出私有環境；最小權限服務帳號；所有查詢留稽核紀錄。需寫回 ERP 時，另走「AI 草擬 → 人工簽核 → 才入單」流程，不在本期範圍。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">落地路線</div>
+  <h2>🚀 分階段導入</h2>
+  <div class="steps">
+   <div class="step s0"><div class="sn">階段 0 · 盤點</div><h3>釐清與選型</h3><ul><li>查詢類 API 清單（問鼎新/IT）</li><li>要碰的欄位做資料分級</li><li>AI 基建選型：軌1 vs 軌3</li><li>原廠 AI 連接器與報價</li></ul></div>
+   <div class="step s1"><div class="sn">階段 1 · PoC（先做）</div><h3>去識別化匯出分析</h3><ul><li>ERP 匯出<b>去識別化/非機密</b>資料</li><li>AI 做查詢問答、報表彙整 PoC</li><li><b>不直連</b>、不需先建基建</li><li>驗證效益再投資</li></ul></div>
+   <div class="step s2"><div class="sn">階段 2 · 軌1</div><h3>中介層＋私有雲 AI</h3><ul><li>建中介/API 閘道（權限·稽核）</li><li>私有雲 AI（預設不訓練）</li><li>AI 安全讀查詢 API</li><li>逐步開放查詢情境</li></ul></div>
+   <div class="step s3"><div class="sn">階段 3 · 視需要</div><h3>寫回（高風險）</h3><ul><li>AI 草擬建單／更新</li><li><b>一律人工簽核才入單</b></li><li>嚴格驗證與稽核</li><li>非本期重點</li></ul></div>
+  </div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">方案比較</div>
+  <h2>🧭 四種落地方式</h2>
+  <table class="cmp">
+   <tr><th>方案</th><th>做法</th><th>風險/成本</th><th>適用</th></tr>
+   <tr><td><b>A 去識別化匯出</b></td><td>ERP 匯出去識別化資料→AI 分析（不直連）</td><td><span class="tag t-low">低</span></td><td>PoC 起步、快速見效</td></tr>
+   <tr><td><b>B 軌1 私有雲</b></td><td>中介層＋私有雲 AI（不訓練）讀查詢 API</td><td><span class="tag t-mid">中</span></td><td>正式導入、需建置</td></tr>
+   <tr><td><b>C 軌3 地端</b></td><td>地端 LLM＋內部 API</td><td><span class="tag t-high">高</span></td><td>最高機密、基建大</td></tr>
+   <tr><td><b>D 原廠方案</b></td><td>用鼎新原廠 AI 方案／連接器</td><td><span class="tag t-mid">視報價</span></td><td>降低自建風險</td></tr>
+  </table>
+  <div class="callout">💡 基建現況「都還沒有」→ 建議<b>先走 A（PoC）驗證效益與需求</b>，同時做階段 0 盤點與基建選型，再決定 B 或 C。不必為了評估先砸基建。</div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">讀取情境舉例</div>
+  <h2>💬 AI 讀 ERP 能做什麼</h2>
+  <div class="grid">
+   <div class="feat"><div class="fi">📦</div><h3>庫存／交期查詢</h3><p>「料號 XX 還有多少庫存、最近交期？」自然語言問，免進系統翻。</p></div>
+   <div class="feat b"><div class="fi">📊</div><h3>報表彙整分析</h3><p>把訂單/出貨/生產數據彙整成週月報與趨勢，省人工樞紐。</p></div>
+   <div class="feat o"><div class="fi">🔎</div><h3>客戶/料號歷史</h3><p>查某客戶歷史訂單、某料號歷次核價，快速比對。</p></div>
+   <div class="feat p"><div class="fi">⚠️</div><h3>異常提醒</h3><p>找出逾期、低於安全庫存、異常波動等，主動示警。</p></div>
+  </div>
+  <p class="flownote">※ 以上情境多牽涉機密欄位，須在私有 AI（軌1/軌3）與權限控管下進行。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">回報老闆前要補</div>
+  <h2>📋 待釐清清單</h2>
+  <ul class="chk">
+   <li><b>查詢介面</b>：TIPTOP 是否開放查詢類 Web Service／API？還是只有 EasyFlow 簽核中介？（問鼎新原廠／IT）</li>
+   <li><b>版本與原廠支援</b>：是 TIPTOP GP 還是 T100？鼎新是否有官方 API／AI 連接器與報價？</li>
+   <li><b>使用情境優先序</b>：最想先做哪幾個查詢（庫存/交期/客戶歷史/報表）？決定需要哪些 API。</li>
+   <li><b>資料分級</b>：會碰到的欄位機密等級？哪些可去識別化、哪些絕不可出環境？</li>
+   <li><b>AI 基建選型</b>：軌1 私有雲（如 Bedrock 不訓練）vs 軌3 地端，成本與資安比較。</li>
+   <li><b>量能與預算</b>：RD／IT 投入、原廠/SI 費用、時程。</li>
+  </ul>
+ </div>
+
+ <div class="verdict" style="border-left-color:var(--accent)">
+  <h2>👉 建議下一步</h2>
+  <p>1. <b>先啟動階段 1 PoC</b>（去識別化匯出 → AI 查詢/分析），用最低成本驗證效益。<br>
+   2. 平行做<b>階段 0 盤點</b>：向鼎新原廠／IT 確認查詢 API 與原廠 AI 方案、做基建選型。<br>
+   3. PoC 有成果＋盤點完成後，再決定投資 <b>軌1（私有雲）或軌3（地端）</b>正式導入。</p>
+ </div>
+
+</div></div>
+
+<div id="view-xml" hidden><div class="xwrap">
+ <div class="xintro">這份 <b>tiptop_erp_webservice.xml</b> 是鼎新 <b>EasyFlow 簽核中介交換</b>封包（一張核價單的「取消」狀態變更）。下面<b>左右對照</b>：左＝原始 XML 片段，右＝它在說什麼、能推論出什麼。</div>
+ <div class="xlegend"><span class="xtag tech">⚙️ 技術／系統線索</span><span class="xtag sec">🔴 業務機密資料</span></div>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>① 連線資訊（LogOnInfo）</h3><span class="xtag tech">⚙️ 技術線索</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>XML</span></div><pre><span class="xt">&lt;LogOnInfo&gt;</span>
+  <span class="xt">&lt;SenderIP&gt;</span><span class="xv">192.168.103.208</span><span class="xt">&lt;/SenderIP&gt;</span>
+  <span class="xt">&lt;ReceiverIP&gt;</span><span class="xv">192.168.100.41</span><span class="xt">&lt;/ReceiverIP&gt;</span>
+  <span class="xt">&lt;EFSiteName&gt;</span><span class="xv">NaNaWeb</span><span class="xt">&lt;/EFSiteName&gt;</span>
+  <span class="xt">&lt;EFLogonID&gt;</span><span class="xv">24A001</span><span class="xt">&lt;/EFLogonID&gt;</span>
+<span class="xt">&lt;/LogOnInfo&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">Sender / ReceiverIP</code><span>來源／接收端，皆為 <b>192.168 內網</b> → 系統屬<b>地端部署（軌3）</b></span></div>
+    <div class="frow"><code class="fc">EFSiteName</code><span>跟 ERP 交換的「簽核網站」名稱＝<b>NaNaWeb</b></span></div>
+    <div class="frow"><code class="fc">EFLogonID</code><span>操作帳號（24A001）</span></div>
+   </div><p class="xnote">💡 推論：公司內網已有一條 <b>EasyFlow 介接管道</b>在運作。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>② 請求方法與表單表頭（Form）</h3><span class="xtag tech">⚙️ 技術線索</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>XML</span></div><pre><span class="xt">&lt;RequestMethod&gt;</span><span class="xv">SetStatus</span><span class="xt">&lt;/RequestMethod&gt;</span>
+<span class="xt">&lt;StatSlip/&gt;</span>
+<span class="xt">&lt;PlantID&gt;</span><span class="xv">NX</span><span class="xt">&lt;/PlantID&gt;</span>
+<span class="xt">&lt;ProgramID&gt;</span><span class="xv">apmi255</span><span class="xt">&lt;/ProgramID&gt;</span>
+<span class="xt">&lt;SourceFormID&gt;</span><span class="xv">N32U</span><span class="xt">&lt;/SourceFormID&gt;</span>
+<span class="xt">&lt;SourceFormNum&gt;</span><span class="xv">N32U-26060005</span><span class="xt">&lt;/SourceFormNum&gt;</span>
+<span class="xt">&lt;Date&gt;</span><span class="xv">26/06/01</span><span class="xt">&lt;/Date&gt;</span> <span class="xt">&lt;Time&gt;</span><span class="xv">15:14:59</span><span class="xt">&lt;/Time&gt;</span>
+<span class="xt">&lt;Status&gt;</span><span class="xv">4</span><span class="xt">&lt;/Status&gt;</span>
+<span class="xt">&lt;FormCreatorID&gt;</span><span class="xv">24A001</span><span class="xt">&lt;/FormCreatorID&gt;</span>
+<span class="xt">&lt;FormOwnerID&gt;</span><span class="xv">24A001</span><span class="xt">&lt;/FormOwnerID&gt;</span>
+<span class="xt">&lt;TargetFormID&gt;</span><span class="xv">NXAPMI255</span><span class="xt">&lt;/TargetFormID&gt;</span>
+<span class="xt">&lt;TargetSheetNo&gt;</span><span class="xv">5d01b020…ac30</span><span class="xt">&lt;/TargetSheetNo&gt;</span>
+<span class="xt">&lt;Description&gt;</span><span class="xv">CANCEL</span><span class="xt">&lt;/Description&gt;</span>
+<span class="xt">&lt;TPServerIP&gt;</span><span class="xv">192.168.100.33</span><span class="xt">&lt;/TPServerIP&gt;</span>
+<span class="xt">&lt;TPServerEnv&gt;</span><span class="xv">topprod</span><span class="xt">&lt;/TPServerEnv&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">RequestMethod</code><span><b>SetStatus</b>＝「回寫簽核狀態」→ 這支是<b>寫入</b>，不是查詢</span></div>
+    <div class="frow unk"><code class="fc">StatSlip</code><span>空標籤，用途待確認</span></div>
+    <div class="frow"><code class="fc">PlantID</code><span><b>NX</b>＝廠別（Netronix）</span></div>
+    <div class="frow"><code class="fc">ProgramID</code><span><b>apmi255</b>＝TIPTOP 程式：核價單作業</span></div>
+    <div class="frow unk"><code class="fc">SourceFormID</code><span>來源表單代號（N32U），對照待確認</span></div>
+    <div class="frow"><code class="fc">SourceFormNum</code><span>來源單號</span></div>
+    <div class="frow"><code class="fc">Date / Time</code><span>異動日期與時間</span></div>
+    <div class="frow unk"><code class="fc">Status</code><span>狀態碼＝4（代碼意義待確認）</span></div>
+    <div class="frow"><code class="fc">FormCreator / OwnerID</code><span>建立者／擁有者帳號（24A001）</span></div>
+    <div class="frow"><code class="fc">TargetFormID</code><span><b>NXAPMI255</b>，NX 前綴＝<b>客製版</b> → 系統有客製</span></div>
+    <div class="frow unk"><code class="fc">TargetSheetNo</code><span>簽核單據序號（雜湊值）</span></div>
+    <div class="frow"><code class="fc">Description</code><span>異動說明＝CANCEL（取消）</span></div>
+    <div class="frow"><code class="fc">TPServerIP</code><span><b>192.168.100.33</b>＝TIPTOP 應用伺服器（內網）</span></div>
+    <div class="frow"><code class="fc">TPServerEnv</code><span><b>topprod</b>＝正式環境</span></div>
+   </div><p class="xnote">💡 推論：這是「簽核寫回」介面；要做<b>查詢／分析</b>需另找讀取 API。標灰者為代碼/系統欄位，<b>意義需鼎新資料字典</b>。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>③ 單據主檔（核價單頭）</h3><span class="xtag sec">🔴 業務機密</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>XML</span></div><pre><span class="xt">&lt;NXAPMI255&gt;</span>
+  <span class="xt">&lt;smydesc&gt;</span><span class="xv">核價單</span><span class="xt">&lt;/smydesc&gt;</span>
+  <span class="xt">&lt;pmi01&gt;</span><span class="xv">N32U-26060005</span><span class="xt">&lt;/pmi01&gt;</span>
+  <span class="xt">&lt;pmc03&gt;</span><span class="xv">德奇(揚州)</span><span class="xt">&lt;/pmc03&gt;</span>
+  <span class="xt">&lt;pmi04&gt;</span><span class="xv">更新核價For 德奇出貨</span><span class="xt">&lt;/pmi04&gt;</span>
+  <span class="xt">&lt;gen02&gt;</span><span class="xv">張益誠</span><span class="xt">&lt;/gen02&gt;</span>
+  <span class="xt">&lt;pmi09&gt;</span><span class="xv">24A001</span><span class="xt">&lt;/pmi09&gt;</span> <span class="xt">&lt;pmigrup&gt;</span><span class="xv">C0000</span><span class="xt">&lt;/pmigrup&gt;</span>
+  <span class="xt">&lt;pmi02&gt;</span><span class="xv">26/06/01</span><span class="xt">&lt;/pmi02&gt;</span>
+  <span class="xt">&lt;pmi03&gt;</span><span class="xv">DC011</span><span class="xt">&lt;/pmi03&gt;</span> <span class="xt">&lt;pmi08&gt;</span><span class="xv">210</span><span class="xt">&lt;/pmi08&gt;</span> <span class="xt">&lt;pmi081&gt;</span><span class="xv">0.0000</span><span class="xt">&lt;/pmi081&gt;</span>
+  <span class="xt">&lt;pmi05&gt;</span><span class="xv">N</span><span class="xt">&lt;/pmi05&gt;</span> <span class="xt">&lt;gec07&gt;</span><span class="xv">N</span><span class="xt">&lt;/gec07&gt;</span> <span class="xt">&lt;ta_pmi002&gt;</span><span class="xv">N</span><span class="xt">&lt;/ta_pmi002&gt;</span>
+  <span class="xk">…（hidTurnThou / txtExRate / hidPriceUp / cheSpecialCase 等介面欄位）</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">smydesc</code><span>單據種類＝核價單</span></div>
+    <div class="frow"><code class="fc">pmi01</code><span>單號</span></div>
+    <div class="frow sec"><code class="fc">pmc03</code><span>對象＝<b>德奇(揚州)</b>（客戶／供應商）</span></div>
+    <div class="frow"><code class="fc">pmi04</code><span>摘要／說明</span></div>
+    <div class="frow"><code class="fc">gen02</code><span>建立人＝張益誠</span></div>
+    <div class="frow"><code class="fc">pmi09 / pmigrup</code><span>建立帳號／群組（24A001 / C0000）</span></div>
+    <div class="frow"><code class="fc">pmi02</code><span>單據日期</span></div>
+    <div class="frow unk"><code class="fc">pmi03</code><span>代碼＝DC011，意義待確認（幣別/廠商?）</span></div>
+    <div class="frow unk"><code class="fc">pmi08 / pmi081</code><span>數值（210 / 0.0000），意義待確認</span></div>
+    <div class="frow unk"><code class="fc">pmi05 / gec07 / ta_pmi002</code><span>Y/N 旗標，意義待確認</span></div>
+    <div class="frow unk"><code class="fc">hid* / txt* / che*</code><span>介面／隱藏欄位，多為系統用，意義待確認</span></div>
+   </div><p class="xnote">💡 欄位是<b>代碼制</b>（pmi*）＝對應底層資料表；標灰者目前<b>看不懂</b>，必須有鼎新的「<b>欄位中文對照表（資料字典）</b>」才解得開。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>④ 單據明細（核價單身）</h3><span class="xtag sec">🔴 業務機密</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>XML</span></div><pre><span class="xt">&lt;s_pmj&gt;&lt;records&gt;&lt;record&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj02"</span><span class="xt">&gt;</span><span class="xv">1</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj03"</span><span class="xt">&gt;</span><span class="xv">5272-E60T04+4Z1A</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj031"</span><span class="xt">&gt;</span><span class="xv">U CASE ASM-EB</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj032"</span><span class="xt">&gt;</span><span class="xv">Tolino(DT16),E60T04,BLACK…</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj05"</span><span class="xt">&gt;</span><span class="xv">USD</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj07"</span><span class="xt">&gt;</span><span class="xv">0.172000</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmj09"</span><span class="xt">&gt;</span><span class="xv">26/06/01</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmjud09"</span><span class="xt">&gt;</span><span class="xv">60000.000</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xt">&lt;item id=</span><span class="xk">"pmjud08"</span><span class="xt">&gt;</span><span class="xv">63.000</span><span class="xt">&lt;/item&gt;</span> <span class="xt">&lt;item id=</span><span class="xk">"pmjud13"</span><span class="xt">&gt;</span><span class="xv">25/11/11</span><span class="xt">&lt;/item&gt;</span>
+  <span class="xk">…（pmjud01 / pmjud02 / pmjud07 / pmj04）</span>
+<span class="xt">&lt;/record&gt;&lt;/records&gt;&lt;/s_pmj&gt;</span>
+<span class="xt">&lt;grid_pmr&gt;&lt;records/&gt;&lt;/grid_pmr&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">pmj02</code><span>項次</span></div>
+    <div class="frow sec"><code class="fc">pmj03</code><span>料號</span></div>
+    <div class="frow"><code class="fc">pmj031</code><span>品名</span></div>
+    <div class="frow"><code class="fc">pmj032</code><span>規格</span></div>
+    <div class="frow"><code class="fc">pmj05</code><span>幣別（USD）</span></div>
+    <div class="frow sec"><code class="fc">pmj07</code><span>單價（<b>0.172</b>）</span></div>
+    <div class="frow"><code class="fc">pmj09</code><span>日期（26/06/01，生效日?）</span></div>
+    <div class="frow sec"><code class="fc">pmjud09</code><span>數量（60000）</span></div>
+    <div class="frow unk"><code class="fc">pmjud08 / pmjud13</code><span>數值／日期（63 / 25-11-11），意義待確認</span></div>
+    <div class="frow unk"><code class="fc">pmjud01/02/07 · pmj04</code><span>幣別/單價的 ud 版本等，意義待確認</span></div>
+    <div class="frow unk"><code class="fc">grid_pmr</code><span>另一明細表，本筆<b>無資料</b>（用途待確認）</span></div>
+   </div><p class="xnote">💡 「<b>頭－身</b>」主從結構；含料號／單價／數量＝<b>定價機密</b> → 只能接私有 AI（軌1／軌3）。標灰者意義<b>待鼎新確認</b>。</p></div>
+  </div>
+ </section>
+
+ <div class="xsum">
+  <div class="box ok"><h4>✅ 這份能確認</h4><ul>
+   <li>系統屬<b>地端內網部署（軌3）</b></li>
+   <li>公司已有一條 <b>EasyFlow 介接管道</b></li>
+   <li>資料為<b>代碼化的主從表</b>結構、且有客製</li>
+  </ul></div>
+  <div class="box gap"><h4>❓ 這份還給不了（需向鼎新索取）</h4><ul>
+   <li><b>查詢／讀取用 API</b>（這支只有「寫」簽核）</li>
+   <li><b>欄位中文對照表（資料字典）</b>，否則 AI 看不懂代碼</li>
+   <li>其他模組、資料量、認證細節、原廠 AI 方案</li>
+  </ul></div>
+ </div>
+</div></div>
+
+<div class="foot">振曜科技 · AI 推動小組　|　鼎新 TIPTOP ERP × AI 對接可行性評估　|　AI 協助整理之初版，技術細節以鼎新原廠／IT 確認為準</div>
+<script>
+const vt=[...document.querySelectorAll('.vtab')];
+vt.forEach(b=>b.addEventListener('click',()=>{
+ vt.forEach(x=>x.classList.remove('active'));b.classList.add('active');
+ document.getElementById('view-arch').hidden=b.dataset.v!=='arch';
+ document.getElementById('view-eval').hidden=b.dataset.v!=='eval';
+ document.getElementById('view-xml').hidden=b.dataset.v!=='xml';
+ window.scrollTo({top:0});
+}));
+</script>
+</body></html>
