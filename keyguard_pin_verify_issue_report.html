@@ -270,6 +270,44 @@
         <li>重點檢查 reboot 前後的安全資料是否一致，例如 secure storage、RPMB、handle 狀態。</li>
         <li>App / SystemUI 團隊目前不需要繼續修改 Keyguard 畫面邏輯。</li>
       </ul>
+      <p style="margin-top:12px"><span class="tag ok">更新</span> 根因已確認為<strong>未燒錄 RPMB key</strong>，解法見第 9 節。</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>9. 根因確認與解法</h2>
+
+    <div class="card">
+      <p><span class="tag focus">根因確認</span> 裝置<strong>未燒錄 RPMB key</strong>，但 GateKeeper 用的是「把解鎖錯誤次數寫入 <strong>RPMB</strong>」的標準版 TA。reboot 後 TA 需要從 RPMB 讀回計數狀態卻讀不到 → verify 直接回失敗，正好對應第 6 節的 <span class="mono">response.error=3</span>。</p>
+      <div class="summary" style="margin-top:14px">
+        <div class="diag-box">
+          <h3>標準版 TA（RPMB）</h3>
+          <p>錯誤次數寫入 RPMB 安全區，需先燒錄 RPMB key。<strong>← 目前使用、會出問題</strong></p>
+        </div>
+        <div class="diag-box">
+          <h3>no_rpmb 版 TA</h3>
+          <p>錯誤次數改寫入 REE（一般檔案系統），不需要 RPMB key。<strong>← 改用這個</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p><span class="tag warn">MTK 說法</span> 公版為了通過 <strong>XTS 測試</strong>，GateKeeper 預設把解鎖錯誤次數寫入 RPMB。若<strong>無 XTS 需求</strong>且未燒 RPMB key，可切換為 no_rpmb 版；日後若要過 XTS，仍須燒錄 RPMB key 並改回標準版。</p>
+    </div>
+
+    <div class="card">
+      <p><span class="tag ok">解法</span> 在專案設定加入一個變數，讓建置系統改選 no_rpmb 版 TA：</p>
+      <p class="mono" style="margin-top:8px;color:var(--dim)">device/ntx/EA0T4A_A00/ProjectConfig.mk</p>
+      <div class="mono" style="margin-top:6px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px">
+&nbsp;&nbsp;MTK_OPTEE_SUPPORT = yes<br>
+<span style="color:var(--green)">+ MTK_OPTEE_RPMB_KEY_PROGRAMMED = no</span>&nbsp;&nbsp;<span style="color:var(--dim)"># 未燒 RPMB key → 改用 no_rpmb 版 GateKeeper TA</span><br>
+&nbsp;&nbsp;MTK_OVERRIDES_APKS = no
+      </div>
+      <ul style="margin-top:12px">
+        <li>此變數會讓 <span class="mono">gatekeeper/Android.mk</span> 走 <span class="mono">ifeq ($(MTK_OPTEE_RPMB_KEY_PROGRAMMED),no)</span> 分支，改用 <span class="mono">no_rpmb_version/</span> 底下的 TA。</li>
+        <li><span class="tag ok">驗證</span> 重編後裝置上 <span class="mono">/vendor/lib/optee_armtz/38ba0cdc-…-233fb6ae4795.ta</span> 大小應為 <strong>134416</strong>（no_rpmb 版）；標準版為 138528。</li>
+        <li>切換後 Pattern、PIN、Password 三者共用的 GateKeeper 驗證路徑會一併恢復正常。</li>
+      </ul>
     </div>
   </div>
 
