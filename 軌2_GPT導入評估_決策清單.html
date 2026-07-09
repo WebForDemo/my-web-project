@@ -176,6 +176,10 @@ tr.det>td{padding:0;background:#f1faf5;border-bottom:3px solid #bfe6d3}
 .m-test .mtl b{flex-shrink:0;min-width:58px;color:var(--muted);font-weight:700;font-size:12px;padding-top:1px}
 .m-test .mtl span{color:#334155}
 .m-foot{font-size:12.5px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--line);padding-top:10px}
+.m-report{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:12px 16px;
+ background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-weight:800;font-size:14.5px;
+ border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(16,163,127,.3);transition:.15s}
+.m-report:hover{gap:11px;box-shadow:0 6px 18px rgba(16,163,127,.42);transform:translateY(-1px)}
 .foot{text-align:center;color:var(--muted);font-size:12px;padding:30px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body>
@@ -908,12 +912,19 @@ function renderGrid(){
  }));
 }
 // 規格彈窗
+// 進度報告連結：key＝該 Item 的 spec.name（「簡報助手」在資料中為「簡報翻譯助手」）
+const REPORTS={
+ "簡報翻譯助手":"https://netronix-dennis.github.io/WebDemo/軌2_GPT導入_進度報告_簡報助手.html",
+ "會議記錄整理助手":"https://netronix-dennis.github.io/WebDemo/軌2_GPT導入_進度報告_會議記錄整理助手.html",
+ "週報數據彙整助手":"https://netronix-dennis.github.io/WebDemo/軌2_GPT導入_進度報告_週報數據彙整助手.html",
+ "分機查詢助手":"https://netronix-dennis.github.io/WebDemo/軌2_GPT導入_進度報告_分機查詢助手.html"
+};
 const modal=document.getElementById('modal'),modalc=document.getElementById('modalc');
 function openModal(x){
  let body;
  const tg=t=>`<div class="m-test"><span class="tg ${t.k==='正面'?'pos':'neg'}">${t.k}</span><div class="mtl"><b>輸入</b><span>${t.i}</span></div><div class="mtl"><b>預期反應</b><span>${t.o}</span></div></div>`;
  const li=a=>a.map(t=>`<li>${t}</li>`).join('');
- if(x.spec){const s=x.spec;
+ if(x.spec){const s=x.spec; const rep=REPORTS[s.name];
   body=`<div class="modal-h"><button class="modal-x" aria-label="關閉">×</button><div class="mt">${x.dept} · ${x.name}　·　優先分 ${x.score}</div><h3>📦 ${s.name}</h3><div class="mdesc">${s.desc}</div></div>
    <div class="modal-b">
     <div class="m-sg"><h4>指令 Instructions</h4><ul>${li(s.instr)}</ul></div>
@@ -921,6 +932,7 @@ function openModal(x){
     <div class="m-sg"><h4>對話啟動器</h4><ul>${li(s.starters)}</ul></div>
     <div class="m-sg"><h4>驗證測試</h4>${s.tests.map(tg).join('')}</div>
     <p class="m-foot">功能：開「網頁搜尋／資料分析」　·　分享層級：僅限振曜工作空間　·　<b>AI 草擬，待覆核</b></p>
+    ${rep?`<a class="m-report" href="${rep}" target="_blank" rel="noopener">📊 查看導入進度報告 →</a>`:''}
    </div>`;
  }else if(x.pre){const p=x.pre,no=p.kind==='no';
   body=`<div class="modal-h ${no?'sp-no':'sp-fix'}"><button class="modal-x" aria-label="關閉">×</button><div class="mt">${x.dept} · ${x.name}　·　優先分 ${x.score}</div><h3>${x.title}</h3><div class="mdesc">${no?'💬 在討論：GPT 做法待釐清':'⚠️ 需先處理才能用 GPT'}</div></div>
