@@ -67,6 +67,7 @@
     <div class="chip">異動檔案：<b>2 files</b></div>
     <div class="chip">涵蓋：<b>ScrollView / ListView / RecyclerView / WebView</b></div>
     <div class="chip">日期：<b>2026-06-12</b></div>
+    <div class="chip">更新：<b>2026-07-13（方案 B）</b></div>
   </div>
 </div>
 
@@ -74,7 +75,7 @@
 <div class="sec">
   <div class="card" style="border-color:var(--cyan)">
     <h4 style="color:var(--cyan)">▎一句話總結</h4>
-    <p style="color:var(--tx)">延續 SeekBar 那套「動作時進快刷、停止時復原」的概念，這次把它擴大到<strong>整個系統的捲動</strong>：使用者上下捲動任何清單／頁面時切到 E-Ink 快速波形讓捲動順暢，<strong>手指一放開就切回正常高畫質波形</strong>。只動 2 個 Framework 檔案，全系統捲動（含 Settings All apps）自動受惠。</p>
+    <p style="color:var(--tx)">延續 SeekBar 那套「動作時進快刷、停止時復原」的概念，這次把它擴大到<strong>整個系統的捲動</strong>：使用者上下捲動任何清單／頁面時切到 E-Ink 快速波形讓捲動順暢，<strong>快刷延續到慣性 fling 結束</strong>；等捲動<strong>真正靜止</strong>才切回正常波形，並補一次乾淨全刷（QUICK GC）清掉殘影。只動 2 個 Framework 檔案，全系統捲動（含 Settings All apps）自動受惠。</p>
     <p style="margin-top:6px;font-size:12px">※ E-Ink 波形原理、廣播參數意義已於《SeekBar 拖動 E-Ink 快速刷新報告》說明，本報告不重複，聚焦在「捲動」的特殊處理。</p>
   </div>
 </div>
@@ -155,20 +156,20 @@
 
       <!-- big down arrow from fast to restore -->
       <path d="M680 118 L680 210" stroke="#8b90a0" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#a)"/>
-      <text x="694" y="170" fill="#8b90a0" font-size="11">手指放開</text>
+      <text x="694" y="170" fill="#8b90a0" font-size="11">捲動靜止</text>
 
       <!-- box 4: restore -->
       <rect x="560" y="212" width="220" height="64" rx="10" fill="rgba(74,222,128,.10)" stroke="#4ade80"/>
-      <text x="670" y="238" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="700">③ 復原</text>
-      <text x="670" y="257" text-anchor="middle" fill="#e2e4eb" font-size="11">ACTION_UP / CANCEL</text>
-      <text x="670" y="272" text-anchor="middle" fill="#e2e4eb" font-size="11">發 restore 廣播 waveform=0</text>
-      <text x="670" y="294" text-anchor="middle" fill="#6b7280" font-size="10">ViewRootImpl</text>
+      <text x="670" y="238" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="700">③ 靜止後復原</text>
+      <text x="670" y="257" text-anchor="middle" fill="#e2e4eb" font-size="11">捲動停止（含 fling）</text>
+      <text x="670" y="272" text-anchor="middle" fill="#e2e4eb" font-size="11">GLOBAL wf=0 → QUICK GC wf=2</text>
+      <text x="670" y="294" text-anchor="middle" fill="#6b7280" font-size="10">靜止計時器 200ms</text>
 
       <!-- fling note -->
       <rect x="40" y="212" width="480" height="64" rx="10" fill="#1a1d27" stroke="#2e3345"/>
-      <text x="60" y="236" fill="#8b90a0" font-size="12" font-weight="600">取捨：慣性 fling</text>
-      <text x="60" y="256" fill="#8b90a0" font-size="11.5">手指放開的當下就復原；放手後自己滑的那段</text>
-      <text x="60" y="272" fill="#8b90a0" font-size="11.5">維持正常波形（不快刷）—— 此為拍板的設計選擇。</text>
+      <text x="60" y="236" fill="#8b90a0" font-size="12" font-weight="600">方案 B：慣性 fling</text>
+      <text x="60" y="256" fill="#8b90a0" font-size="11.5">快刷延續到 fling 結束；靠「靜止偵測」</text>
+      <text x="60" y="272" fill="#8b90a0" font-size="11.5">等真正停下才 restore + QUICK GC 清一次。</text>
     </svg>
   </div>
 </div>
@@ -193,17 +194,27 @@
   </div>
 
   <div class="card">
-    <h4 style="color:var(--cyan)">▎核心邏輯（簡化）</h4>
-    <div class="code"><span class="cm">// View.java — 偵測捲動時（手指按著才進、每手勢一次）</span>
+    <h4 style="color:var(--cyan)">▎核心邏輯（方案 B：快刷延續到 fling、靜止才清）</h4>
+    <div class="code"><span class="cm">// View.java — 偵測捲動（手指按著才「進」，每手勢一次）</span>
 <span class="en">ntxEinkReportScroll()</span> {
-    if (!手指按著 || 已在快刷) return;
+    if (已在快刷) { 重設靜止計時器(200ms); return; }   <span class="cm">// fling 回報也會進來</span>
+    if (!手指按著 || 未移動 || offset 沒變) return;
     已在快刷 = true;
     sendBroadcast(GLOBAL_REFRESH, waveformmode=1, flags=0x2000, dithermode=0x301);
+    重設靜止計時器(200ms);
 }
 
-<span class="cm">// ViewRootImpl.java — 手指放開時復原</span>
-DOWN  → 手指按著 = true
-UP/CANCEL → if (已在快刷) { <span class="re">sendBroadcast(GLOBAL_REFRESH, waveformmode=0)</span>; 清狀態; }</div>
+<span class="cm">// ViewRootImpl.java → View</span>
+DOWN      → 手指按著=true; 取消靜止計時器
+UP/CANCEL → 手指按著=false; if (已在快刷) 重設靜止計時器(200ms)   <span class="cm">// 不在這裡復原</span>
+
+<span class="cm">// 靜止計時器到期（200ms 內沒有捲動回報）</span>
+<span class="en">settle()</span> {
+    if (手指還按著) { 再等 200ms; return; }        <span class="cm">// 停住不動≠結束，避免早閃</span>
+    已在快刷 = false;
+    <span class="re">sendBroadcast(GLOBAL_REFRESH, waveformmode=0)</span>;         <span class="cm">// 先關快刷</span>
+    <span class="re">sendBroadcast(QUICK_REFRESH, updatemode=1, waitmode=1, waveformmode=2)</span>;   <span class="cm">// 再清一次 GC</span>
+}</div>
   </div>
 </div>
 
@@ -216,7 +227,8 @@ UP/CANCEL → if (已在快刷) { <span class="re">sendBroadcast(GLOBAL_REFRESH,
       <li><strong>每手勢只發一次 enter</strong>：捲動事件極頻繁，用狀態旗標確保不會狂發廣播。</li>
       <li><strong>放手即復原（含 CANCEL）</strong>：來電、鎖屏等中斷會收到 CANCEL，一樣會復原，<strong>不會卡在快刷</strong>。</li>
       <li><strong>不改 RecyclerView 原始碼</strong>：靠攔截它繼承的 <span class="mono">View.awakenScrollBars()</span>，所以原始碼不在 tree 裡也能涵蓋。</li>
-      <li><strong>慣性 fling 不快刷</strong>：依拍板選擇「手指放開即復原」，放手後的滑動段維持正常波形。</li>
+      <li><strong>快刷延續到 fling 結束</strong>（方案 B，取代舊「fling 用正常波形」的決定）：手指放開後仍維持快刷，靠「靜止偵測」等 fling 真正停下，才 restore + 一次 QUICK GC 清殘影。</li>
+      <li><strong>停住不動不會早閃</strong>：靜止計時器到期時若手指還按著（拖到一半停住），不清、改稍後再檢查；只有「手指放開 <em>且</em> 捲動停止」才算真正結束。</li>
     </ul>
   </div>
 </div>
@@ -230,7 +242,9 @@ UP/CANCEL → if (已在快刷) { <span class="re">sendBroadcast(GLOBAL_REFRESH,
     <table class="tb" style="margin-top:10px">
       <tr><th>動作</th><th>預期 log</th></tr>
       <tr><td>進快刷</td><td class="mono">(SMode) ... Globle Mode - updatemode(0) wait(0) waveform(1) flags(2000) dithermode(301)</td></tr>
-      <tr><td>復原</td><td class="mono">(SMode) ... Globle Mode - ... waveform(0)</td></tr>
+      <tr><td>拖動 / fling 期間</td><td>安靜（不重發 enter；靜止計時器一直被往後推）</td></tr>
+      <tr><td>真正靜止後 → 復原</td><td class="mono">(SMode) ... Globle Mode - ... waveform(0)</td></tr>
+      <tr><td>接著 → 清一次 GC</td><td class="mono">(SMode) ... Quick Mode - updatemode(1) wait(1) waveform(2)</td></tr>
     </table>
   </div>
 </div>
@@ -258,7 +272,7 @@ UP/CANCEL → if (已在快刷) { <span class="re">sendBroadcast(GLOBAL_REFRESH,
       <tr><td>只點一下不捲（tap）</td><td>不發任何廣播</td></tr>
       <tr><td>內容沒超出畫面、捲不動</td><td>不發（沒有 scroll 事件）</td></tr>
       <tr><td>程式自動捲動 / 動畫（非手指）</td><td>不發（手指沒按著）</td></tr>
-      <tr><td>手指放開後的慣性 fling 段</td><td>放手當下即復原，fling 段維持正常波形</td></tr>
+      <tr><td>手指放開後的慣性 fling 段</td><td>維持快刷直到 fling 停止；停止後才 restore + QUICK GC 清一次</td></tr>
     </table>
   </div>
 
