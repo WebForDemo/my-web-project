@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鼎新 TIPTOP ERP × AI 對接 · 架構與導入規劃</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#10a37f;--primary-d:#0d8a6b;--secondary:#1e3a5f;--secondary-l:#2d527f;--accent:#f59e0b;
+ --bg:#eef2f6;--panel:#fff;--ink:#1a202c;--muted:#64748b;--line:#e2e8f0;--line2:#eef2f6;
+ --gbg:#d1fae5;--gtx:#047857;--ybg:#fef3c7;--ytx:#92400e;--rbg:#fee2e2;--rtx:#b91c1c;
+ --shadow:0 4px 24px rgba(15,40,80,.08);--shadow-lg:0 14px 48px rgba(15,40,80,.18);--radius:14px;
+ --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65}
+.topbar{background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 135%);color:#fff;
+ padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;box-shadow:var(--shadow-lg)}
+.ttl{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:13px;background:rgba(16,163,127,.22);border:1px solid rgba(16,163,127,.5);display:grid;place-items:center;font-size:23px}
+.ttl h1{font-size:20px;font-weight:800;letter-spacing:.3px}
+.ttl .sub{font-size:12px;color:#9fb3c8;margin-top:2px}
+.metrics{display:flex;gap:9px;flex-wrap:wrap}
+.metric{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px 15px;text-align:center;min-width:86px}
+.metric .v{font-size:17px;font-weight:800;line-height:1.2}
+.metric .v.g{color:#6ee7b7}.metric .v.r{color:#fca5a5}.metric .v.y{color:#fcd34d}
+.metric .l{font-size:10.5px;color:#9fb3c8;margin-top:2px}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 22px 70px}
+.verdict{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--primary);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 22px;margin-bottom:22px}
+.verdict h2{font-size:18px;color:var(--secondary);margin-bottom:6px}
+.verdict p{font-size:15px;color:#334155}
+.verdict b{color:var(--primary-d)}
+.sec{margin-bottom:30px}
+.kick{font-size:11.5px;letter-spacing:.16em;font-weight:800;color:var(--primary-d);text-transform:uppercase}
+.sec>h2{font-size:20px;font-weight:800;color:var(--secondary);margin:5px 0 14px;display:flex;align-items:center;gap:9px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+.card p{font-size:14.5px;color:#334155;margin-bottom:7px}.card p:last-child{margin-bottom:0}
+.card b{color:var(--secondary)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:#f1f5f9;border:1px solid var(--line);border-radius:7px;padding:2px 7px;color:#334155}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.feat{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px}
+.feat .fi{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;margin-bottom:9px;background:var(--gbg)}
+.feat.b .fi{background:#dbeafe}.feat.o .fi{background:var(--ybg)}.feat.p .fi{background:#ede9fe}
+.feat h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin-bottom:4px}
+.feat p{font-size:13.5px;color:#475569;line-height:1.55}
+.risk{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-left:4px solid;border-radius:12px;padding:14px 17px;margin-bottom:11px}
+.risk.r1{border-left-color:var(--rtx)}.risk.r2{border-left-color:var(--ytx)}.risk.r3{border-left-color:var(--secondary)}.risk.r4{border-left-color:var(--primary)}
+.risk .ic{font-size:23px;flex-shrink:0;line-height:1.3}
+.risk h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin-bottom:3px}
+.risk p{font-size:13.5px;color:#475569;line-height:1.55}
+.risk p b{color:var(--rtx)}
+/* flow */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;overflow-x:auto}
+.fbox{flex:1;min-width:150px;background:#f7fafc;border:1px solid var(--line);border-radius:12px;padding:13px 14px;text-align:center}
+.fbox .ft{font-size:14px;font-weight:800;color:var(--secondary)}
+.fbox .fd{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.fbox.ai{background:#ecfdf5;border-color:#a7f3d0}.fbox.mid{background:#eff6ff;border-color:#bfdbfe}
+.farr{display:grid;place-items:center;font-size:22px;color:var(--primary);padding:0 6px;flex-shrink:0}
+.flownote{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;position:relative;border-top:4px solid var(--primary)}
+.step .sn{font-size:12px;font-weight:800;color:var(--primary-d);letter-spacing:.05em}
+.step h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin:3px 0 7px}
+.step ul{padding-left:17px}.step li{font-size:13px;color:#475569;margin-bottom:4px;line-height:1.5}
+.step.s0{border-top-color:var(--muted)}.step.s3{border-top-color:var(--accent)}
+table.cmp{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:13.5px}
+table.cmp th,table.cmp td{padding:11px 13px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+table.cmp th{background:#f7fafc;color:var(--secondary);font-weight:800;font-size:12.5px}
+table.cmp tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:6px;white-space:nowrap}
+.t-low{background:var(--gbg);color:var(--gtx)}.t-mid{background:var(--ybg);color:var(--ytx)}.t-high{background:var(--rbg);color:var(--rtx)}
+.chk{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 20px;list-style:none}
+.chk li{font-size:14px;color:#334155;padding:10px 0 10px 30px;border-bottom:1px solid var(--line2);position:relative;line-height:1.5}
+.chk li:last-child{border-bottom:none}
+.chk li::before{content:"\2610";position:absolute;left:2px;top:9px;color:var(--primary);font-size:18px;font-weight:700}
+.chk li b{color:var(--secondary)}
+.callout{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid var(--primary);border-radius:11px;padding:14px 17px;font-size:14px;color:#1c5a44;line-height:1.6;margin-top:8px}
+.foot{text-align:center;color:var(--muted);font-size:12px;padding:28px;border-top:1px solid var(--line);margin-top:10px}
+@media(max-width:560px){.flow{flex-direction:column}.farr{transform:rotate(90deg);padding:6px 0}}
+[hidden]{display:none!important}
+.vtabs{background:var(--panel);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(15,40,80,.05)}
+.vtabs-in{max-width:1280px;margin:0 auto;display:flex;gap:4px;padding:0 22px;flex-wrap:wrap}
+.vtab{padding:14px 20px;border:none;background:none;cursor:pointer;font:inherit;font-size:15px;font-weight:800;color:var(--muted);border-bottom:3px solid transparent;transition:.15s}
+.vtab:hover{color:var(--primary)}.vtab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.xwrap{max-width:1280px;margin:0 auto;padding:24px 22px 70px}
+.xintro{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:14px;font-size:14.5px;color:#334155;line-height:1.65}
+.xintro b{color:var(--secondary)}
+.xlegend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.xtag{font-size:12.5px;font-weight:800;padding:4px 11px;border-radius:7px}
+.xtag.sec{background:var(--rbg);color:var(--rtx)}.xtag.tech{background:#e0e7ff;color:#3730a3}
+.xcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.xcard-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 18px;border-bottom:1px solid var(--line);background:#f7fafc}
+.xcard-h h3{font-size:16px;font-weight:800;color:var(--secondary)}
+.xbody{display:grid;grid-template-columns:1fr 1fr}
+.xcode{background:#0f1d2e;padding-bottom:14px}
+.xbar{display:flex;align-items:center;gap:7px;padding:11px 15px}
+.xbar i{width:11px;height:11px;border-radius:50%}
+.xbar i:nth-child(1){background:#ff5f56}.xbar i:nth-child(2){background:#ffbd2e}.xbar i:nth-child(3){background:#27c93f}
+.xbar span{margin-left:6px;font-size:11px;color:#6b8199;font-family:ui-monospace,monospace;letter-spacing:.06em}
+.xcode pre{margin:0;padding:2px 16px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.75;color:#cdd9e5;overflow-x:auto;white-space:pre}
+.xt{color:#7ee2c7}.xv{color:#ffd479}.xk{color:#9db8d8}
+.xexp{padding:15px 18px;border-left:1px solid var(--line)}
+.fmap{display:flex;flex-direction:column;gap:9px}
+.frow{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5}
+.fc{flex-shrink:0;font-family:ui-monospace,monospace;font-size:12px;background:#eef2f6;color:#0f5132;border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap;min-width:104px;text-align:center}
+.frow span{color:#334155;padding-top:1px}.frow b{color:var(--secondary)}
+.frow.sec .fc{background:#e0e7ff;color:#3730a3;border-color:#c7d2fe}
+.frow.unk .fc{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}
+.frow.unk span{color:#94a3b8}
+.xnote{margin-top:13px;font-size:13px;color:#1c5a44;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:9px;padding:9px 12px;line-height:1.55}
+.xnote b{color:var(--primary-d)}
+.xsum{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.xsum .box{border-radius:13px;padding:16px 18px;border:1px solid;box-shadow:var(--shadow)}
+.xsum .ok{background:#ecfdf5;border-color:#a7f3d0}.xsum .gap{background:#fff7ed;border-color:#fed7aa}
+.xsum h4{font-size:14.5px;font-weight:800;margin-bottom:9px}
+.xsum .ok h4{color:var(--gtx)}.xsum .gap h4{color:#9a3412}
+.xsum ul{padding-left:18px}.xsum li{font-size:13.5px;margin-bottom:5px;line-height:1.5;color:#334155}
+@media(max-width:720px){.xbody{grid-template-columns:1fr}.xexp{border-left:none;border-top:1px solid var(--line)}.xsum{grid-template-columns:1fr}}
+.archwrap{max-width:1280px;margin:0 auto;padding:24px 22px 70px}
+.archcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+.arch-h{font-size:18px;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:9px}
+.arch-sub{font-size:13px;color:var(--muted);margin:4px 0 20px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.gcardx{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;border-top:4px solid var(--primary)}
+.gcardx .gname{font-size:16px;font-weight:800;color:var(--secondary)}
+.gcardx .gtag{font-size:11px;font-weight:800;color:var(--primary-d);background:#d1fae5;border-radius:6px;padding:1px 8px;margin-left:7px}
+.gcardx dl{margin:0}.gcardx dt{font-size:11px;font-weight:800;color:var(--muted);margin-top:9px;letter-spacing:.04em}
+.gcardx dd{font-size:13.5px;color:#334155;line-height:1.55;margin:2px 0 0}
+.spanel{border-radius:13px;padding:14px 15px;border:1px solid;font-size:13px;line-height:1.55}
+.spanel .sp-h{font-size:14px;font-weight:800;margin-bottom:6px}
+.spanel p{color:#475569;margin:0}.spanel b{color:var(--secondary)}
+.p-sec{background:#fff1f2;border-color:#fecdd3}.p-sec .sp-h{color:var(--rtx)}
+.p-track{background:#eff6ff;border-color:#bfdbfe}.p-track .sp-h{color:#1e3a8a}
+.p-ai{background:#f8fafc;border:2px dashed #94a3b8}.p-ai .sp-h{color:#475569}
+.p-ok{background:#f0fdf9;border-color:#a7f3d0}.p-ok .sp-h{color:var(--primary-d)}
+.svgwrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:var(--shadow);padding:10px}
+.svgwrap svg{display:block;min-width:920px}
+.svgcap{font-size:13px;color:#475569;margin:13px 2px;line-height:1.65}
+.svgcap b{color:var(--primary-d)}
+.panels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:760px){.panels-row{grid-template-columns:1fr}}
+.lstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(114px,1fr));gap:12px;margin:2px 0 20px}
+.lstat{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:15px 12px;text-align:center}
+.lstat .n{font-size:25px;font-weight:800;color:var(--secondary);line-height:1.1}
+.lstat .n.g{color:var(--gtx)}.lstat .n.r{color:var(--rtx)}.lstat .n.b{color:#1e40af}
+.lstat .k{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.4}
+.xcode pre.resp{border-top:1px dashed #33465e;margin-top:8px;padding-top:9px}
+.xlab{font-size:11px;font-weight:800;letter-spacing:.08em;color:#6b8199;padding:0 16px;margin-top:4px}
+table.cmp td.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#334155;background:none;border:none;padding:11px 13px}
+/* 有 AI vs 沒 AI 對比 */
+.cmp2{display:flex;flex-direction:column;gap:14px}
+.lane{border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow)}
+.lane.now{border-left:5px solid #94a3b8;background:#f8fafc}
+.lane.ai{border-left:5px solid var(--primary);background:#f0fdf9}
+.lane-h{font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lane.now .lane-h{color:#64748b}.lane.ai .lane-h{color:var(--primary-d)}
+.lane-tag{font-size:11px;font-weight:800;padding:2px 10px;border-radius:99px}
+.lane.now .lane-tag{background:#e2e8f0;color:#475569}.lane.ai .lane-tag{background:var(--primary);color:#fff}
+.lane-flow{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;overflow-x:auto}
+.lbox{flex:1;min-width:118px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 10px;text-align:center;font-size:13px;font-weight:800;color:var(--secondary)}
+.lane.ai .lbox{border-color:#a7f3d0}
+.lbox .le{font-size:22px;display:block;margin-bottom:4px;font-weight:400}
+.lbox small{display:block;font-weight:500;color:var(--muted);font-size:11px;margin-top:3px;line-height:1.4}
+.larr{display:grid;place-items:center;font-size:19px;padding:0 5px;color:#94a3b8;flex-shrink:0}
+.lane.ai .larr{color:var(--primary)}
+@media(max-width:600px){.lane-flow{flex-direction:column}.larr{transform:rotate(90deg);padding:5px 0}}
+/* 導入路線圖 */
+.roadmap{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:4px 0 6px}
+.rphase{flex:1;min-width:198px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 15px 15px;border-top:4px solid var(--muted);position:relative}
+.rphase.p1,.rphase.p2{border-top-color:var(--primary)}.rphase.p3{border-top-color:var(--accent)}
+.rnum{width:34px;height:34px;border-radius:50%;background:#94a3b8;color:#fff;font-weight:800;font-size:16px;display:grid;place-items:center;margin-bottom:9px}
+.rphase.p1 .rnum,.rphase.p2 .rnum{background:var(--primary)}.rphase.p3 .rnum{background:var(--accent)}
+.rwhen{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted)}
+.rtitle{font-size:15.5px;font-weight:800;color:var(--secondary);margin:2px 0 9px}
+.rphase ul{padding-left:16px;margin:0}
+.rphase li{font-size:12.5px;color:#475569;margin-bottom:4px;line-height:1.45}
+.rtag{position:absolute;top:15px;right:14px;font-size:11px;font-weight:800;padding:2px 9px;border-radius:99px}
+.rtag.prep{background:#e2e8f0;color:#475569}.rtag.read{background:var(--gbg);color:var(--gtx)}.rtag.write{background:var(--ybg);color:var(--ytx)}
+.rarrow{display:grid;place-items:center;font-size:22px;color:#94a3b8;padding:0 4px;flex-shrink:0}
+@media(max-width:820px){.roadmap{flex-direction:column}.rarrow{transform:rotate(90deg);padding:6px 0}}
+/* PoC 實例流程 */
+.poc{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;background:#f0fdf9;border:1px solid #a7f3d0;border-radius:14px;box-shadow:var(--shadow);padding:16px;overflow-x:auto;margin-bottom:8px}
+.pbox{flex:1;min-width:150px;background:#fff;border:1px solid #a7f3d0;border-radius:11px;padding:12px 13px;text-align:center;font-size:12.5px}
+.pbox .pi{font-size:23px;display:block;margin-bottom:5px}
+.pbox b{color:var(--secondary);font-size:13px}
+.pbox small{display:block;color:var(--muted);margin-top:4px;font-size:11.5px;line-height:1.4}
+.parr{display:grid;place-items:center;font-size:19px;color:var(--primary);padding:0 5px;flex-shrink:0}
+@media(max-width:700px){.poc{flex-direction:column}.parr{transform:rotate(90deg);padding:5px 0}}
+</style></head><body>
+<div class="topbar">
+ <div class="ttl"><div class="logo">🔗</div>
+  <div><h1>鼎新 TIPTOP ERP × AI 對接 — 架構與導入規劃</h1>
+   <div class="sub">Netronix · AI 推動小組 ｜ 依 實測 Log／WSDL／鼎新官方規格／IT 說明 整理 ｜ 初版，細節待 IT／鼎新原廠最終確認</div></div></div>
+ <div class="metrics">
+  <div class="metric"><div class="v g">管道確定</div><div class="l">Services Gateway</div></div>
+  <div class="metric"><div class="v">協定明確</div><div class="l">XML 查詢·建單</div></div>
+  <div class="metric"><div class="v g">已實測</div><div class="l">97 次/日</div></div>
+  <div class="metric"><div class="v y">讀先寫後</div><div class="l">兩階段導入</div></div>
+ </div>
+</div>
+<div class="vtabs"><div class="vtabs-in">
+ <button class="vtab active" data-v="arch" type="button">🗺️ 系統架構</button>
+ <button class="vtab" data-v="proto" type="button">🔌 對接協定</button>
+ <button class="vtab" data-v="log" type="button">🧪 實測 Log 分析</button>
+ <button class="vtab" data-v="plan" type="button">🚀 導入規劃</button>
+</div></div>
+
+<!-- ===================== 系統架構 ===================== -->
+<div id="view-arch"><div class="archwrap">
+
+ <div class="verdict">
+  <h2>📌 一句話定位</h2>
+  <p>TIPTOP 有一套鼎新官方的 <b>Services Gateway</b> 對外整合框架，用 <b>XML 命令進出</b>。我們的 <b>AI 小助手可以當成一個新的呼叫方</b>——<b>初期用來查資料（讀）、長期用來建單（寫）</b>。管道、協定、實測都已確認；還沒定的是「有哪些服務可用」與「呼叫權限」。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🗺️ 現況：地端系統怎麼串（TIPTOP 在哪）</div>
+  <div class="arch-sub">先看今天系統的樣子——單據經簽核系統進到 TIPTOP、再讀寫各模組。這是 AI 要接上去的那套系統。</div>
+  <div class="svgwrap"><svg viewBox="0 0 1400 640" width="100%" font-family="-apple-system,'Noto Sans TC','Microsoft JhengHei',sans-serif" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <marker id="ah" markerWidth="11" markerHeight="11" refX="8" refY="3.2" orient="auto"><path d="M0,0 L8.5,3.2 L0,6.4 Z" fill="#2d527f"/></marker>
+    <marker id="ahg" markerWidth="11" markerHeight="11" refX="8" refY="3.2" orient="auto"><path d="M0,0 L8.5,3.2 L0,6.4 Z" fill="#8aa0bb"/></marker>
+   </defs>
+   <rect x="296" y="34" width="1078" height="576" rx="12" fill="#eef2fb" stroke="#aec3e6" stroke-width="2"/>
+   <text x="1356" y="62" text-anchor="end" font-size="20" font-weight="800" fill="#1e3a5f">公司內網（地端環境）</text>
+   <text x="314" y="64" font-size="22">🔒</text>
+   <text x="62" y="152" text-anchor="middle" font-size="38">👤</text><text x="62" y="184" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">採購</text>
+   <text x="62" y="322" text-anchor="middle" font-size="38">👤</text><text x="62" y="354" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">業務</text>
+   <text x="62" y="492" text-anchor="middle" font-size="38">👤</text><text x="62" y="524" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a5f">各部門</text>
+   <line x1="100" y1="150" x2="322" y2="150" stroke="#8aa0bb" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ahg)"/>
+   <line x1="100" y1="320" x2="322" y2="320" stroke="#8aa0bb" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ahg)"/>
+   <line x1="100" y1="490" x2="322" y2="490" stroke="#8aa0bb" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ahg)"/>
+   <text x="211" y="308" text-anchor="middle" font-size="14" fill="#5b6b7f">建立簽核單</text>
+   <rect x="330" y="104" width="120" height="92" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="390" y="134" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">核價單</text><text x="390" y="176" text-anchor="middle" font-size="26">💲</text>
+   <rect x="330" y="274" width="120" height="92" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="390" y="304" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">請購單</text><text x="390" y="346" text-anchor="middle" font-size="26">🧾</text>
+   <rect x="330" y="444" width="120" height="92" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="390" y="474" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">簽核單</text><text x="390" y="516" text-anchor="middle" font-size="26">📋</text>
+   <line x1="452" y1="150" x2="576" y2="308" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="452" y1="320" x2="576" y2="324" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="452" y1="490" x2="576" y2="340" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <text x="508" y="300" text-anchor="middle" font-size="14" fill="#5b6b7f">送出簽核</text>
+   <rect x="560" y="182" width="474" height="300" rx="10" fill="#eafaf1" stroke="#86d5b0" stroke-width="2"/>
+   <text x="1018" y="210" text-anchor="end" font-size="17" font-weight="800" fill="#0d8a6b">鼎新整合系統</text>
+   <text x="578" y="212" font-size="18">🔄</text>
+   <text x="715" y="276" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0d8a6b">XML Web Service</text>
+   <rect x="580" y="294" width="118" height="84" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="639" y="330" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1e3a5f">NaNaWeb</text><text x="639" y="352" text-anchor="middle" font-size="12" fill="#64748b">簽核網站</text>
+   <rect x="728" y="294" width="130" height="84" rx="8" fill="#fdf3da" stroke="#d9a441" stroke-width="2"/><text x="793" y="330" text-anchor="middle" font-size="14.5" font-weight="800" fill="#8a5a12">EasyFlow</text><text x="793" y="352" text-anchor="middle" font-size="12" fill="#a06a1e">簽核中介</text>
+   <rect x="888" y="294" width="122" height="84" rx="8" fill="#fdf3da" stroke="#d9a441" stroke-width="2"/><text x="949" y="330" text-anchor="middle" font-size="14.5" font-weight="800" fill="#8a5a12">TIPTOP</text><text x="949" y="352" text-anchor="middle" font-size="12" fill="#a06a1e">核心 ERP</text>
+   <line x1="698" y1="336" x2="726" y2="336" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="858" y1="336" x2="886" y2="336" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="140" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="260" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="380" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <line x1="1012" y1="336" x2="1176" y2="500" stroke="#2d527f" stroke-width="2" marker-end="url(#ah)"/>
+   <text x="1110" y="318" text-anchor="middle" font-size="13.5" fill="#5b6b7f">讀寫資料</text>
+   <rect x="1180" y="100" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="134" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">採購</text><text x="1254" y="164" text-anchor="middle" font-size="22">📦</text>
+   <rect x="1180" y="220" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="254" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">核價</text><text x="1254" y="284" text-anchor="middle" font-size="22">💲</text>
+   <rect x="1180" y="340" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="374" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">庫存</text><text x="1254" y="404" text-anchor="middle" font-size="22">🏬</text>
+   <rect x="1180" y="460" width="148" height="80" rx="8" fill="#fff" stroke="#4a6fa5" stroke-width="2"/><text x="1254" y="494" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">財務</text><text x="1254" y="524" text-anchor="middle" font-size="22">💰</text>
+  </svg></div>
+  <p class="svgcap">🗺️ 這是<b>現況</b>：員工的單據（核價、請購、簽核）經 <b>NaNaWeb → EasyFlow</b> 進到 <b>TIPTOP</b>，再讀寫各模組。<b>AI 要接的是 TIPTOP 對外的 Services Gateway（XML Web Service）</b>——另一個入口，不經 EasyFlow 簽核（AI 怎麼接見下方）。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🆚 有 AI vs 沒有 AI</div>
+  <div class="arch-sub">同一個問題「這批料／這個客戶 夠不夠？」，兩種做法差在哪——這就是導入 AI 的價值。</div>
+  <div class="cmp2">
+   <div class="lane now">
+    <div class="lane-h">🔴 現況（今天，沒有 AI）<span class="lane-tag">慢 · 要會操作</span></div>
+    <div class="lane-flow">
+     <div class="lbox"><span class="le">👤</span>想知道<small>庫存／信用夠不夠</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🖥️</span>登入 TIPTOP<small>要帳號、會操作</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🔍</span>一層層翻<small>找選單／單據／欄位</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🙋</span>或問業務／生管<small>等對方有空</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">⏳</span>幾分鐘～數十分<small>才拿到答案</small></div>
+    </div>
+   </div>
+   <div class="lane ai">
+    <div class="lane-h">🟢 導入 AI 後<span class="lane-tag">快 · 白話即問</span></div>
+    <div class="lane-flow">
+     <div class="lbox"><span class="le">👤</span>白話問一句<small>「XX 還夠嗎？」</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🤖</span>AI 小助手<small>自動組 XML 查詢</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🚪</span>Gateway → TIPTOP<small>後台自動跑</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">💬</span>即時白話答案<small>免登入、免翻系統</small></div>
+    </div>
+   </div>
+  </div>
+  <p class="flownote"><b>差別</b>：現況要「<b>人進系統翻、或問人</b>」，得會操作又要等；導入 AI 後<b>一句白話、免登入、即時得到答案</b>。長期更可「講完就代擬建單（人工確認後送出）」。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🗺️ AI 怎麼接上 TIPTOP</div>
+  <div class="arch-sub">AI 小助手把你的白話問題轉成 XML 命令，透過 Gateway 送進 TIPTOP，再把回傳翻成白話。</div>
+  <div class="flow">
+   <div class="fbox"><div class="ft">👤 使用者</div><div class="fd">用白話提問<br>「XX 庫存夠不夠？」</div></div>
+   <div class="farr">→</div>
+   <div class="fbox ai"><div class="ft">🤖 AI 小助手</div><div class="fd">白話 ⇄ XML 命令<br>組請求／翻回覆</div></div>
+   <div class="farr">→</div>
+   <div class="fbox mid"><div class="ft">🚪 Services Gateway</div><div class="fd">單一入口<br>…100.33:6384</div></div>
+   <div class="farr">→</div>
+   <div class="fbox mid"><div class="ft">📇 Services Register</div><div class="fd">查「哪個服務處理」</div></div>
+   <div class="farr">→</div>
+   <div class="fbox"><div class="ft">⚙️ Service Function</div><div class="fd">實際功能<br>→ TIPTOP 資料</div></div>
+  </div>
+  <p class="flownote">🔄 <b>一來一回</b>：① AI 送出 <b>Request XML</b> → ② TIPTOP 回 <b>Response XML</b> → AI 翻成白話答你。這是鼎新官方的 <b>TIPTOP Services Gateway</b> 架構，本來就設計成可讓外部系統呼叫（AI 就是新的一個呼叫方）。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🔎 Gateway 內部怎麼運作（鼎新官方架構）</div>
+  <div class="arch-sub">鼎新官方把這套叫 TIPTOP Services Gateway：呼叫方指名要哪個服務，Gateway 查登記簿、轉給對應的功能。AI 就是圖上新的一個「Request Service」。</div>
+  <div class="svgwrap"><svg viewBox="0 0 1000 590" width="100%" font-family="-apple-system,'Noto Sans TC','Microsoft JhengHei',sans-serif" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <marker id="gwb" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2d527f"/></marker>
+    <marker id="gwg" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#10a37f"/></marker>
+   </defs>
+   <ellipse cx="175" cy="72" rx="84" ry="36" fill="#fff" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="175" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a5f">Request</text>
+   <text x="175" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a5f">Service A</text>
+   <ellipse cx="470" cy="72" rx="84" ry="36" fill="#fff" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="470" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a5f">Request</text>
+   <text x="470" y="88" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a5f">Service C</text>
+   <ellipse cx="812" cy="72" rx="98" ry="39" fill="#ecfdf5" stroke="#10a37f" stroke-width="2.5"/>
+   <text x="812" y="66" text-anchor="middle" font-size="14.5" font-weight="800" fill="#0d8a6b">🤖 AI 小助手</text>
+   <text x="812" y="88" text-anchor="middle" font-size="11.5" fill="#0d8a6b">（未來新呼叫方）</text>
+   <rect x="40" y="150" width="920" height="410" rx="14" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+   <text x="60" y="177" font-size="12" font-weight="700" fill="#94a3b8">TIPTOP Services Gateway 框架</text>
+   <path d="M190,102 C255,145 360,158 408,178" fill="none" stroke="#2d527f" stroke-width="2" marker-end="url(#gwb)"/>
+   <path d="M470,108 L458,178" fill="none" stroke="#10a37f" stroke-width="2" marker-end="url(#gwg)"/>
+   <path d="M790,105 C650,148 560,163 528,178" fill="none" stroke="#10a37f" stroke-width="2.5" stroke-dasharray="6 4" marker-end="url(#gwg)"/>
+   <rect x="350" y="180" width="200" height="60" rx="10" fill="#dbeafe" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="450" y="206" text-anchor="middle" font-size="17" font-weight="800" fill="#1e3a5f">Gateway</text>
+   <text x="450" y="226" text-anchor="middle" font-size="11.5" fill="#5b6b7f">單一入口 · 總機</text>
+   <path d="M400,240 C300,275 225,288 200,302" fill="none" stroke="#2d527f" stroke-width="2" marker-end="url(#gwb)"/>
+   <path d="M425,240 C325,278 248,290 222,302" fill="none" stroke="#10a37f" stroke-width="2" marker-end="url(#gwg)"/>
+   <rect x="95" y="305" width="200" height="66" rx="10" fill="#fff" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="195" y="332" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1e3a5f">Services Register</text>
+   <text x="195" y="352" text-anchor="middle" font-size="11.5" fill="#5b6b7f">服務登記簿 · 路由</text>
+   <rect x="400" y="305" width="200" height="66" rx="10" fill="#fff" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="500" y="332" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1e3a5f">Services Globals</text>
+   <text x="500" y="352" text-anchor="middle" font-size="11.5" fill="#5b6b7f">共用設定</text>
+   <rect x="705" y="305" width="200" height="66" rx="10" fill="#fff" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="805" y="332" text-anchor="middle" font-size="14.5" font-weight="800" fill="#1e3a5f">Services Library</text>
+   <text x="805" y="352" text-anchor="middle" font-size="11.5" fill="#5b6b7f">服務程式庫</text>
+   <path d="M175,371 C152,400 150,420 152,437" fill="none" stroke="#2d527f" stroke-width="2" marker-end="url(#gwb)"/>
+   <path d="M235,371 C400,412 540,422 592,437" fill="none" stroke="#10a37f" stroke-width="2" marker-end="url(#gwg)"/>
+   <rect x="72" y="440" width="160" height="60" rx="9" fill="#fef9c3" stroke="#d9a441" stroke-width="2"/>
+   <text x="152" y="465" text-anchor="middle" font-size="13" font-weight="800" fill="#8a5a12">Service Function A</text>
+   <text x="152" y="485" text-anchor="middle" font-size="11" fill="#a06a1e">如：信用檢核</text>
+   <rect x="270" y="468" width="160" height="56" rx="9" fill="#fef9c3" stroke="#d9a441" stroke-width="2"/>
+   <text x="350" y="500" text-anchor="middle" font-size="13" font-weight="800" fill="#8a5a12">Service Function B</text>
+   <rect x="520" y="440" width="160" height="60" rx="9" fill="#fef9c3" stroke="#d9a441" stroke-width="2"/>
+   <text x="600" y="465" text-anchor="middle" font-size="13" font-weight="800" fill="#8a5a12">Service Function C</text>
+   <text x="600" y="485" text-anchor="middle" font-size="11" fill="#a06a1e">如：UpdateWOQty</text>
+   <rect x="750" y="468" width="160" height="56" rx="9" fill="#fef9c3" stroke="#d9a441" stroke-width="2"/>
+   <text x="830" y="500" text-anchor="middle" font-size="13" font-weight="800" fill="#8a5a12">Service Function D</text>
+  </svg></div>
+  <p class="flownote">白話：<b>Gateway</b>＝總機（單一入口）；<b>Request Service</b>＝呼叫方指名要哪個服務（<b>AI 就是新的一個</b>）；<b>Services Register</b>＝服務登記簿——<b>跟 IT 要的「完整服務清單」就是它</b>；<b>Service Function</b>＝實際功能（信用檢核、UpdateWOQty…）；Globals／Library＝共用設定與程式庫。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">⚙️ 目前看得到的 Service Functions</div>
+  <div class="arch-sub">哪些功能現成、哪些要再確認——這直接決定 AI 初期能做什麼。</div>
+  <div class="grid">
+   <div class="feat"><div class="fi">💰</div><h3>信用檢核</h3><p><span class="mono">CheckCredit*</span>：查客戶信用額度、餘額、是否超額。log 裡有完整實例。</p><p style="margin-top:9px"><span class="tag t-low">✅ 已實測（讀）</span></p></div>
+   <div class="feat o"><div class="fi">📦</div><h3>庫存 / 備料查詢</h3><p>你最想做的情境：查料件庫存是否足夠。<b>目前尚未看到現成服務。</b></p><p style="margin-top:9px"><span class="tag t-mid">❓ 待確認服務</span></p></div>
+   <div class="feat b"><div class="fi">📝</div><h3>建單 / 異動</h3><p><span class="mono">UpdateWOQty</span>、核價… 寫入或修改 ERP 單據。</p><p style="margin-top:9px"><span class="tag t-high">🔒 長期（寫）</span></p></div>
+  </div>
+  <p class="flownote">※ 完整清單以 IT 提供的 <b>Services Register（服務登記簿）</b> 為準。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🧭 系統全貌：BPM 與 TIPTOP 的分工</div>
+  <div class="arch-sub">釐清一個常見誤會——不是每件事都在 TIPTOP。</div>
+  <div class="panels-row">
+   <div class="spanel p-track"><div class="sp-h">🗂️ BPM（簽核流程）</div><p><b>表單與簽核平台</b>：請假、差旅、客戶基本資料、BOM 申請… 大多在這裡跑完。<b>你的請假在這</b>，不是 TIPTOP。</p></div>
+   <div class="spanel p-ok"><div class="sp-h">🏭 TIPTOP（ERP 後端）</div><p><b>營運骨幹</b>：訂單、採購、庫存、生產、財務。業務／生管／財會在用；一般員工少直接碰。</p></div>
+   <div class="spanel p-ai"><div class="sp-h">🔗 兩者關係</div><p><b>少數單子</b>（客戶資料、議價、備料…）由 BPM <b>送進</b> TIPTOP，走的就是 Services Gateway。純人事單（請假）不進 TIPTOP。</p></div>
+  </div>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">📖 名詞白話講解</div>
+  <div class="arch-sub">看懂這幾個字，就看得懂整份報告。</div>
+  <div class="gloss">
+   <div class="gcardx"><div class="gname">Services Gateway<span class="gtag">入口</span></div>
+    <dl><dt>白話</dt><dd>所有外部呼叫的單一入口，像總機／櫃台。</dd>
+    <dt>在這份</dt><dd>端點 <span class="mono">192.168.100.33:6384/ws/r/aws_ttsrv2</span>。</dd></dl></div>
+   <div class="gcardx"><div class="gname">Service Function<span class="gtag">功能</span></div>
+    <dl><dt>白話</dt><dd>實際幹活的業務功能，一個功能一支。</dd>
+    <dt>在這份</dt><dd>信用檢核、UpdateWOQty… 就是 WSDL 裡列的那些。</dd></dl></div>
+   <div class="gcardx"><div class="gname">Services Register<span class="gtag">清單</span></div>
+    <dl><dt>白話</dt><dd>服務登記簿——記錄「目前有哪些功能可用」。</dd>
+    <dt>在這份</dt><dd>跟 IT 要「完整服務清單」，要的就是它。</dd></dl></div>
+   <div class="gcardx"><div class="gname">Parameter / Document</div>
+    <dl><dt>白話</dt><dd>請求內容的兩種：Parameter＝查詢（讀）、Document＝建單（寫）。</dd>
+    <dt>在這份</dt><dd>初期用 Parameter，長期才用 Document。</dd></dl></div>
+   <div class="gcardx"><div class="gname">WSDL</div>
+    <dl><dt>白話</dt><dd>Web Service 的「說明書」，列出有哪些操作、怎麼呼叫。</dd>
+    <dt>在這份</dt><dd><span class="mono">aws_ttsrv2?WSDL</span> 就是讀到服務清單的地方。</dd></dl></div>
+  </div>
+ </div>
+</div></div>
+
+<!-- ===================== 對接協定 ===================== -->
+<div id="view-proto" hidden><div class="xwrap">
+ <div class="xintro">鼎新官方規格：每次呼叫都是一個固定的 <b>XML 信封</b>。最關鍵的是 <b>RequestContent 分兩種</b>——<b>Parameter＝查詢（讀）</b>、<b>Document＝建單（寫）</b>，剛好對應我們的兩階段導入。下面用官方骨架＋真實範例對照。</div>
+ <div class="xlegend"><span class="xtag tech">⚙️ 讀 · Parameter（初期）</span><span class="xtag sec">📝 寫 · Document（長期）</span></div>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>① 完整 XML 信封（官方 Request / Response）</h3><span class="xtag tech">通用格式</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>Request 送出</span></div><pre><span class="xt">&lt;Request&gt;</span>
+ <span class="xt">&lt;Access&gt;</span>                       <span class="xk">&lt;!-- 存取訊息 --&gt;</span>
+  <span class="xt">&lt;Authentication user=</span><span class="xv">"tiptop"</span> <span class="xt">password=</span><span class="xv">"tiptop"</span><span class="xt">/&gt;</span>
+  <span class="xt">&lt;Connection application=</span><span class="xv">"my_app"</span> <span class="xt">source=</span><span class="xv">"192.168.1.2"</span><span class="xt">/&gt;</span>
+  <span class="xt">&lt;Organization name=</span><span class="xv">"my_organization"</span><span class="xt">/&gt;</span>
+  <span class="xt">&lt;Locale language=</span><span class="xv">"zh_tw"</span><span class="xt">/&gt;</span>
+ <span class="xt">&lt;/Access&gt;</span>
+ <span class="xt">&lt;RequestContent&gt;</span>
+  <span class="xt">&lt;Parameter&gt;</span>             <span class="xk">&lt;!-- 參數(e.x.自動取號) --&gt;</span>
+   <span class="xt">&lt;Record&gt;</span>
+    <span class="xt">&lt;Field name=</span><span class="xk">"condition"</span> <span class="xt">value=</span><span class="xv">"ima01 like '%'"</span><span class="xt">/&gt;</span>
+   <span class="xt">&lt;/Record&gt;</span>
+  <span class="xt">&lt;/Parameter&gt;</span>
+  <span class="xt">&lt;Document&gt;</span>              <span class="xk">&lt;!-- 單據(e.x.建立客戶) --&gt;</span>
+   <span class="xt">&lt;RecordSet id=</span><span class="xv">"1"</span><span class="xt">&gt;</span>
+    <span class="xt">&lt;Master name=</span><span class="xv">"my_name"</span><span class="xt">&gt;</span>
+     <span class="xt">&lt;Record&gt;&lt;Field name=</span><span class="xk">"my_column"</span> <span class="xt">value=</span><span class="xv">"my_value"</span><span class="xt">/&gt;&lt;/Record&gt;</span>
+    <span class="xt">&lt;/Master&gt;</span>
+    <span class="xt">&lt;Detail name=</span><span class="xv">"my_name"</span><span class="xt">&gt;</span>
+     <span class="xt">&lt;Record&gt;&lt;Field name=</span><span class="xk">"my_column"</span> <span class="xt">value=</span><span class="xv">"my_value"</span><span class="xt">/&gt;&lt;/Record&gt;</span>
+    <span class="xt">&lt;/Detail&gt;</span>
+   <span class="xt">&lt;/RecordSet&gt;</span>
+  <span class="xt">&lt;/Document&gt;</span>
+ <span class="xt">&lt;/RequestContent&gt;</span>
+<span class="xt">&lt;/Request&gt;</span></pre>
+   <div class="xlab">▼ RESPONSE 回傳</div><pre class="resp"><span class="xt">&lt;Response&gt;</span>
+ <span class="xt">&lt;Execution&gt;</span>                  <span class="xk">&lt;!-- 服務執行結果 --&gt;</span>
+  <span class="xt">&lt;Status code=</span><span class="xv">"0"</span> <span class="xt">sqlcode=</span><span class="xv">"0"</span> <span class="xt">description=</span><span class="xv">""</span><span class="xt">/&gt;</span>
+ <span class="xt">&lt;/Execution&gt;</span>
+ <span class="xt">&lt;ResponseContent&gt;</span>
+  <span class="xt">&lt;Parameter&gt;</span>            <span class="xk">&lt;!-- 參數回傳(取號結果) --&gt;</span>
+   <span class="xt">&lt;Record&gt;&lt;Field name=</span><span class="xk">"my_parameter"</span> <span class="xt">value=</span><span class="xv">"my_value"</span><span class="xt">/&gt;&lt;/Record&gt;</span>
+  <span class="xt">&lt;/Parameter&gt;</span>
+  <span class="xt">&lt;Document&gt;</span>             <span class="xk">&lt;!-- 單據回傳 --&gt;</span>
+   <span class="xt">&lt;RecordSet id=</span><span class="xv">"1"</span><span class="xt">&gt;</span> <span class="xk">…Master / Detail…</span> <span class="xt">&lt;/RecordSet&gt;</span>
+  <span class="xt">&lt;/Document&gt;</span>
+ <span class="xt">&lt;/ResponseContent&gt;</span>
+<span class="xt">&lt;/Response&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">&lt;Access&gt;</code><span><b>我是誰</b>：帳號、呼叫端代號、營運中心、語系</span></div>
+    <div class="frow"><code class="fc">&lt;RequestContent&gt;</code><span><b>我要幹嘛</b></span></div>
+    <div class="frow"><code class="fc">&lt;Parameter&gt;</code><span>查詢（讀）→ <b>初期助手</b></span></div>
+    <div class="frow"><code class="fc">&lt;Document&gt;</code><span>建單（寫）→ <b>長期建單</b></span></div>
+    <div class="frow"><code class="fc">&lt;Status&gt;</code><span>執行結果，<b>code=0 代表成功</b></span></div>
+   </div><p class="xnote">💡 信封是固定的，<b>換的只是裡面 Parameter / Document 的內容</b>。AI 要做的，就是照這格式把問題組成 XML。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>② Access — 表明「我是誰」</h3><span class="xtag tech">身分</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>Access</span></div><pre><span class="xt">&lt;Access&gt;</span>
+  <span class="xt">&lt;Authentication user=</span><span class="xv">"tiptop"</span> <span class="xt">password=</span><span class="xv">""</span><span class="xt">/&gt;</span>
+  <span class="xt">&lt;Connection application=</span><span class="xv">"AI_ASSISTANT"</span>
+              <span class="xt">source=</span><span class="xv">"192.168.x.x"</span><span class="xt">/&gt;</span>
+  <span class="xt">&lt;Organization name=</span><span class="xv">"NX"</span><span class="xt">/&gt;</span>
+  <span class="xt">&lt;Locale language=</span><span class="xv">"zh_tw"</span><span class="xt">/&gt;</span>
+<span class="xt">&lt;/Access&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">user / password</code><span>使用者帳密（官方：<b>密碼目前可先填空值</b>）</span></div>
+    <div class="frow"><code class="fc">application</code><span>呼叫端系統代號 → <b>AI 就填自己的代號</b></span></div>
+    <div class="frow"><code class="fc">source</code><span>呼叫端來源 IP / 主機</span></div>
+    <div class="frow"><code class="fc">Organization</code><span>存取的 ERP 營運中心（NX）</span></div>
+    <div class="frow"><code class="fc">Locale</code><span>語系（zh_tw / zh_cn / en_us）</span></div>
+   </div><p class="xnote">💡 <b>application + source 就是「新系統表明身分」的欄位</b>——代表這套架構本來就預期會有不同呼叫方，AI 多接一個門檻不高（是否需先加白名單待 IT 確認）。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>③ Parameter — 查詢（讀）· 初期要用的</h3><span class="xtag tech">⚙️ 讀 · 低風險</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>真實範例：CheckCredit_Shipping</span></div><pre><span class="xk">// 送出：只帶一個出貨單號</span>
+<span class="xt">&lt;Parameter&gt;&lt;Record&gt;</span>
+  <span class="xt">&lt;Field name=</span><span class="xk">"oga01"</span> <span class="xt">value=</span><span class="xv">"N589-26070002"</span><span class="xt">/&gt;</span>
+<span class="xt">&lt;/Record&gt;&lt;/Parameter&gt;</span></pre>
+   <div class="xlab">▼ 回傳：客戶信用全貌</div><pre class="resp"><span class="xt">&lt;Parameter&gt;&lt;Record&gt;</span>
+  <span class="xt">&lt;Field name=</span><span class="xk">"occ02"</span> <span class="xt">value=</span><span class="xv">"Crea"</span><span class="xt">/&gt;</span>   <span class="xk">客戶</span>
+  <span class="xt">&lt;Field name=</span><span class="xk">"stot"</span>  <span class="xt">value=</span><span class="xv">"500000"</span><span class="xt">/&gt;</span> <span class="xk">額度</span>
+  <span class="xt">&lt;Field name=</span><span class="xk">"sbal"</span>  <span class="xt">value=</span><span class="xv">"-525585"</span><span class="xt">/&gt;</span> <span class="xk">餘額(超額)</span>
+  <span class="xt">&lt;Field name=</span><span class="xk">"result"</span> <span class="xt">value=</span><span class="xv">"N"</span><span class="xt">/&gt;</span>
+<span class="xt">&lt;/Record&gt;&lt;/Parameter&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">條件進</code><span>官方範例甚至可帶類 SQL 條件，如 <span class="mono">ima01 like '%'</span>（查料件）</span></div>
+    <div class="frow"><code class="fc">值出</code><span>回一組 name／value 欄位（額度、餘額…）</span></div>
+    <div class="frow"><code class="fc">參數/欄位</code><span><b>依不同服務各自定義</b>——需向 IT 拿各服務規格</span></div>
+   </div><p class="xnote">💡 這就是<b>初期 AI 查詢助手</b>要走的模式：白話 → 組 Parameter → 拿值 → 翻白話。log 裡 94 次都是這種讀取。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>④ Document — 建單（寫）· 長期才做</h3><span class="xtag sec">📝 寫 · 高風險</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>單據頭 / 身結構（以核價單為例）</span></div><pre><span class="xt">&lt;Document&gt;&lt;RecordSet id=</span><span class="xv">"1"</span><span class="xt">&gt;</span>
+  <span class="xt">&lt;Master name=</span><span class="xv">"核價單頭"</span><span class="xt">&gt;</span>
+    <span class="xt">&lt;Record&gt;&lt;Field name=</span><span class="xk">"pmc03"</span> <span class="xt">value=</span><span class="xv">"客戶"</span><span class="xt">/&gt;…&lt;/Record&gt;</span>
+  <span class="xt">&lt;/Master&gt;</span>
+  <span class="xt">&lt;Detail name=</span><span class="xv">"核價單身"</span><span class="xt">&gt;</span>
+    <span class="xt">&lt;Record&gt;&lt;Field name=</span><span class="xk">"pmj03"</span> <span class="xt">value=</span><span class="xv">"料號"</span><span class="xt">/&gt;…&lt;/Record&gt;</span>
+  <span class="xt">&lt;/Detail&gt;</span>
+<span class="xt">&lt;/RecordSet&gt;&lt;/Document&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">Master</code><span>單據<b>頭</b>（客戶、日期、幣別…）</span></div>
+    <div class="frow"><code class="fc">Detail</code><span>單據<b>身</b>（每一項料號、數量、單價…）</span></div>
+    <div class="frow"><code class="fc">RecordSet</code><span>可有多組（頭身可擴充）</span></div>
+   </div><p class="xnote">💡 <b>長期「對話後自動建單」</b>就是組這種 Document。因為會寫進 ERP，一律「<b>AI 草擬 → 人工確認 → 才送出</b>」，不自動入單。</p></div>
+  </div>
+ </section>
+
+ <section class="xcard">
+  <div class="xcard-h"><h3>⑤ Status — 怎麼判斷成功/失敗</h3><span class="xtag tech">結果</span></div>
+  <div class="xbody">
+   <div class="xcode"><div class="xbar"><i></i><i></i><i></i><span>Execution</span></div><pre><span class="xt">&lt;Execution&gt;</span>
+  <span class="xt">&lt;Status code=</span><span class="xv">"0"</span> <span class="xt">sqlcode=</span><span class="xv">"0"</span> <span class="xt">description=</span><span class="xv">""</span><span class="xt">/&gt;</span>
+<span class="xt">&lt;/Execution&gt;</span></pre></div>
+   <div class="xexp"><div class="fmap">
+    <div class="frow"><code class="fc">code</code><span>錯誤代碼，<b>非 0 代表發生錯誤</b></span></div>
+    <div class="frow"><code class="fc">sqlcode</code><span>若有 SQL 錯誤，記錄 ERP SQL error code</span></div>
+    <div class="frow"><code class="fc">description</code><span>訊息說明</span></div>
+   </div><p class="xnote">💡 對照 log：多數回傳 code 空白／0＝成功；有一筆 <span class="mono">code=100 "Sel oep Null"</span>＝查無資料。</p></div>
+  </div>
+ </section>
+
+ <div class="xsum">
+  <div class="box ok"><h4>✅ 已從官方規格確認</h4><ul>
+   <li>XML <b>信封格式</b>（Request／Response）</li>
+   <li>呼叫方<b>怎麼表明身分</b>（application／source）</li>
+   <li>有<b>查詢（Parameter）</b>與<b>建單（Document）</b>兩種模式</li>
+   <li>成功／錯誤怎麼判斷（Status code）</li>
+  </ul></div>
+  <div class="box gap"><h4>❓ 還要向 IT 拿</h4><ul>
+   <li>各服務<b>各自的參數名稱與回傳欄位</b>定義</li>
+   <li><b>condition 能多彈性</b>（能否自由帶查詢條件）</li>
+   <li>哪些<b>查詢服務</b>是現成的（尤其庫存/備料）</li>
+  </ul></div>
+ </div>
+</div></div>
+
+<!-- ===================== 實測 Log 分析 ===================== -->
+<div id="view-log" hidden><div class="xwrap">
+
+ <div class="xintro"><b>aws_ttsrv2-20260708.log</b> 是這支 Gateway 在 <b>2026-07-08 一整天（08:09–17:10）的實際執行紀錄</b>，共 <b>97 次呼叫</b>。它證明：這條管道<b>每天都在跑</b>，而且天然「<b>讀多、寫極少</b>」——正好對應 AI 最安全的切入點。</div>
+
+ <div class="verdict">
+  <h2>📌 這份 Log 一句話</h2>
+  <p>一天 97 次呼叫、涉及 <b>8 家客戶</b>的信用／應收檢核，其中 <b>94 次唯讀查詢、僅 3 次寫入</b>。前面講的「管道」與「協定」<b>不是紙上談兵——是實際運作中的</b>。</p>
+ </div>
+
+ <div class="lstats">
+  <div class="lstat"><div class="n">97</div><div class="k">當日呼叫次數</div></div>
+  <div class="lstat"><div class="n">5</div><div class="k">用到的服務</div></div>
+  <div class="lstat"><div class="n g">94</div><div class="k">唯讀查詢</div></div>
+  <div class="lstat"><div class="n r">3</div><div class="k">寫入動作</div></div>
+  <div class="lstat"><div class="n b">8</div><div class="k">涉及客戶數</div></div>
+  <div class="lstat"><div class="n">~1.1s</div><div class="k">中位回應(最長6.3s)</div></div>
+ </div>
+
+ <div class="grid" style="margin-bottom:24px">
+  <div class="feat"><div class="fi">✅</div><h3>讀／寫天然分離</h3><p>94 次唯讀查詢，僅 3 次寫入。唯讀＝低風險，<b>正是 AI 可先接的安全區</b>；寫入類維持人工。</p></div>
+  <div class="feat b"><div class="fi">🔗</div><h3>與協定完全吻合</h3><p>log 的 Request／Response 就是「對接協定」tab 那套 XML 信封 → <b>照著組就能呼叫</b>，不是理論。</p></div>
+  <div class="feat o"><div class="fi">🧠</div><h3>回傳結構化資料</h3><p>額度、應收帳齡、餘額欄位清楚，<b>正是 AI 擅長彙整解讀的資料</b>。</p></div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">API 盤點</div>
+  <h2 style="font-size:18px;margin:2px 0 12px">🗂️ 這一天用到哪些服務</h2>
+  <table class="cmp">
+   <tr><th>服務名稱</th><th>用途（推測）</th><th>次數</th><th>類型</th><th>主要參數</th><th>主要回傳</th></tr>
+   <tr><td><b>CheckCredit_Shipping</b></td><td>出貨前信用檢核</td><td>64</td><td><span class="tag t-low">唯讀</span></td><td class="mono">oga01 出貨單號</td><td>result · 額度/餘額</td></tr>
+   <tr><td><b>CheckCredit_ChangeOrder</b></td><td>訂單異動時信用檢核</td><td>19</td><td><span class="tag t-low">唯讀</span></td><td class="mono">oea01 訂單號</td><td>result · 額度/餘額</td></tr>
+   <tr><td><b>CheckCredit</b></td><td>一般信用檢核</td><td>7</td><td><span class="tag t-low">唯讀</span></td><td class="mono">—</td><td>result · 額度/餘額</td></tr>
+   <tr><td><b>CheckCredit_Shipping_Auth</b></td><td>出貨檢核＋授權覆核</td><td>4</td><td><span class="tag t-low">唯讀</span></td><td class="mono">prog / action / user</td><td>result</td></tr>
+   <tr><td><b>Change_Release_axmt800</b></td><td>訂單<b>放行</b>（axmt800 程式）</td><td>3</td><td><span class="tag t-high">寫入</span></td><td class="mono">oep01 + oep02</td><td>result</td></tr>
+  </table>
+  <p class="flownote">🔎 用途為依服務名／參數<b>推測</b>，正式定義需 IT／資料字典確認。另從 WSDL 還看到 <span class="mono">UpdateWOQty</span>（更新工單數量）等未在當日出現的服務。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">欄位字典</div>
+  <h2 style="font-size:18px;margin:2px 0 10px">🔑 回傳欄位是什麼意思</h2>
+  <div class="card">
+   <div class="fmap">
+    <div class="frow"><code class="fc">result</code><span>檢核結果旗標 <b>Y／N</b>（當日 31 Y／66 N；通過/需放行/超額之確切語意待資料字典確認）</span></div>
+    <div class="frow sec"><code class="fc">occ02</code><span>客戶簡稱</span></div>
+    <div class="frow"><code class="fc">occ33</code><span>信用等級／客戶類別（CR001、HC001…）</span></div>
+    <div class="frow"><code class="fc">occ631</code><span>幣別（NTD）</span></div>
+    <div class="frow sec"><code class="fc">stot</code><span>信用額度</span></div>
+    <div class="frow sec"><code class="fc">s51 ~ s70</code><span>各類應收／未沖／在途金額分桶（帳齡分析用；細項定義待確認）</span></div>
+    <div class="frow sec"><code class="fc">sbal</code><span>信用餘額（負值＝已超出額度）</span></div>
+   </div>
+   <p class="xnote">💡 欄位為<b>代碼制</b>（occ*／s**），須有鼎新<b>資料字典</b>才能完整解讀；藍底為客戶／財務欄位，灰字為推測或未定義。</p>
+  </div>
+ </div>
+
+ <div class="callout">🎯 <b>對「接 AI」的意義</b>：這 97 筆證明「讀」這條路<b>可行且穩定</b>。建議 AI <b>第一版就從這支 <span class="mono">CheckCredit</span> 開刀</b>（有完整真實範例、不必等新服務），把「白話→組 XML→呼叫→翻白話」整條 loop 先跑通，再擴到其他服務。</div>
+
+</div></div>
+
+<!-- ===================== 導入規劃 ===================== -->
+<div id="view-plan" hidden><div class="wrap">
+
+ <div class="verdict">
+  <h2>📌 結論</h2>
+  <p><b>管道（Services Gateway）、協定（XML 進出）、實測（log）都已確認。</b>AI 可當一個新的呼叫方：<b>初期做查詢小助手（讀）、長期做對話後自動建單（寫）</b>。目前唯二未定：<b>①庫存/備料查詢服務是否現成 ②呼叫權限</b>——兩者都要向 IT 取得。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">導入路線圖</div>
+  <h2>🗺️ 四階段：從準備到自動建單</h2>
+  <div class="roadmap">
+   <div class="rphase p0"><span class="rtag prep">前置</span><div class="rnum">0</div><div class="rwhen">現在</div><div class="rtitle">準備</div><ul><li>向 IT 要服務清單</li><li>取得測試帳號／權限</li><li>確認庫存查詢服務</li></ul></div>
+   <div class="rarrow">▸</div>
+   <div class="rphase p1"><span class="rtag read">讀</span><div class="rnum">1</div><div class="rwhen">短期 · PoC</div><div class="rtitle">信用檢核助手</div><ul><li>白話問信用／出貨</li><li>跑通「問→XML→答」</li><li>展示效益</li></ul></div>
+   <div class="rarrow">▸</div>
+   <div class="rphase p2"><span class="rtag read">讀</span><div class="rnum">2</div><div class="rwhen">中期 · 擴充</div><div class="rtitle">白話查 ERP</div><ul><li>接庫存／備料／交期</li><li>報表彙整、主動預警</li><li>逐步開放情境</li></ul></div>
+   <div class="rarrow">▸</div>
+   <div class="rphase p3"><span class="rtag write">寫</span><div class="rnum">3</div><div class="rwhen">長期 · 進階</div><div class="rtitle">對話後自動建單</div><ul><li>AI 草擬建單</li><li>一律人工確認才送</li><li>嚴格驗證與稽核</li></ul></div>
+  </div>
+  <p class="flownote">🟢 <b>讀</b>（風險低，先做）→ 🟡 <b>寫</b>（風險高，最後做）。前三階段都是「<b>只讀</b>」很安全；建單擺最後，且一律人工把關。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">關鍵缺口</div>
+  <h2>⚠️ 動工前必須釐清的兩點</h2>
+  <div class="risk r2"><div class="ic">📦</div><div><h3>缺「庫存／備料查詢服務」</h3><p>目前只確認信用檢核、工單等服務；<b>你最想做的庫存查詢，尚未看到現成服務</b>。協定本身支援（官方範例就是用條件查料件 ima01），差在<b>這支服務有沒有被註冊</b>——需 IT 確認 Services Register，沒有就請鼎新新增。</p></div></div>
+  <div class="risk r3"><div class="ic">🔑</div><div><h3>呼叫權限未定</h3><p>AI 當新呼叫方，要能用一個新的 <span class="mono">application</span>＋來源 IP 呼叫 Gateway，可能需 IT <b>先加白名單</b>；還需<b>測試帳號與測試環境</b>，才不會動到正式資料。</p></div></div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">建議做法</div>
+  <h2>💡 第一個 PoC 實際長怎樣</h2>
+  <div class="svgwrap"><svg viewBox="0 0 1360 660" width="100%" font-family="-apple-system,'Noto Sans TC','Microsoft JhengHei',sans-serif" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <marker id="pa" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#10a37f"/></marker>
+    <marker id="pab" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2d527f"/></marker>
+    <marker id="pag" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94a3b8"/></marker>
+   </defs>
+   <text x="170" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#1e3a5f">① 使用者</text>
+   <text x="630" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#0d8a6b">② AI 小助手</text>
+   <text x="1140" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#8a5a12">③ TIPTOP ERP（地端）</text>
+
+   <rect x="30" y="60" width="280" height="560" rx="16" fill="#eef4fb" stroke="#cdddf0" stroke-width="2"/>
+   <text x="170" y="182" text-anchor="middle" font-size="70">👤</text>
+   <text x="170" y="232" text-anchor="middle" font-size="16" font-weight="800" fill="#1e3a5f">業務 / 採購 / 生管</text>
+   <text x="170" y="260" text-anchor="middle" font-size="12.5" fill="#64748b">想查：庫存夠不夠、</text>
+   <text x="170" y="279" text-anchor="middle" font-size="12.5" fill="#64748b">客戶信用還剩多少…</text>
+   <rect x="60" y="312" width="220" height="272" rx="12" fill="#fff" stroke="#cdddf0" stroke-width="1.5"/>
+   <text x="170" y="344" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">對話視窗</text>
+   <text x="170" y="424" text-anchor="middle" font-size="52">💬</text>
+   <text x="170" y="480" text-anchor="middle" font-size="12" fill="#64748b">用打字的問，像聊天</text>
+   <rect x="78" y="516" width="58" height="26" rx="13" fill="#eef2f6"/><text x="107" y="534" text-anchor="middle" font-size="11" fill="#475569">網頁</text>
+   <rect x="142" y="516" width="62" height="26" rx="13" fill="#eef2f6"/><text x="173" y="534" text-anchor="middle" font-size="11" fill="#475569">Teams</text>
+   <rect x="210" y="516" width="58" height="26" rx="13" fill="#eef2f6"/><text x="239" y="534" text-anchor="middle" font-size="11" fill="#475569">LINE</text>
+
+   <rect x="360" y="60" width="540" height="560" rx="16" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="2"/>
+   <text x="392" y="94" font-size="20">🤖</text>
+   <rect x="392" y="106" width="150" height="126" rx="11" fill="#fff" stroke="#86d5b0" stroke-width="2"/>
+   <text x="467" y="146" text-anchor="middle" font-size="29">🧠</text><text x="467" y="184" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">對話理解</text><text x="467" y="206" text-anchor="middle" font-size="11.5" fill="#64748b">聽懂白話問題</text>
+   <rect x="555" y="106" width="150" height="126" rx="11" fill="#fff" stroke="#86d5b0" stroke-width="2"/>
+   <text x="630" y="146" text-anchor="middle" font-size="29">🔧</text><text x="630" y="184" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">組裝 XML</text><text x="630" y="206" text-anchor="middle" font-size="11.5" fill="#64748b">照協定產生命令</text>
+   <rect x="718" y="106" width="150" height="126" rx="11" fill="#fff" stroke="#86d5b0" stroke-width="2"/>
+   <text x="793" y="146" text-anchor="middle" font-size="29">🔁</text><text x="793" y="184" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">解讀回覆</text><text x="793" y="206" text-anchor="middle" font-size="11.5" fill="#64748b">把 XML 翻白話</text>
+   <line x1="544" y1="170" x2="553" y2="170" stroke="#10a37f" stroke-width="2" marker-end="url(#pa)"/>
+   <line x1="707" y1="170" x2="716" y2="170" stroke="#10a37f" stroke-width="2" marker-end="url(#pa)"/>
+   <text x="630" y="284" text-anchor="middle" font-size="13.5" font-weight="800" fill="#0d8a6b">能回答的事</text>
+   <rect x="392" y="298" width="150" height="66" rx="10" fill="#10a37f"/><text x="467" y="330" text-anchor="middle" font-size="21">💳</text><text x="467" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">客戶信用</text>
+   <rect x="555" y="298" width="150" height="66" rx="10" fill="#10a37f"/><text x="630" y="330" text-anchor="middle" font-size="21">🏬</text><text x="630" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">庫存 / 備料</text>
+   <rect x="718" y="298" width="150" height="66" rx="10" fill="#10a37f"/><text x="793" y="330" text-anchor="middle" font-size="21">🚚</text><text x="793" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">交期</text>
+   <rect x="474" y="376" width="150" height="66" rx="10" fill="#10a37f"/><text x="549" y="408" text-anchor="middle" font-size="21">📊</text><text x="549" y="431" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">報表彙整</text>
+   <rect x="637" y="376" width="150" height="66" rx="10" fill="#10a37f"/><text x="712" y="408" text-anchor="middle" font-size="21">🔔</text><text x="712" y="431" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">異常預警</text>
+   <text x="630" y="486" text-anchor="middle" font-size="12" font-weight="700" fill="#0d8a6b">✅ 信用檢核已可做（PoC 先做）</text>
+   <text x="630" y="508" text-anchor="middle" font-size="12" fill="#5b8f7c">其餘待 IT 開放對應查詢服務</text>
+
+   <rect x="950" y="60" width="380" height="560" rx="16" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+   <text x="974" y="96" font-size="18">🔒</text>
+   <rect x="980" y="106" width="320" height="86" rx="11" fill="#dbeafe" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="1016" y="158" font-size="26">🚪</text><text x="1170" y="144" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">Services Gateway</text><text x="1170" y="167" text-anchor="middle" font-size="11.5" fill="#5b6b7f">單一入口 · XML 進出</text>
+   <text x="1140" y="222" text-anchor="middle" font-size="12.5" font-weight="800" fill="#8a5a12">ERP 模組</text>
+   <rect x="980" y="234" width="152" height="76" rx="10" fill="#fff" stroke="#e0b978" stroke-width="1.5"/><text x="1056" y="268" text-anchor="middle" font-size="20">💳</text><text x="1056" y="292" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8a5a12">信用 / 應收</text>
+   <rect x="1148" y="234" width="152" height="76" rx="10" fill="#fff" stroke="#e0b978" stroke-width="1.5"/><text x="1224" y="268" text-anchor="middle" font-size="20">🏬</text><text x="1224" y="292" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8a5a12">庫存</text>
+   <rect x="980" y="320" width="152" height="76" rx="10" fill="#fff" stroke="#e0b978" stroke-width="1.5"/><text x="1056" y="354" text-anchor="middle" font-size="20">🧾</text><text x="1056" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8a5a12">訂單</text>
+   <rect x="1148" y="320" width="152" height="76" rx="10" fill="#fff" stroke="#e0b978" stroke-width="1.5"/><text x="1224" y="354" text-anchor="middle" font-size="20">💵</text><text x="1224" y="378" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8a5a12">財務</text>
+   <rect x="980" y="430" width="320" height="80" rx="11" fill="#fff" stroke="#e0b978" stroke-width="1.5"/><text x="1030" y="478" text-anchor="middle" font-size="30">🗄️</text><text x="1170" y="466" text-anchor="middle" font-size="14" font-weight="800" fill="#8a5a12">TIPTOP 資料庫</text><text x="1170" y="488" text-anchor="middle" font-size="11.5" fill="#a06a1e">真實營運資料</text>
+
+   <line x1="313" y1="330" x2="357" y2="330" stroke="#10a37f" stroke-width="2.5" marker-end="url(#pa)"/><text x="335" y="322" text-anchor="middle" font-size="11" font-weight="700" fill="#0d8a6b">問</text>
+   <line x1="357" y1="392" x2="313" y2="392" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#pag)"/><text x="335" y="410" text-anchor="middle" font-size="11" font-weight="700" fill="#64748b">答</text>
+   <line x1="903" y1="150" x2="947" y2="150" stroke="#2d527f" stroke-width="2.5" marker-end="url(#pab)"/><text x="925" y="142" text-anchor="middle" font-size="11" font-weight="700" fill="#2d527f">送 XML</text>
+   <line x1="947" y1="212" x2="903" y2="212" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#pag)"/><text x="925" y="230" text-anchor="middle" font-size="11" font-weight="700" fill="#64748b">回資料</text>
+  </svg></div>
+  <p class="svgcap">🧩 <b>實例</b>：使用者問「<b>合勤現在還能出貨嗎？</b>」→ AI 組 CheckCredit 命令查 TIPTOP → 回「<b>已超額約 52 萬，建議先催收或簽核放行</b>」。第一版只接<b>信用檢核</b>（綠色磚 ✅），其餘查詢等 IT 開服務後同一套接法擴充。</p>
+  <div class="callout">手上<b>已有一支「會動、且有完整實際範例」的服務＝信用檢核</b>（log 連 XML 進出都齊了）。<b>建議第一版就拿它開刀</b>：做「問客戶信用額度／能不能出貨」的對話查詢，把整條 loop 跑通、展示給老闆看；<b>同時平行</b>向 IT 要「庫存查詢服務」。等它到位，同一套 loop 換個服務就能擴到你要的庫存情境——<b>不會卡在等新服務</b>。</div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">落地原則</div>
+  <h2>🔒 資料怎麼落地</h2>
+  <div class="card">
+   <p>TIPTOP 資料屬公司營運核心，AI 一律走<b>私有／內網</b>處理：<b>只讀先行</b>、<b>寫入一律人工確認</b>、呼叫<b>留稽核紀錄</b>、<b>最小權限</b>服務帳號；不把 ERP 資料送到公開的外部服務。</p>
+  </div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">回報前 · 對 IT 必問</div>
+  <h2>📋 待 IT 確認清單</h2>
+  <ul class="chk">
+   <li><b>服務清單</b>：Services Register 完整清單、標讀/寫——<b>有沒有現成的「庫存／備料查詢」服務？</b></li>
+   <li><b>服務規格</b>：目標查詢服務要帶哪些 Parameter、會回哪些 Field？</li>
+   <li><b>查詢彈性</b>：condition 能多彈性，能不能自由帶查詢條件？</li>
+   <li><b>呼叫權限</b>：用新的 application＋來源 IP 呼叫，需不需要先加白名單？有沒有測試帳號？</li>
+   <li><b>測試環境</b>：在哪試打，不會動到正式資料？</li>
+   <li><b>新增服務</b>：若要新開查詢服務，走什麼流程、由誰做（鼎新 or IT）？</li>
+  </ul>
+ </div>
+
+ <div class="verdict" style="border-left-color:var(--accent)">
+  <h2>👉 建議下一步</h2>
+  <p>1. <b>建 PoC（信用檢核）</b>：把「白話→XML→呼叫→翻白話」整條跑通。<br>
+   2. 平行向 IT 要：<b>庫存查詢服務 ＋ Services Register 清單 ＋ 測試權限</b>。<br>
+   3. 跑通且服務到位後，<b>擴到庫存等情境</b>，再評估長期「自動建單」。</p>
+ </div>
+
+</div></div>
+
+<div class="foot">振曜科技 · AI 推動小組　|　鼎新 TIPTOP ERP × AI 對接 · 架構與導入規劃　|　依 實測 Log／WSDL／鼎新官方規格／IT 說明整理之初版，細節以 IT／鼎新原廠確認為準</div>
+<script>
+const vt=[...document.querySelectorAll('.vtab')];
+const views=['arch','proto','log','plan'];
+vt.forEach(b=>b.addEventListener('click',()=>{
+ vt.forEach(x=>x.classList.remove('active'));b.classList.add('active');
+ views.forEach(v=>document.getElementById('view-'+v).hidden=b.dataset.v!==v);
+ window.scrollTo({top:0});
+}));
+</script>
+</body></html>
