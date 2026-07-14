@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全螢幕 App 禁止下拉 Status Bar 修改報告</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:'Segoe UI','PingFang TC','Microsoft JhengHei',sans-serif;
+    background:#0f1117; color:#e2e8f0; overflow:hidden; height:100vh;
+  }
+  .slides { width:100%; height:100vh; position:relative; }
+  .slide {
+    position:absolute; inset:0; display:none;
+    padding:48px 72px 88px; flex-direction:column; justify-content:center;
+  }
+  .slide.active { display:flex; }
+  .slide-cover { background:linear-gradient(135deg,#1a1f35 0%,#0f1117 60%,#1a1035 100%);
+    align-items:center; text-align:center; justify-content:center; padding-bottom:48px; }
+  .slide-content { justify-content:flex-start; overflow-y:auto; }
+  .wrap { width:100%; max-width:1040px; margin:0 auto; }
+  .cover-tag { font-size:13px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:#7c3aed; margin-bottom:20px; }
+  .cover-title { font-size:46px; font-weight:800; line-height:1.15;
+    background:linear-gradient(135deg,#e2e8f0 0%,#a78bfa 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:18px; }
+  .cover-sub { font-size:18px; color:#94a3b8; margin-bottom:38px; }
+  .cover-meta { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+  .meta-item { background:rgba(124,58,237,.12); border:1px solid rgba(124,58,237,.3); border-radius:12px; padding:10px 18px; font-size:13px; color:#a78bfa; }
+  h2 { font-size:28px; font-weight:700; color:#e2e8f0; margin-bottom:20px; padding-bottom:12px;
+    border-bottom:2px solid rgba(124,58,237,.4); display:flex; align-items:center; gap:12px; }
+  h2 .num { background:#7c3aed; color:#fff; width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+  h3 { font-size:15px; font-weight:600; color:#a78bfa; margin:18px 0 10px; }
+  h3:first-child { margin-top:0; }
+  p { color:#94a3b8; line-height:1.65; font-size:14px; margin-bottom:7px; }
+  pre { background:#1e2030; border:1px solid #2d3148; border-left:3px solid #7c3aed; border-radius:10px;
+    padding:14px 18px; font-family:'JetBrains Mono','Fira Code','Consolas',monospace;
+    font-size:12.5px; line-height:1.6; color:#c9d1d9; overflow-x:auto; margin:10px 0; white-space:pre; }
+  .cg{color:#4ade80;} .cy{color:#fbbf24;} .cb{color:#60a5fa;} .cp{color:#c084fc;} .cr{color:#f87171;} .cz{color:#6b7280;}
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .card { background:#1e2030; border:1px solid #2d3148; border-radius:12px; padding:16px; }
+  .card-title { font-size:13px; font-weight:700; color:#a78bfa; margin-bottom:8px; }
+  .card-body { font-size:12.5px; color:#94a3b8; line-height:1.65; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:600; }
+  .badge-red{background:rgba(248,113,113,.15);color:#f87171;} .badge-green{background:rgba(74,222,128,.15);color:#4ade80;}
+  .badge-yellow{background:rgba(251,191,36,.15);color:#fbbf24;} .badge-blue{background:rgba(96,165,250,.15);color:#60a5fa;}
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  th { background:rgba(124,58,237,.2); color:#a78bfa; padding:9px 13px; text-align:left; font-weight:600; border-bottom:2px solid rgba(124,58,237,.3); }
+  td { padding:9px 13px; border-bottom:1px solid #2d3148; color:#94a3b8; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  td .mono, .mono { font-family:'JetBrains Mono','Consolas',monospace; font-size:12px; color:#c9d1d9; }
+  .hbox { background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.35); border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13px; color:#c4b5fd; }
+  .hbox strong { color:#a78bfa; }
+  .wbox { background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.3); border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13px; color:#fde68a; }
+  .sbox { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.3); border-radius:10px; padding:12px 16px; margin:10px 0; font-size:13px; color:#bbf7d0; }
+  ul { list-style:none; margin-top:4px; }
+  ul li { padding:3px 0 3px 16px; position:relative; color:#94a3b8; font-size:13.5px; line-height:1.6; }
+  ul li::before { content:'▸'; position:absolute; left:0; color:#7c3aed; }
+  .nav { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:12px; z-index:100; }
+  .nav button { background:rgba(124,58,237,.2); border:1px solid rgba(124,58,237,.4); color:#a78bfa; border-radius:9px; width:38px; height:38px; font-size:19px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .nav button:hover { background:rgba(124,58,237,.4); }
+  .nav button:disabled { opacity:.3; cursor:not-allowed; }
+  .page-info { font-size:12px; color:#64748b; min-width:56px; text-align:center; }
+  .dots { display:flex; gap:5px; }
+  .dot { width:6px; height:6px; border-radius:50%; background:#334155; cursor:pointer; transition:all .2s; }
+  .dot.active { background:#7c3aed; width:18px; border-radius:3px; }
+  .slide-num { position:absolute; top:18px; right:30px; font-size:11px; color:#334155; }
+  .key-hint { position:fixed; top:14px; left:16px; font-size:11px; color:#334155; }
+</style>
+</head>
+<body>
+<div class="key-hint">← → / 空白鍵切換</div>
+<div class="slides">
+
+  <!-- 1 cover -->
+  <section class="slide slide-cover active">
+    <div class="cover-tag">Framework · WindowManager</div>
+    <div class="cover-title">全螢幕 App 禁止下拉<br>Status Bar</div>
+    <div class="cover-sub">針對指定 App（ntx.note2）攔截上緣下滑手勢，不再露出狀態列</div>
+    <div class="cover-meta">
+      <div class="meta-item">🖥️ MediaTek MT8171 · Android 16</div>
+      <div class="meta-item">📦 services.jar / system_server</div>
+      <div class="meta-item">🎯 DisplayPolicy.onSwipeFromTop</div>
+      <div class="meta-item">📅 2026-07-13</div>
+    </div>
+  </section>
+
+  <!-- 2 需求與現象 -->
+  <section class="slide slide-content">
+    <span class="slide-num">02 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">1</span> 需求與現象</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">現象</div>
+          <div class="card-body">App（<span class="mono">ntx.note2</span>）已設定全螢幕、隱藏 status bar；但使用者<strong>從螢幕上緣往下滑</strong>，狀態列仍會被「暫時」拉出來（transient status bar）。</div>
+        </div>
+        <div class="card">
+          <div class="card-title">需求</div>
+          <div class="card-body">只針對<strong>這一個 App</strong>，把「上緣下滑叫出 status bar」這個手勢<strong>擋掉</strong>；其他 App、以及 navigation bar 不受影響。</div>
+        </div>
+      </div>
+      <div class="wbox">⚠️ 純 App 端做不到：全螢幕 immersive 下「邊緣滑一下露出系統列」是<strong>系統層保證的行為</strong>，公開 API 只能選行為、無法完全禁止露出。要真正擋掉必須動 framework（本專案有 ROM 原始碼，可行）。</div>
+      <pre>拖動前（全螢幕）            上緣下滑後（未修改）
+┌─────────────────┐        ┌─────────────────┐
+│                 │        │ <span class="cy">▓▓ 12:00  🔋 ▓▓</span>  │ <span class="cr">← transient status bar 露出</span>
+│                 │  下滑   │                 │
+│   App 內容      │  ───▶  │   App 內容      │
+│                 │        │                 │
+└─────────────────┘        └─────────────────┘</pre>
+    </div>
+  </section>
+
+  <!-- 3 背景 -->
+  <section class="slide slide-content">
+    <span class="slide-num">03 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">2</span> 背景：全螢幕與 Transient Bars</h2>
+      <div class="grid-3">
+        <div class="card"><div class="card-title">全螢幕 / Immersive</div><div class="card-body">App 呼叫 <span class="mono">WindowInsetsController.hide(statusBars())</span> 把狀態列隱藏，畫面延伸到全螢幕。</div></div>
+        <div class="card"><div class="card-title">Transient Bars</div><div class="card-body">隱藏後，使用者從邊緣滑一下，系統會<strong>暫時</strong>顯示系統列（一會兒自動縮回），這是預設的可用性保證。</div></div>
+        <div class="card"><div class="card-title">誰決定露出</div><div class="card-body">由 <strong>WindowManager 的 DisplayPolicy</strong> 收到手勢後決定，不是 App 自己。所以要擋，得在這一層。</div></div>
+      </div>
+      <h3>為什麼不改 App / 不改 ImmersiveModeConfirmation</h3>
+      <ul>
+        <li><span class="mono">BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE</span> 只能決定「滑動要不要顯示」的行為模式，sticky immersive 仍會短暫露出，<strong>沒有公開旗標可完全禁止</strong>。</li>
+        <li><span class="mono">ImmersiveModeConfirmation</span> 管的是「滑動可呼出系統列」的<strong>提示泡泡</strong>，拿掉它只是不提示，<strong>露出本身照樣發生</strong>。</li>
+        <li>結論：要擋「露出」本身，正確位置是 <span class="mono">DisplayPolicy</span> 收手勢、要不要 <span class="mono">requestTransientBars</span> 的那一步。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4 系統架構圖 -->
+  <section class="slide slide-content">
+    <span class="slide-num">04 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">3</span> 系統架構：下滑如何叫出 Status Bar</h2>
+      <pre>          <span class="cz">使用者手指從上緣往下滑（觸控事件）</span>
+                          │
+                          ▼
+┌──────────────────────────────────────────────────┐
+│ <span class="cb">SystemGesturesPointerEventListener</span>                 │  顯示器註冊的觸控監聽器
+│   偵測「從上緣下滑」的手勢                          │  DisplayPolicy.java:582 registerPointerEventListener
+└───────────────────────────┬──────────────────────┘
+                            │ callback
+                            ▼
+┌──────────────────────────────────────────────────┐
+│ <span class="cp">DisplayPolicy.onSwipeFromTop()</span>                     │  <span class="cr">★ 本次下手處（:454）</span>
+│   （原本）直接呼叫 requestTransientBars            │
+└───────────────────────────┬──────────────────────┘
+                            │
+                            ▼
+┌──────────────────────────────────────────────────┐
+│ <span class="cp">DisplayPolicy.requestTransientBars(mTopGestureHost)</span>│  :2356　mTopGestureHost = 上緣系統列 = status bar
+└───────────────────────────┬──────────────────────┘
+                            │
+                            ▼
+┌──────────────────────────────────────────────────┐
+│ <span class="cb">InsetsPolicy.showTransient(SHOW_TYPES_FOR_SWIPE)</span>   │  :2402　SHOW_TYPES = statusBars() | navigationBars()
+└───────────────────────────┬──────────────────────┘
+                            ▼
+                <span class="cy">暫態 Status Bar 顯示出來</span></pre>
+      <div class="hbox">關鍵：<strong>上緣</strong>下滑走 <span class="mono">onSwipeFromTop</span>（= status bar）；<strong>下緣</strong>上滑走 <span class="mono">onSwipeFromBottom</span>（= nav bar）。兩者分開，所以只動 <span class="mono">onSwipeFromTop</span> 就只擋 status bar。</div>
+    </div>
+  </section>
+
+  <!-- 5 攔截點時序 -->
+  <section class="slide slide-content">
+    <span class="slide-num">05 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">4</span> 攔截點：在源頭直接擋掉</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">修改前</div>
+          <pre>onSwipeFromTop() {
+  <span class="cp">requestTransientBars</span>(mTopGestureHost, …);
+}
+<span class="cz">// 任何 App 上緣下滑都露出 status bar</span></pre>
+        </div>
+        <div class="card">
+          <div class="card-title">修改後</div>
+          <pre>onSwipeFromTop() {
+  <span class="cr">if</span> (focus 的包名 == "ntx.note2")
+      <span class="cr">return;</span>   <span class="cz">// 直接不做</span>
+  <span class="cp">requestTransientBars</span>(mTopGestureHost, …);
+}</pre>
+        </div>
+      </div>
+      <h3>怎麼認出「是不是 ntx.note2」</h3>
+      <ul>
+        <li><span class="mono">DisplayPolicy</span> 有欄位 <span class="mono">private WindowState mFocusedWindow;</span>（:280），隨焦點更新。</li>
+        <li><span class="mono">WindowState.getOwningPackage()</span>（WindowState.java:1237）回傳 <span class="mono">mAttrs.packageName</span> = 建立該視窗的 App 包名。</li>
+        <li>比對 <span class="mono">mFocusedWindow.getOwningPackage()</span> 是否等於 <span class="mono">"ntx.note2"</span>，只針對它 return。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 6 具體修改 diff -->
+  <section class="slide slide-content">
+    <span class="slide-num">06 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">5</span> 具體修改（唯一一處）</h2>
+      <p><span class="mono">frameworks/base/services/core/java/com/android/server/wm/DisplayPolicy.java</span> · 方法 <span class="mono">onSwipeFromTop()</span></p>
+      <pre>                 @Override
+                 public void onSwipeFromTop() {
+                     synchronized (mLock) {
+<span class="cg">+                        // NTX: for this app, block the swipe-down-from-top gesture from</span>
+<span class="cg">+                        // revealing the (transient) status bar. Only affects the status</span>
+<span class="cg">+                        // bar (top edge); nav bar / other edges are unaffected.</span>
+<span class="cg">+                        if (mFocusedWindow != null</span>
+<span class="cg">+                                && "ntx.note2".equals(mFocusedWindow.getOwningPackage())) {</span>
+<span class="cg">+                            return;</span>
+<span class="cg">+                        }</span>
+                         requestTransientBars(mTopGestureHost,
+                                 getControllableInsets(mTopGestureHost).top > 0);
+                     }
+                 }</pre>
+      <div class="sbox">只加 6 行判斷,不動任何既有邏輯;判斷不成立就走原路,對其他 App 零影響。</div>
+    </div>
+  </section>
+
+  <!-- 7 效果與範圍 -->
+  <section class="slide slide-content">
+    <span class="slide-num">07 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">6</span> 效果與範圍</h2>
+      <table>
+        <tr><th>情境</th><th>行為</th><th>說明</th></tr>
+        <tr><td><span class="mono">ntx.note2</span> 上緣下滑</td><td><span class="badge badge-green">已擋</span></td><td>不 requestTransientBars → status bar 不露出</td></tr>
+        <tr><td>其他 App 上緣下滑</td><td><span class="badge badge-blue">照舊</span></td><td>判斷不成立,走原本邏輯,正常露出</td></tr>
+        <tr><td>navigation bar（下緣上滑）</td><td><span class="badge badge-blue">不影響</span></td><td>那是 onSwipeFromBottom,本次沒動</td></tr>
+        <tr><td><span class="mono">ntx.note2</span> 的通知欄 / QuickSettings</td><td><span class="badge badge-yellow">連帶擋掉</span></td><td>全螢幕下「下滑叫通知欄/QS」是先靠這條露出 status bar,擋掉後同一手勢也進不去</td></tr>
+      </table>
+      <div class="hbox">此為先前確認的「全擋」取捨：只要 <strong>從上緣下滑</strong>,ntx.note2 一律沒反應。若日後想「擋 status bar 露出、但仍保留可拉通知欄/QS」,需另外改 SystemUI 的 shade 展開路徑開例外(不在此處)。</div>
+    </div>
+  </section>
+
+  <!-- 8 層級/編譯/驗證 -->
+  <section class="slide slide-content">
+    <span class="slide-num">08 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">7</span> 層級、編譯與驗證</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">屬於哪一層</div>
+          <div class="card-body">
+            <ul>
+              <li>Framework / <strong>WindowManagerService（system_server）</strong>,打包在 <span class="mono">services.jar</span>。</li>
+              <li>不是 SystemUI、也不是 App 端。</li>
+              <li>用「前景視窗包名」判斷,<span class="mono">ntx.note2</span> 本身不需修改。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">編譯</div>
+          <div class="card-body">
+            <ul>
+              <li>改 system 側(system_server / services.jar)。</li>
+              <li>重編 system image 後燒入即可,不需動 kernel / vendor。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <h3>驗證方式</h3>
+      <ul>
+        <li>進 <span class="mono">ntx.note2</span> 全螢幕畫面,從上緣下滑 → status bar <strong>不該</strong>出現、通知欄/QS 也拉不出來。</li>
+        <li>換其他 App 上緣下滑 → status bar 應<strong>正常</strong>露出(確認沒誤傷)。</li>
+        <li>下緣上滑 → nav bar 應<strong>正常</strong>(確認只擋上緣)。</li>
+        <li>需要時可加 log:在 <span class="mono">onSwipeFromTop</span> return 前印 <span class="mono">getOwningPackage()</span> 確認辨識正確。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 9 總結 -->
+  <section class="slide slide-content">
+    <span class="slide-num">09 / 09</span>
+    <div class="wrap">
+      <h2><span class="num">8</span> 總結</h2>
+      <table>
+        <tr><th>項目</th><th>內容</th></tr>
+        <tr><td>目標</td><td>只讓 <span class="mono">ntx.note2</span> 全螢幕時「上緣下滑」不露出 status bar</td></tr>
+        <tr><td>根因</td><td>transient bar 露出由系統(DisplayPolicy)決定,App 端無公開 API 可禁止</td></tr>
+        <tr><td>做法</td><td>在 <span class="mono">DisplayPolicy.onSwipeFromTop()</span> 依前景包名攔截,略過 <span class="mono">requestTransientBars</span></td></tr>
+        <tr><td>影響檔案</td><td><span class="mono">DisplayPolicy.java</span>(唯一一處,+6 行)</td></tr>
+        <tr><td>範圍</td><td>只 <span class="mono">ntx.note2</span>、只 status bar;nav bar 與其他 App 不受影響</td></tr>
+        <tr><td>連帶</td><td>該 App 從上緣下滑的通知欄 / QS 也一併進不去(全擋)</td></tr>
+      </table>
+      <div class="sbox" style="margin-top:16px;">最小侵入:單檔 6 行、走前景包名判斷,不改 App、不改 SystemUI、不動 kernel/vendor。</div>
+    </div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prevBtn" onclick="changeSlide(-1)">‹</button>
+  <span class="page-info" id="pageInfo">1 / 9</span>
+  <button id="nextBtn" onclick="changeSlide(1)">›</button>
+  <div class="dots" id="dots"></div>
+</div>
+
+<script>
+  let cur = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+  function goTo(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(total - 1, n));
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    document.getElementById('pageInfo').textContent = (cur + 1) + ' / ' + total;
+    document.getElementById('prevBtn').disabled = cur === 0;
+    document.getElementById('nextBtn').disabled = cur === total - 1;
+    slides[cur].scrollTop = 0;
+  }
+  function changeSlide(d) { goTo(cur + d); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); changeSlide(1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); changeSlide(-1); }
+  });
+  goTo(0);
+</script>
+</body>
+</html>
