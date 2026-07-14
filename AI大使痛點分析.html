@@ -19,7 +19,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
 .topbar{background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 130%);color:#fff;flex:none;
   padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   box-shadow:var(--shadow-lg);position:relative;z-index:20}
-.topbar .ttl{display:flex;align-items:center;gap:14px}
+.topbar .ttl{display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit;cursor:pointer;transition:opacity .15s}
+a.ttl:hover{opacity:.82}
+a.ttl:hover .logo{background:rgba(16,163,127,.35)}
 .topbar .logo{width:44px;height:44px;border-radius:11px;background:rgba(16,163,127,.2);border:1px solid rgba(16,163,127,.5);display:grid;place-items:center;font-size:22px}
 .topbar h1{font-size:19px;font-weight:800;letter-spacing:.5px}
 .topbar .sub{font-size:12px;color:#9fb3c8;margin-top:1px}
@@ -288,8 +290,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Mic
 </head>
 <body>
 <div class="topbar">
-  <div class="ttl"><div class="logo">📊</div>
-    <div><h1>AI 大使痛點分析</h1><div class="sub">振曜科技 · AI 推動委員會 · 痛點回報 v2.0 + v3.0 整合</div></div></div>
+  <a class="ttl" href="https://webfordemo.github.io/my-web-project/Netronix_AI_Portal.html" title="← 回 Netronix AI 入口網站"><div class="logo">📊</div>
+    <div><h1>AI 大使痛點分析</h1><div class="sub">振曜科技 · AI 推動委員會 · 痛點回報 v2.0 + v3.0 整合</div></div></a>
   <div class="metrics" id="metrics"></div>
 </div>
 
