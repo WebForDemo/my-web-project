@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nNote android16 jar 升級 — 工程接手簡報</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--s1:#1a1d27;--s2:#232733;--s3:#2a2e3d;--bd:#2e3345;
+    --tx:#e2e4eb;--dim:#8b90a0;
+    --blue:#6c8cff;--blue-d:rgba(108,140,255,.12);
+    --cyan:#22d3ee;--cyan-d:rgba(34,211,238,.12);
+    --green:#4ade80;--green-d:rgba(74,222,128,.12);
+    --amber:#fbbf24;--amber-d:rgba(251,191,36,.12);
+    --red:#f87171;--red-d:rgba(248,113,113,.12);
+    --purple:#a78bfa;--purple-d:rgba(167,139,250,.12);
+  }
+  html,body{height:100%}
+  body{font-family:'Noto Sans TC','Inter',-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--tx);
+    line-height:1.65;overflow:hidden}
+  .mono{font-family:'JetBrains Mono','SFMono-Regular',Consolas,monospace}
+  /* deck / track */
+  .deck{position:fixed;inset:0;overflow:hidden}
+  .track{display:flex;height:100%;transition:transform .45s cubic-bezier(.4,0,.2,1);will-change:transform}
+  .slide{flex:0 0 100vw;height:100vh;overflow-y:auto;padding:56px 24px 92px}
+  .inner{max-width:1000px;margin:0 auto}
+  /* progress bar */
+  .pbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--cyan));z-index:30;transition:width .45s}
+  /* headings */
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--cyan);font-weight:700;font-size:.78rem;letter-spacing:2px}
+  .eyebrow .ln{width:26px;height:2px;background:linear-gradient(90deg,var(--cyan),transparent)}
+  h1{font-size:clamp(1.9rem,4.5vw,3rem);font-weight:800;line-height:1.14;margin:16px 0 10px;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  h2{font-size:clamp(1.4rem,3vw,2rem);font-weight:800;margin:10px 0 16px}
+  h3{font-size:1.05rem;margin:14px 0 6px;color:var(--tx)}
+  .sub{color:var(--dim);max-width:760px;font-size:1.02rem}
+  /* cover */
+  .cover{min-height:calc(100vh - 148px);display:flex;flex-direction:column;justify-content:center}
+  .cover .chips{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+  .chip{background:var(--s2);border:1px solid var(--bd);border-radius:99px;padding:7px 15px;font-size:.82rem;color:var(--tx)}
+  .chip.b{border-color:rgba(108,140,255,.4);color:#c7d2fe}
+  /* cards */
+  .card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;margin:12px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:14px 0}
+  .kpi .k{font-size:.76rem;color:var(--dim);letter-spacing:.5px}
+  .kpi .v{font-weight:800;font-size:1.1rem;margin-top:4px}
+  .kpi .s{color:var(--dim);font-size:.8rem;margin-top:3px}
+  /* code */
+  pre{background:#0b0e14;border:1px solid var(--bd);border-left:3px solid var(--blue);border-radius:9px;
+    padding:13px 15px;overflow:auto;font-family:'JetBrains Mono',Consolas,monospace;font-size:.8rem;line-height:1.55;margin:10px 0}
+  pre .add{color:#7ee2a8}pre .del{color:#f4a6a6}pre .cm{color:#6b7280}
+  code{font-family:'JetBrains Mono',Consolas,monospace;background:var(--s2);color:#a7f3d0;padding:1px 6px;border-radius:5px;font-size:.85em}
+  .path{font-family:'JetBrains Mono',monospace;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:2px 8px;font-size:.8rem;color:#cbd5e1}
+  /* callouts */
+  .box{border-radius:9px;padding:11px 15px;margin:10px 0;font-size:.9rem;border:1px solid}
+  .tip{background:var(--green-d);border-color:rgba(74,222,128,.35)}.tip b{color:var(--green)}
+  .warn{background:var(--amber-d);border-color:rgba(251,191,36,.4)}.warn b{color:var(--amber)}
+  .danger{background:var(--red-d);border-color:rgba(248,113,113,.4)}.danger b{color:var(--red)}
+  .info{background:var(--blue-d);border-color:rgba(108,140,255,.4)}.info b{color:var(--blue)}
+  ul.k{list-style:none}ul.k li{padding:5px 0 5px 22px;position:relative}ul.k li::before{content:"▸";position:absolute;left:0;color:var(--cyan)}
+  /* table */
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.86rem}
+  th,td{border:1px solid var(--bd);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--s2);color:#c7d2fe;font-weight:700}
+  .b-new{color:var(--amber)}.b-mod{color:var(--blue)}.b-del{color:var(--red)}
+  .tbwrap{overflow-x:auto}
+  /* step badge */
+  .stepno{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;font-weight:800;color:#06231f;
+    background:linear-gradient(135deg,var(--green),#34d399);margin-right:10px;vertical-align:middle}
+  /* nav */
+  .nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:30;
+    background:rgba(26,29,39,.9);border:1px solid var(--bd);border-radius:99px;padding:8px 14px;backdrop-filter:blur(6px)}
+  .nav button{background:var(--s3);border:1px solid var(--bd);color:var(--tx);width:34px;height:34px;border-radius:50%;
+    cursor:pointer;font-size:1.1rem;line-height:1;display:grid;place-items:center}
+  .nav button:hover{border-color:var(--blue);color:var(--blue)}
+  .nav button:disabled{opacity:.35;cursor:default}
+  .counter{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--dim);min-width:52px;text-align:center}
+  .dots{display:flex;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--s3);border:1px solid var(--bd);cursor:pointer}
+  .dot.on{background:linear-gradient(135deg,var(--blue),var(--cyan));border-color:transparent}
+  .hint{position:fixed;bottom:22px;right:20px;color:var(--dim);font-size:.74rem;z-index:30}
+  .brand{display:inline-flex;align-items:center;gap:8px;color:var(--cyan);font-weight:800;letter-spacing:2px;font-size:.78rem}
+  .brand .d{width:9px;height:9px;background:var(--cyan);transform:rotate(45deg)}
+  /* svg diagram */
+  .diagram{width:100%;overflow-x:auto;background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:8px}
+  .diagram svg{display:block;width:100%;height:auto;min-width:720px}
+  @media (max-width:640px){.slide{padding:44px 14px 92px}}
+</style>
+</head>
+<body>
+<div class="pbar" id="pbar"></div>
+<div class="deck">
+  <div class="track" id="track">
+
+    <!-- 0 COVER -->
+    <section class="slide"><div class="inner cover">
+      <div class="brand"><span class="d"></span>NETRONIX · nNote</div>
+      <h1>nNote android16 升級<br>工程接手簡報</h1>
+      <p class="sub">把 nNote 從舊的 android12 工具鏈升級到 android16，並改用平台 <code>eink.jar</code>（含 EinkManager / HandWriteSuspendController）。本簡報以「乾淨的 nNote 原始碼」為起點，照著每頁做即可重現全部改動。</p>
+      <div class="chips">
+        <span class="chip b">android12 → android16</span>
+        <span class="chip">Gradle 8.6 · AGP 8.5.0-alpha07 · JDK 21</span>
+        <span class="chip">不含閃爍修正（另案）</span>
+      </div>
+      <p class="sub" style="margin-top:26px;font-size:.85rem">用 ← → 或下方按鈕翻頁 · 共 11 頁</p>
+    </div></section>
+
+    <!-- 1 目標 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>OVERVIEW</span>
+      <h2>做什麼 · 為什麼</h2>
+      <p class="sub">整體只做兩類事，其餘都是為了讓這兩件成立的相依調整。</p>
+      <div class="grid">
+        <div class="card"><h3 style="color:var(--blue)">① 升工具鏈</h3><p class="sub" style="font-size:.9rem">android16 的 framework/eink jar 是 <b>Java 21</b>，舊的 Gradle 7.2 / AGP 7.1.3 / JDK 17 吃不下（record、class 65 等）。必須升到 Gradle 8.6 / AGP 8.5 / JDK 21。</p></div>
+        <div class="card"><h3 style="color:var(--purple)">② 換 eink</h3><p class="sub" style="font-size:.9rem">app 自帶的 <code>com.ntx.eink.*</code> source 換成平台整顆 <code>libntx_eink.jar</code>，順帶取得 <code>HandWriteSuspendController</code>。</p></div>
+      </div>
+      <div class="box info"><b>範圍界定：</b>本簡報只涵蓋「工具鏈 + eink jar 遷移」。e-ink 閃爍修正是獨立議題，不在此。</div>
+    </div></section>
+
+    <!-- 2 架構圖 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>ARCHITECTURE</span>
+      <h2>架構圖：jar 怎麼進到 App、怎麼跟裝置溝通</h2>
+      <div class="diagram">
+        <svg viewBox="0 0 960 660" role="img" aria-label="nNote eink 架構圖">
+          <defs>
+            <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#8b90a0"/></marker>
+            <marker id="arc" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#22d3ee"/></marker>
+          </defs>
+          <!-- toolchain bar -->
+          <rect x="24" y="18" width="912" height="38" rx="8" fill="#232733" stroke="#3b82f6" stroke-opacity=".5"/>
+          <text x="40" y="42" fill="#6c8cff" font-size="13" font-weight="700">工具鏈</text>
+          <text x="110" y="42" fill="#c7d2fe" font-size="12.5" font-family="monospace">Gradle 8.6 · AGP 8.5.0-alpha07 · Kotlin 1.9.24 · JDK 21 · compileSdk 34</text>
+
+          <!-- ① build-time -->
+          <text x="24" y="82" fill="#4ade80" font-size="12.5" font-weight="700">① 建置期（compileOnly · 不進 APK）</text>
+          <rect x="24" y="92" width="912" height="66" rx="10" fill="#1a1d27" stroke="#4ade80" stroke-opacity=".4"/>
+          <rect x="44" y="108" width="330" height="36" rx="7" fill="rgba(74,222,128,.12)" stroke="#4ade80" stroke-opacity=".6"/>
+          <text x="59" y="131" fill="#e2e4eb" font-size="12.5" font-family="monospace">framework-minus-apex.jar</text>
+          <text x="392" y="125" fill="#8b90a0" font-size="11.5">Java 21 · hidden/system API（如 ServiceManager）</text>
+          <text x="392" y="142" fill="#8b90a0" font-size="11.5">只給編譯器看，runtime 由裝置提供 → 不打包</text>
+
+          <!-- arrow down -->
+          <line x1="480" y1="158" x2="480" y2="186" stroke="#8b90a0" stroke-width="1.6" marker-end="url(#ar)"/>
+          <text x="494" y="177" fill="#8b90a0" font-size="11">提供 hidden API 符號</text>
+
+          <!-- ② APK -->
+          <text x="24" y="206" fill="#fbbf24" font-size="12.5" font-weight="700">② APK（編譯 + dex 打包進裝置）</text>
+          <rect x="24" y="216" width="912" height="212" rx="10" fill="#1a1d27" stroke="#fbbf24" stroke-opacity=".35"/>
+
+          <!-- app source -->
+          <rect x="44" y="238" width="380" height="168" rx="9" fill="#20242f" stroke="#2e3345"/>
+          <text x="60" y="262" fill="#4ade80" font-size="12.5" font-weight="700">app 原始碼</text>
+          <text x="60" y="286" fill="#cbd5e1" font-size="11.5" font-family="monospace">NtxView</text>
+          <text x="60" y="306" fill="#cbd5e1" font-size="11.5" font-family="monospace">HandwriterView</text>
+          <text x="60" y="326" fill="#cbd5e1" font-size="11.5" font-family="monospace">ToolboxViewBuilder</text>
+          <text x="60" y="346" fill="#cbd5e1" font-size="11.5" font-family="monospace">NoteWriterActivity …</text>
+          <text x="60" y="384" fill="#8b90a0" font-size="11">呼叫 EinkManager 靜態 API</text>
+
+          <!-- libntx_eink.jar -->
+          <rect x="536" y="238" width="380" height="168" rx="9" fill="rgba(167,139,250,.10)" stroke="#a78bfa" stroke-opacity=".55"/>
+          <text x="552" y="262" fill="#a78bfa" font-size="12.5" font-weight="700" font-family="monospace">libntx_eink.jar（implementation）</text>
+          <rect x="552" y="276" width="172" height="30" rx="6" fill="#232733" stroke="#2e3345"/><text x="565" y="296" fill="#e2e4eb" font-size="11" font-family="monospace">EinkManager</text>
+          <rect x="732" y="276" width="172" height="30" rx="6" fill="#232733" stroke="#2e3345"/><text x="745" y="296" fill="#e2e4eb" font-size="11" font-family="monospace">IEinkService</text>
+          <rect x="552" y="312" width="172" height="30" rx="6" fill="#232733" stroke="#2e3345"/><text x="565" y="332" fill="#e2e4eb" font-size="11" font-family="monospace">IEinkMode</text>
+          <rect x="552" y="352" width="352" height="34" rx="6" fill="rgba(34,211,238,.12)" stroke="#22d3ee" stroke-opacity=".6"/><text x="565" y="374" fill="#a5f3fc" font-size="11.5" font-family="monospace">HandWriteSuspendController ★（新取得）</text>
+
+          <!-- app -> eink arrow -->
+          <line x1="424" y1="300" x2="536" y2="300" stroke="#8b90a0" stroke-width="1.6" marker-end="url(#ar)"/>
+          <text x="436" y="293" fill="#8b90a0" font-size="10.5">呼叫</text>
+
+          <!-- IPC arrow down -->
+          <line x1="722" y1="406" x2="722" y2="460" stroke="#22d3ee" stroke-width="1.8" marker-end="url(#arc)"/>
+          <line x1="722" y1="460" x2="722" y2="406" stroke="#22d3ee" stroke-width="1.8" marker-end="url(#arc)"/>
+          <text x="736" y="438" fill="#22d3ee" font-size="11">Binder IPC（AIDL）</text>
+
+          <!-- ③ device -->
+          <text x="24" y="480" fill="#22d3ee" font-size="12.5" font-weight="700">③ 裝置平台（runtime · 已內建）</text>
+          <rect x="24" y="490" width="912" height="120" rx="10" fill="#1a1d27" stroke="#22d3ee" stroke-opacity=".4"/>
+          <rect x="44" y="510" width="400" height="80" rx="9" fill="rgba(34,211,238,.10)" stroke="#22d3ee" stroke-opacity=".5"/>
+          <text x="62" y="536" fill="#a5f3fc" font-size="12.5" font-weight="700">ntx.eink 系統服務</text>
+          <text x="62" y="560" fill="#8b90a0" font-size="11">實作 IEinkService · 直接驅動 EPD 面板</text>
+          <text x="62" y="578" fill="#8b90a0" font-size="11">app 需與其同屬 sharedUserId「ntx.shared」</text>
+          <rect x="516" y="510" width="400" height="80" rx="9" fill="#20242f" stroke="#2e3345"/>
+          <text x="534" y="536" fill="#cbd5e1" font-size="12.5" font-weight="700">Android framework</text>
+          <text x="534" y="560" fill="#8b90a0" font-size="11">ServiceManager / 系統 API（framework-minus-apex</text>
+          <text x="534" y="578" fill="#8b90a0" font-size="11">在此 runtime 提供，故編譯期才用 compileOnly）</text>
+        </svg>
+      </div>
+      <div class="box tip"><b>一句話：</b>framework 是「編譯期借用、裝置提供」→ <code>compileOnly</code>；eink.jar 是「裝置沒有、要自己帶」→ <code>implementation</code> 打包。</div>
+    </div></section>
+
+    <!-- 3 版本對照 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>VERSIONS</span>
+      <h2>工具鏈與相依對照</h2>
+      <div class="tbwrap"><table>
+        <tr><th>層面</th><th>舊（android12）</th><th>新（android16）</th></tr>
+        <tr><td>Gradle</td><td class="b-del">7.2</td><td class="b-new">8.6</td></tr>
+        <tr><td>AGP</td><td class="b-del">7.1.3</td><td class="b-new">8.5.0-alpha07</td></tr>
+        <tr><td>Kotlin</td><td class="b-del">1.6.10</td><td class="b-new">1.9.24</td></tr>
+        <tr><td>JDK</td><td class="b-del">17</td><td class="b-new">21</td></tr>
+        <tr><td>compileSdk</td><td class="b-del">31</td><td class="b-new">34</td></tr>
+        <tr><td>framework jar</td><td><code>libs/classes.jar</code>（+bootclasspath hack）</td><td><code>framework-minus-apex</code> · <b class="b-mod">compileOnly</b></td></tr>
+        <tr><td>eink</td><td>app 自帶 source（EinkManager.java + 2 aidl）</td><td>整顆 <code>libntx_eink.jar</code> · <b class="b-mod">implementation</b></td></tr>
+      </table></div>
+      <div class="box danger"><b>不相容組合會直接報錯：</b>Gradle 7.2 跑 JDK 21 → <code>Unsupported Gradle JVM</code>；JDK 17 讀 Java 21 jar → <code>wrong version 65.0</code>。所以工具鏈要整組一起升。</div>
+    </div></section>
+
+    <!-- 4 步驟1-2 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>STEP 1 – 2</span>
+      <h2>準備 jar 與 Gradle wrapper</h2>
+      <h3>1 · 兩顆 jar 各就各位</h3>
+      <div class="tbwrap"><table>
+        <tr><th>jar</th><th>放哪 / 怎麼用</th></tr>
+        <tr><td><b>framework-minus-apex.jar</b></td><td><code>compileOnly</code>，留在平台輸出原地，路徑寫進 build.gradle</td></tr>
+        <tr><td><b>libntx_eink.jar</b></td><td>複製到 <span class="path">app/libs/</span>，由 fileTree 自動打包</td></tr>
+      </table></div>
+      <pre><span class="cm"># eink jar 複製進專案</span>
+cp jars/libntx_eink.jar &lt;專案&gt;/app/libs/libntx_eink.jar</pre>
+      <div class="box warn"><b>別把 framework jar 放進 app/libs</b>（~48MB，會被 fileTree 誤打包）。它只走 compileOnly。</div>
+      <h3>2 · <span class="path">gradle/wrapper/gradle-wrapper.properties</span></h3>
+      <pre><span class="del">- distributionUrl=…/gradle-7.2-all.zip</span>
+<span class="add">+ distributionUrl=https\://services.gradle.org/distributions/gradle-8.6-bin.zip</span></pre>
+    </div></section>
+
+    <!-- 5 步驟3-4 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>STEP 3 – 4</span>
+      <h2>build.gradle 與 gradle.properties</h2>
+      <h3>3 · 升 AGP/Kotlin、定義 framework 路徑、移除舊 hack</h3>
+      <pre><span class="del">-   ext.kotlin_version = '1.6.10'</span>
+<span class="add">+   ext.kotlin_version = '1.9.24'</span>
+<span class="del">-   classpath 'com.android.tools.build:gradle:7.1.3'</span>
+<span class="add">+   classpath 'com.android.tools.build:gradle:8.5.0-alpha07'</span>
+<span class="add">+ ext.ntxFrameworkJar = '/mnt/aosp2/.../framework-minus-apex_intermediates/classes.jar'</span>
+<span class="cm">  // allprojects 裡的 -Xbootclasspath/p:libs/classes.jar 整段刪掉</span></pre>
+      <h3>4 · <span class="path">gradle.properties</span></h3>
+      <pre><span class="add">+ org.gradle.java.home=/usr/lib/jvm/java-21-openjdk-amd64</span>
+<span class="add">+ android.nonTransitiveRClass=false   </span><span class="cm"># app R 保留 library 資源</span>
+<span class="add">+ android.nonFinalResIds=false        </span><span class="cm"># R.id 維持 final（switch 用）</span>
+<span class="cm">  # android.enableJetifier=true 保留（舊 support-lib 依賴要）</span></pre>
+      <div class="box warn"><b>非 ASCII 路徑陷阱：</b>framework 路徑寫在 build.gradle 的 <code>ext</code>，<b>別</b>寫進 gradle.properties（它以 ISO-8859-1 讀，「桌面」之類會亂碼 → 找不到檔）。</div>
+    </div></section>
+
+    <!-- 6 步驟5 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>STEP 5</span>
+      <h2>app/build.gradle（AGP 8 相容）</h2>
+      <pre><span class="del">- apply plugin: 'kotlin-android-extensions'   </span><span class="cm"># Kotlin 1.8+ 已移除，沒用到</span>
+<span class="del">- compileSdkVersion 31</span>
+<span class="add">+ compileSdkVersion 34</span>
+<span class="cm">  // 刪掉 gradle.projectsEvaluated{...bootstrapClasspath...libs/classes.jar} 整段</span>
+<span class="add">+ buildFeatures { buildConfig true; aidl true }   </span><span class="cm"># AGP 8 預設關閉</span>
+  buildTypes { debug {
+<span class="del">-     minifyEnabled true;  shrinkResources true</span>
+<span class="add">+     minifyEnabled false; shrinkResources false  </span><span class="cm"># debug 關 R8</span>
+  } }
+<span class="del">- lintOptions { … }</span>
+<span class="add">+ lint       { … }</span>
+  dependencies {
+<span class="del">-   implementation fileTree(include:['*.jar','*.aar'], dir:'libs')</span>
+<span class="add">+   implementation fileTree(include:['*.jar','*.aar'], exclude:['classes.jar'], dir:'libs')</span>
+<span class="del">-   compileOnly files('libs/classes.jar')</span>
+<span class="add">+   compileOnly files(rootProject.ntxFrameworkJar)</span>
+  }</pre>
+      <div class="box info"><b>要點：</b>framework = <code>compileOnly</code>（不打包）；<code>libntx_eink.jar</code> 在 app/libs 由 fileTree 自動 implementation 打包。</div>
+    </div></section>
+
+    <!-- 7 步驟6 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>STEP 6</span>
+      <h2>換 eink：放 jar + 刪 app 自帶 source</h2>
+      <p class="sub">整顆 jar 內含 <code>EinkManager / IEinkService / IEinkMode</code>，跟 app 自帶的<b class="b-del">同名</b>，必須刪掉 app 自帶的，否則 <code>Duplicate class</code>。</p>
+      <pre>cp jars/libntx_eink.jar app/libs/libntx_eink.jar
+<span class="del">rm app/src/main/java/com/ntx/eink/EinkManager.java</span>
+<span class="del">rm app/src/main/aidl/com/ntx/eink/IEinkService.aidl</span>
+<span class="del">rm app/src/main/aidl/com/ntx/eink/IEinkMode.aidl</span>
+<span class="del">rm app/libs/classes.jar        </span><span class="cm"># 舊 android12 框架，已不用</span></pre>
+      <div class="box tip"><b>這次能整顆用的原因：</b>app 自帶 EinkManager/aidl 先前已照這版平台 <code>libntx_eink</code> 同步，方法簽名對得上 → 刪掉後 NtxView 等呼叫端<b>零修改</b>即可編過。</div>
+      <div class="box warn"><b>只刪 eink 的 aidl：</b><code>ntx.note.aidl.OcrAidl</code> 等其他 aidl 要留，所以步驟 5 的 <code>aidl true</code> 不能省。</div>
+    </div></section>
+
+    <!-- 8 步驟7-9 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>STEP 7 – 9</span>
+      <h2>proguard、IDE JDK、編譯驗證</h2>
+      <h3>7 · <span class="path">proguard-rules.pro</span>（只影響 release）</h3>
+      <pre><span class="add">+ -keep,allowobfuscation,allowshrinking class com.google.gson.reflect.TypeToken</span>
+<span class="add">+ -keep,allowobfuscation,allowshrinking class * extends com.google.gson.reflect.TypeToken</span></pre>
+      <p class="sub" style="font-size:.86rem">新版 R8 會剝掉匿名 TypeToken 泛型簽名 → release 執行期 <code>Missing type parameter</code>。debug 已關 minify 用不到。</p>
+      <h3>8 · Android Studio Gradle JDK</h3>
+      <div class="box danger"><b>一定要設 21：</b><span class="path">Settings → Build Tools → Gradle → Gradle JDK</span> 選 21。IDE 會蓋過 gradle.properties，不設會報 <code>wrong version 65.0</code>。</div>
+      <h3>9 · 編譯驗證</h3>
+      <pre>./gradlew --stop
+./gradlew :app:assembleDebug   <span class="cm"># → BUILD SUCCESSFUL</span></pre>
+      <ul class="k"><li><code>checkDebugDuplicateClasses</code> 通過 = eink 類別只有一份</li><li>產物 <code>app/build/outputs/apk/debug/app-arm64-v8a-debug.apk</code></li></ul>
+    </div></section>
+
+    <!-- 9 排查 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>TROUBLESHOOTING</span>
+      <h2>常見錯誤排查</h2>
+      <div class="tbwrap"><table>
+        <tr><th>#</th><th>症狀</th><th>解法</th></tr>
+        <tr><td>T1</td><td><code>Unsupported Gradle JVM</code>(7.2 + JDK21)</td><td>升 Gradle 8.6（步驟 2）</td></tr>
+        <tr><td>T2</td><td><code>wrong version 65.0, should be 61.0</code></td><td>pin JDK 21 + IDE Gradle JDK 21（步驟 4/8）</td></tr>
+        <tr><td>T3</td><td>Jetifier/R8 <code>major version 65</code></td><td>用 AGP 8.5（步驟 3）</td></tr>
+        <tr><td>T4</td><td><code>Duplicate class com.ntx.eink.*</code></td><td>刪 app 自帶三個檔（步驟 6）</td></tr>
+        <tr><td>T5</td><td><code>cannot find symbol IEinkService/OcrAidl/BuildConfig</code></td><td><code>buildFeatures{aidl+buildConfig true}</code>（步驟 5）</td></tr>
+        <tr><td>T6</td><td><code>constant expression required</code> / R.string 找不到</td><td><code>nonTransitiveRClass=false</code>、<code>nonFinalResIds=false</code>（步驟 4）</td></tr>
+        <tr><td>T7</td><td><code>INSTALL_FAILED_SHARED_USER_INCOMPATIBLE</code></td><td><b>用平台簽章 key 簽</b>（sharedUserId=ntx.shared），或當系統 App 放進 image</td></tr>
+        <tr><td>T8</td><td>Jetifier <code>file does not exist / æ¡é¢</code></td><td>framework 路徑寫 build.gradle ext，別寫 gradle.properties（步驟 3）</td></tr>
+      </table></div>
+    </div></section>
+
+    <!-- 10 交付/維護 -->
+    <section class="slide"><div class="inner">
+      <span class="eyebrow"><span class="ln"></span>DELIVERY &amp; MAINTENANCE</span>
+      <h2>交付物與日後維護</h2>
+      <h3>本包交付物</h3>
+      <ul class="k">
+        <li><span class="path">nNote_android16_jar升級_接手指南.html</span>（本檔）</li>
+        <li><span class="path">jars/framework-minus-apex.jar</span> — compileOnly</li>
+        <li><span class="path">jars/libntx_eink.jar</span> — implementation（含 EinkManager / HandWriteSuspendController）</li>
+      </ul>
+      <h3>日後換平台版只要兩步</h3>
+      <ul class="k">
+        <li>更新 root build.gradle 的 <code>ext.ntxFrameworkJar</code> 路徑</li>
+        <li>重新複製新的 <code>libntx_eink_intermediates/classes.jar</code> → <code>app/libs/libntx_eink.jar</code></li>
+      </ul>
+      <div class="box warn"><b>若平台版改了方法簽名：</b>刪 app source 後 build 可能出現 <code>cannot find symbol</code>，逐一修 NtxView 等呼叫端對齊即可。</div>
+      <div class="box info"><b>接手者三個要改的絕對路徑：</b>build.gradle 的 <code>ntxFrameworkJar</code>、gradle.properties 的 <code>org.gradle.java.home</code>、app/build.gradle 的簽章 <code>storeFile</code>。</div>
+      <p class="sub" style="margin-top:22px;color:var(--dim);font-size:.82rem">— 簡報結束 · NETRONIX nNote —</p>
+    </div></section>
+
+  </div>
+</div>
+
+<div class="pbar" id="pbar2" style="display:none"></div>
+<div class="nav">
+  <button id="prev" aria-label="上一頁">‹</button>
+  <span class="counter" id="counter">1 / 11</span>
+  <button id="next" aria-label="下一頁">›</button>
+  <span class="dots" id="dots"></span>
+</div>
+<div class="hint">← → 翻頁</div>
+
+<script>
+  var track=document.getElementById('track');
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var N=slides.length,i=0;
+  var counter=document.getElementById('counter'),prev=document.getElementById('prev'),next=document.getElementById('next');
+  var pbar=document.getElementById('pbar'),dotsBox=document.getElementById('dots');
+  for(var d=0;d<N;d++){(function(k){var el=document.createElement('span');el.className='dot';el.onclick=function(){go(k)};dotsBox.appendChild(el);})(d);}
+  var dots=Array.prototype.slice.call(document.querySelectorAll('.dot'));
+  function go(n){i=Math.max(0,Math.min(N-1,n));track.style.transform='translateX(-'+(i*100)+'vw)';
+    counter.textContent=(i+1)+' / '+N;pbar.style.width=((i+1)/N*100)+'%';
+    prev.disabled=(i===0);next.disabled=(i===N-1);
+    for(var k=0;k<N;k++){dots[k].className='dot'+(k===i?' on':'');}
+    slides[i].scrollTop=0;}
+  prev.onclick=function(){go(i-1)};next.onclick=function(){go(i+1)};
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key==='PageDown'){go(i+1);e.preventDefault();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){go(i-1);e.preventDefault();}
+    else if(e.key==='Home'){go(0);}else if(e.key==='End'){go(N-1);}});
+  go(0);
+</script>
+</body>
+</html>
