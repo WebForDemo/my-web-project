@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>公司通訊錄 × AI 查詢 · 架構與需求</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#10a37f;--primary-d:#0d8a6b;--secondary:#1e3a5f;--secondary-l:#2d527f;--accent:#f59e0b;
+ --bg:#eef2f6;--panel:#fff;--ink:#1a202c;--muted:#64748b;--line:#e2e8f0;--line2:#eef2f6;
+ --gbg:#d1fae5;--gtx:#047857;--ybg:#fef3c7;--ytx:#92400e;--rbg:#fee2e2;--rtx:#b91c1c;
+ --shadow:0 4px 24px rgba(15,40,80,.08);--shadow-lg:0 14px 48px rgba(15,40,80,.18);--radius:14px;
+ --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","Microsoft JhengHei",Arial,sans-serif;
+ --mono:ui-monospace,Menlo,Consolas,monospace}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65}
+.topbar{background:linear-gradient(135deg,#0d1117 0%,#1a2744 55%,#0d8a6b 135%);color:#fff;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;box-shadow:var(--shadow-lg)}
+.ttl{display:flex;align-items:center;gap:14px}
+.logo{width:48px;height:48px;border-radius:13px;background:rgba(16,163,127,.22);border:1px solid rgba(16,163,127,.5);display:grid;place-items:center;font-size:23px}
+.ttl h1{font-size:20px;font-weight:800;letter-spacing:.3px}
+.ttl .sub{font-size:12px;color:#9fb3c8;margin-top:2px}
+.metrics{display:flex;gap:9px;flex-wrap:wrap}
+.metric{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px 15px;text-align:center;min-width:84px}
+.metric .v{font-size:15px;font-weight:800;line-height:1.2}
+.metric .v.g{color:#6ee7b7}.metric .v.y{color:#fcd34d}
+.metric .l{font-size:10.5px;color:#9fb3c8;margin-top:2px}
+.vtabs{background:var(--panel);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(15,40,80,.05)}
+.vtabs-in{max-width:1180px;margin:0 auto;display:flex;gap:4px;padding:0 22px;flex-wrap:wrap}
+.vtab{padding:14px 18px;border:none;background:none;cursor:pointer;font:inherit;font-size:15px;font-weight:800;color:var(--muted);border-bottom:3px solid transparent;transition:.15s}
+.vtab:hover{color:var(--primary)}.vtab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 22px 70px}
+[hidden]{display:none!important}
+.verdict{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--primary);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 22px;margin-bottom:22px}
+.verdict h2{font-size:18px;color:var(--secondary);margin-bottom:6px}
+.verdict p{font-size:15px;color:#334155}.verdict b{color:var(--primary-d)}
+.sec{margin-bottom:28px}
+.kick{font-size:11.5px;letter-spacing:.16em;font-weight:800;color:var(--primary-d);text-transform:uppercase}
+.sec>h2{font-size:19px;font-weight:800;color:var(--secondary);margin:5px 0 14px;display:flex;align-items:center;gap:9px}
+.archcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+.arch-h{font-size:18px;font-weight:800;color:var(--secondary);display:flex;align-items:center;gap:9px}
+.arch-sub{font-size:13px;color:var(--muted);margin:4px 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+.card p{font-size:14.5px;color:#334155;margin-bottom:7px}.card p:last-child{margin-bottom:0}.card b{color:var(--secondary)}
+.mono{font-family:var(--mono);font-size:12.5px;background:#f1f5f9;border:1px solid var(--line);border-radius:7px;padding:2px 7px;color:#334155}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.feat{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px}
+.feat .fi{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;margin-bottom:9px;background:var(--gbg)}
+.feat.b .fi{background:#dbeafe}.feat.o .fi{background:var(--ybg)}.feat.p .fi{background:#ede9fe}
+.feat h3{font-size:15.5px;font-weight:800;color:var(--secondary);margin-bottom:4px}
+.feat p{font-size:13.5px;color:#475569;line-height:1.55}
+/* flow */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;background:#f7fafc;border:1px solid var(--line);border-radius:var(--radius);padding:18px;overflow-x:auto}
+.fbox{flex:1;min-width:140px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 14px;text-align:center}
+.fbox .ft{font-size:14.5px;font-weight:800;color:var(--secondary)}
+.fbox .fd{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}
+.fbox.mid{background:#eff6ff;border-color:#bfdbfe}
+.farr{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--primary);padding:0 6px;flex-shrink:0}
+.farr .a{font-size:22px;line-height:1}
+.farr small{font-size:10px;color:var(--muted);text-align:center;line-height:1.3;margin-top:3px}
+.future{margin-top:16px;border:2px dashed #a7f3d0;border-radius:14px;padding:18px;background:#f0fdf9}
+.future-h{font-size:14.5px;font-weight:800;color:var(--primary-d);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.frow2{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}
+.fnode{flex:1;min-width:130px;border:1.5px solid #a7f3d0;border-radius:11px;padding:12px;background:#fff;text-align:center}
+.fnode.ai{border-color:var(--primary);background:#ecfdf5}
+.fnode .nt{font-size:13.5px;font-weight:800;color:var(--secondary)}
+.fnode .nd{font-size:11.5px;color:var(--muted);margin-top:3px}
+.farr2{display:grid;place-items:center;font-size:20px;color:var(--primary);padding:0 7px}
+.fnote2{font-size:12.5px;color:#1c5a44;margin-top:13px;line-height:1.6}.fnote2 b{color:var(--primary-d)}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:14px}
+.gcardx{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:15px 17px;border-top:4px solid var(--primary)}
+.gcardx .gname{font-size:15.5px;font-weight:800;color:var(--secondary)}
+.gcardx .gtag{font-size:11px;font-weight:800;color:var(--primary-d);background:#d1fae5;border-radius:6px;padding:1px 8px;margin-left:6px}
+.gcardx dl{margin:0}.gcardx dt{font-size:11px;font-weight:800;color:var(--muted);margin-top:8px;letter-spacing:.04em}
+.gcardx dd{font-size:13px;color:#334155;line-height:1.5;margin:2px 0 0}
+/* lanes */
+.cmp2{display:flex;flex-direction:column;gap:14px}
+.lane{border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow)}
+.lane.now{border-left:5px solid #94a3b8;background:#f8fafc}
+.lane.ai{border-left:5px solid var(--primary);background:#f0fdf9}
+.lane-h{font-size:15px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lane.now .lane-h{color:#64748b}.lane.ai .lane-h{color:var(--primary-d)}
+.lane-tag{font-size:11px;font-weight:800;padding:2px 10px;border-radius:99px}
+.lane.now .lane-tag{background:#e2e8f0;color:#475569}.lane.ai .lane-tag{background:var(--primary);color:#fff}
+.lane-flow{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;overflow-x:auto}
+.lbox{flex:1;min-width:120px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 10px;text-align:center;font-size:13px;font-weight:800;color:var(--secondary)}
+.lane.ai .lbox{border-color:#a7f3d0}
+.lbox .le{font-size:22px;display:block;margin-bottom:4px;font-weight:400}
+.lbox small{display:block;font-weight:500;color:var(--muted);font-size:11px;margin-top:3px;line-height:1.4}
+.larr{display:grid;place-items:center;font-size:19px;padding:0 5px;color:#94a3b8;flex-shrink:0}
+.lane.ai .larr{color:var(--primary)}
+table.cmp{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);font-size:13.5px}
+table.cmp th,table.cmp td{padding:12px 14px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+table.cmp th{background:#f7fafc;color:var(--secondary);font-weight:800;font-size:12.5px}
+table.cmp tr:last-child td{border-bottom:none}
+table.cmp td.mono{font-family:var(--mono);font-size:12px;background:none;border:none}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:6px;white-space:nowrap}
+.t-low{background:var(--gbg);color:var(--gtx)}.t-mid{background:var(--ybg);color:var(--ytx)}.t-high{background:var(--rbg);color:var(--rtx)}
+.callout{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid var(--primary);border-radius:11px;padding:14px 17px;font-size:14px;color:#1c5a44;line-height:1.6;margin-top:10px}
+.chk{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:8px 20px;list-style:none}
+.chk li{font-size:14px;color:#334155;padding:10px 0 10px 30px;border-bottom:1px solid var(--line2);position:relative;line-height:1.5}
+.chk li:last-child{border-bottom:none}
+.chk li::before{content:"\2610";position:absolute;left:2px;top:9px;color:var(--primary);font-size:18px;font-weight:700}
+.chk li b{color:var(--secondary)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;border-top:4px solid var(--primary)}
+.step .sn{font-size:12px;font-weight:800;color:var(--primary-d);letter-spacing:.05em}
+.step h3{font-size:15px;font-weight:800;color:var(--secondary);margin:3px 0 7px}
+.step ul{padding-left:17px}.step li{font-size:12.5px;color:#475569;margin-bottom:4px;line-height:1.5}
+.step.s0{border-top-color:var(--muted)}.step.s3{border-top-color:var(--accent)}
+.risk{display:flex;gap:13px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-left:4px solid;border-radius:12px;padding:14px 17px;margin-bottom:11px}
+.risk.r1{border-left-color:var(--rtx)}.risk.r2{border-left-color:var(--ytx)}.risk.r4{border-left-color:var(--primary)}
+.risk .ic{font-size:23px;flex-shrink:0;line-height:1.3}
+.risk h3{font-size:15px;font-weight:800;color:var(--secondary);margin-bottom:3px}
+.risk p{font-size:13.5px;color:#475569;line-height:1.55}
+.needcard{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:12px;border-left:4px solid var(--primary)}
+.needcard .nn{width:30px;height:30px;border-radius:8px;background:var(--primary);color:#fff;font-weight:800;display:grid;place-items:center;flex-shrink:0;font-size:15px}
+.needcard h3{font-size:15.5px;font-weight:800;color:var(--secondary)}
+.needcard .fn{font-family:var(--mono);font-size:12.5px;color:var(--primary-d)}
+.needcard p{font-size:13.5px;color:#475569;line-height:1.55;margin-top:4px}
+.shot{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);background:#fff}
+.shot img{display:block;width:100%;height:auto;cursor:zoom-in}
+.shot figcaption{padding:9px 14px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line)}
+.shot-ph{border:2px dashed #cbd5e1;border-radius:12px;background:#f8fafc;padding:0;overflow:hidden}
+.ph-in{padding:48px 20px;text-align:center;color:#64748b;font-size:14px;line-height:1.7}
+.ph-in small{font-size:12.5px}
+.flownote{font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+.svgwrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:#fff;box-shadow:var(--shadow);padding:10px}
+.svgwrap svg{display:block;min-width:900px}
+.foot{text-align:center;color:var(--muted);font-size:12px;padding:26px;border-top:1px solid var(--line);margin-top:10px}
+.lb-ovl{position:fixed;inset:0;background:rgba(9,14,24,.92);display:none;align-items:center;justify-content:center;z-index:99999;padding:20px;cursor:zoom-out}
+.lb-ovl.on{display:flex}
+.lb-ovl img{max-width:96vw;max-height:94vh;border-radius:8px;box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.lb-x{position:fixed;top:14px;right:22px;color:#fff;font-size:34px;font-weight:700;cursor:pointer;line-height:1;opacity:.85}
+@media(max-width:640px){.flow,.lane-flow,.frow2{flex-direction:column}.farr,.larr,.farr2{transform:rotate(90deg);padding:6px 0}}
+</style></head><body>
+<div class="topbar">
+ <div class="ttl"><div class="logo">📇</div>
+  <div><h1>公司通訊錄 × AI 查詢 — 架構與需求</h1>
+   <div class="sub">Netronix · AI 推動小組 ｜ 與 MIS 討論後整理 ｜ 部分介接資訊需 Scott／MIS 提供</div></div></div>
+ <div class="metrics">
+  <div class="metric"><div class="v">BPM SQL</div><div class="l">資料源</div></div>
+  <div class="metric"><div class="v y">表單查詢</div><div class="l">現況</div></div>
+  <div class="metric"><div class="v g">自然語言查</div><div class="l">目標</div></div>
+  <div class="metric"><div class="v g">唯讀連 SQL</div><div class="l">接法</div></div>
+ </div>
+</div>
+<div class="vtabs"><div class="vtabs-in">
+ <button class="vtab active" data-v="arch" type="button">🗺️ 系統架構</button>
+ <button class="vtab" data-v="compare" type="button">🆚 現況 vs 加 AI</button>
+ <button class="vtab" data-v="needs" type="button">📋 需要 Scott 提供</button>
+ <button class="vtab" data-v="plan" type="button">🚀 導入規劃 / 本週進度</button>
+</div></div>
+
+<!-- ============ 系統架構 ============ -->
+<div id="view-arch"><div class="wrap">
+ <div class="verdict">
+  <h2>📌 一句話</h2>
+  <p>公司通訊錄的資料源在 <b>BPM 的 SQL（User Table）</b>：由 <b>AD 設定分機、每天同步進 BPM</b>，再由 Portal 的 <b>PhoneSearch</b> 讀出來顯示。我們要在<b>同一份資料</b>上加「自然語言查詢」——等於把軌2「分機查詢助手」從<b>「Excel 寫死、不能更新」升級成「接 BPM SQL、天天同步」</b>。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🗺️ 通訊錄資料怎麼來、怎麼呈現</div>
+  <div class="arch-sub">AD 設定分機 → 每天同步進 BPM SQL → Portal 的 PhoneSearch 顯示。AI 要接的是同一個 BPM SQL。</div>
+  <div class="flow">
+   <div class="fbox"><div class="ft">🗂️ AD</div><div class="fd">Active Directory<br>IT 在這設定員工分機</div></div>
+   <div class="farr"><span class="a">→</span><small>ADToBPM<br>每天 2 次<br>(早上 · 18:00)</small></div>
+   <div class="fbox mid"><div class="ft">🗄️ BPM SQL</div><div class="fd"><b>User Table</b><br>通訊錄資料源</div></div>
+   <div class="farr"><span class="a">→</span><small>PhoneSearch<br>web.config</small></div>
+   <div class="fbox"><div class="ft">🖥️ Portal</div><div class="fd">分機查詢頁<br>目前的通訊錄</div></div>
+  </div>
+
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">🤖 AI 小助手怎麼接（PoC 架構）</div>
+  <div class="arch-sub">使用者白話問 → AI 小助手組唯讀查詢 → 連 BPM SQL 的 User Table → 把結果講成白話。跟 ERP 那套同一個模式。</div>
+  <div class="svgwrap"><svg viewBox="0 0 1360 660" width="100%" font-family="-apple-system,'Noto Sans TC','Microsoft JhengHei',sans-serif" xmlns="http://www.w3.org/2000/svg">
+   <defs>
+    <marker id="pa" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#10a37f"/></marker>
+    <marker id="pab" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2d527f"/></marker>
+    <marker id="pag" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94a3b8"/></marker>
+   </defs>
+   <text x="170" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#1e3a5f">① 使用者</text>
+   <text x="630" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#0d8a6b">② AI 小助手</text>
+   <text x="1140" y="42" text-anchor="middle" font-size="18" font-weight="800" fill="#8a5a12">③ BPM SQL（地端）</text>
+   <rect x="30" y="60" width="280" height="560" rx="16" fill="#eef4fb" stroke="#cdddf0" stroke-width="2"/>
+   <text x="170" y="182" text-anchor="middle" font-size="70">👤</text>
+   <text x="170" y="232" text-anchor="middle" font-size="16" font-weight="800" fill="#1e3a5f">業務 / 採購 / 生管</text>
+   <text x="170" y="260" text-anchor="middle" font-size="12.5" fill="#64748b">想查：某人的分機、</text>
+   <text x="170" y="279" text-anchor="middle" font-size="12.5" fill="#64748b">部門的信箱…</text>
+   <rect x="60" y="312" width="220" height="272" rx="12" fill="#fff" stroke="#cdddf0" stroke-width="1.5"/>
+   <text x="170" y="344" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">對話視窗</text>
+   <text x="170" y="424" text-anchor="middle" font-size="52">💬</text>
+   <text x="170" y="480" text-anchor="middle" font-size="12" fill="#64748b">用打字的問，像聊天</text>
+   <rect x="78" y="516" width="58" height="26" rx="13" fill="#eef2f6"/><text x="107" y="534" text-anchor="middle" font-size="11" fill="#475569">網頁</text>
+   <rect x="142" y="516" width="62" height="26" rx="13" fill="#eef2f6"/><text x="173" y="534" text-anchor="middle" font-size="11" fill="#475569">Teams</text>
+   <rect x="210" y="516" width="58" height="26" rx="13" fill="#eef2f6"/><text x="239" y="534" text-anchor="middle" font-size="11" fill="#475569">LINE</text>
+   <rect x="360" y="60" width="540" height="560" rx="16" fill="#ecfdf5" stroke="#a7f3d0" stroke-width="2"/>
+   <text x="392" y="94" font-size="20">🤖</text>
+   <rect x="392" y="106" width="150" height="126" rx="11" fill="#fff" stroke="#86d5b0" stroke-width="2"/>
+   <text x="467" y="146" text-anchor="middle" font-size="29">🧠</text><text x="467" y="184" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">對話理解</text><text x="467" y="206" text-anchor="middle" font-size="11.5" fill="#64748b">聽懂白話問題</text>
+   <rect x="555" y="106" width="150" height="126" rx="11" fill="#fff" stroke="#86d5b0" stroke-width="2"/>
+   <text x="630" y="146" text-anchor="middle" font-size="29">🔧</text><text x="630" y="184" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">組裝查詢</text><text x="630" y="206" text-anchor="middle" font-size="11.5" fill="#64748b">組唯讀 SQL</text>
+   <rect x="718" y="106" width="150" height="126" rx="11" fill="#fff" stroke="#86d5b0" stroke-width="2"/>
+   <text x="793" y="146" text-anchor="middle" font-size="29">🔁</text><text x="793" y="184" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a5f">解讀回覆</text><text x="793" y="206" text-anchor="middle" font-size="11.5" fill="#64748b">把結果講白話</text>
+   <line x1="544" y1="170" x2="553" y2="170" stroke="#10a37f" stroke-width="2" marker-end="url(#pa)"/>
+   <line x1="707" y1="170" x2="716" y2="170" stroke="#10a37f" stroke-width="2" marker-end="url(#pa)"/>
+   <text x="630" y="284" text-anchor="middle" font-size="13.5" font-weight="800" fill="#0d8a6b">能回答的事</text>
+   <rect x="392" y="298" width="150" height="66" rx="10" fill="#10a37f"/><text x="467" y="330" text-anchor="middle" font-size="21">📞</text><text x="467" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">分機</text>
+   <rect x="555" y="298" width="150" height="66" rx="10" fill="#10a37f"/><text x="630" y="330" text-anchor="middle" font-size="21">✉️</text><text x="630" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">信箱</text>
+   <rect x="718" y="298" width="150" height="66" rx="10" fill="#10a37f"/><text x="793" y="330" text-anchor="middle" font-size="21">🏢</text><text x="793" y="353" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">部門</text>
+   <rect x="474" y="376" width="150" height="66" rx="10" fill="#10a37f"/><text x="549" y="408" text-anchor="middle" font-size="21">👔</text><text x="549" y="431" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">職稱／主管</text>
+   <rect x="637" y="376" width="150" height="66" rx="10" fill="#10a37f"/><text x="712" y="408" text-anchor="middle" font-size="21">📋</text><text x="712" y="431" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">彙整</text>
+   <text x="630" y="486" text-anchor="middle" font-size="12" font-weight="700" fill="#0d8a6b">✅ 通訊錄查詢已可做（PoC 先做）</text>
+   <text x="630" y="508" text-anchor="middle" font-size="12" fill="#5b8f7c">資料每天同步、免手動維護</text>
+   <rect x="950" y="60" width="380" height="560" rx="16" fill="#fff7ed" stroke="#fed7aa" stroke-width="2"/>
+   <text x="974" y="96" font-size="18">🔒</text>
+   <rect x="980" y="106" width="320" height="80" rx="11" fill="#dbeafe" stroke="#4a6fa5" stroke-width="2"/>
+   <text x="1016" y="152" font-size="24">🔑</text><text x="1178" y="142" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a5f">唯讀帳號</text><text x="1178" y="164" text-anchor="middle" font-size="11.5" fill="#5b6b7f">單一入口 · 只能 SELECT</text>
+   <rect x="980" y="200" width="320" height="118" rx="11" fill="#fff" stroke="#e0b978" stroke-width="1.5"/>
+   <text x="1016" y="240" font-size="26">🗄️</text><text x="1182" y="232" text-anchor="middle" font-size="15" font-weight="800" fill="#8a5a12">User Table（通訊錄）</text>
+   <text x="1140" y="266" text-anchor="middle" font-size="12" fill="#a06a1e">姓名 · 工號 · 部門 · 職稱</text>
+   <text x="1140" y="288" text-anchor="middle" font-size="12" fill="#a06a1e">分機 · 信箱 · 主管</text>
+   <text x="1140" y="308" text-anchor="middle" font-size="11" fill="#c08a3e">（真正的通訊錄資料源）</text>
+   <rect x="980" y="334" width="320" height="62" rx="11" fill="#fef9c3" stroke="#e0b978" stroke-width="1.5"/>
+   <text x="1140" y="360" text-anchor="middle" font-size="13" font-weight="800" fill="#8a5a12">⬆ AD 每天同步（ADToBPM）</text>
+   <text x="1140" y="380" text-anchor="middle" font-size="11.5" fill="#a06a1e">每天 2 次（早上 · 18:00）</text>
+   <rect x="980" y="412" width="320" height="50" rx="11" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="5 4"/>
+   <text x="1140" y="442" text-anchor="middle" font-size="12" fill="#94a3b8">其他 BPM 表 — 不開放（只給 User Table）</text>
+   <line x1="313" y1="330" x2="357" y2="330" stroke="#10a37f" stroke-width="2.5" marker-end="url(#pa)"/><text x="335" y="322" text-anchor="middle" font-size="11" font-weight="700" fill="#0d8a6b">問</text>
+   <line x1="357" y1="392" x2="313" y2="392" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#pag)"/><text x="335" y="410" text-anchor="middle" font-size="11" font-weight="700" fill="#64748b">答</text>
+   <line x1="903" y1="146" x2="947" y2="146" stroke="#2d527f" stroke-width="2.5" marker-end="url(#pab)"/><text x="925" y="138" text-anchor="middle" font-size="11" font-weight="700" fill="#2d527f">送查詢</text>
+   <line x1="947" y1="230" x2="903" y2="230" stroke="#94a3b8" stroke-width="2.5" marker-end="url(#pag)"/><text x="925" y="248" text-anchor="middle" font-size="11" font-weight="700" fill="#64748b">回資料</text>
+  </svg></div>
+  <p class="flownote">🟢 AI 只透過<b>唯讀帳號</b>連 <b>User Table</b>（不碰其他 BPM 表、只讀不寫）。資料由 AD 每天同步 2 次 → AI 查到「最多半天前」，比 Excel 寫死新鮮太多。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">📖 名詞白話講解</div>
+  <div class="arch-sub">看懂這幾個字，就看得懂整張圖。</div>
+  <div class="gloss">
+   <div class="gcardx"><div class="gname">AD<span class="gtag">微軟</span></div><dl><dt>白話</dt><dd>Active Directory：公司帳號/權限的總管，員工登入電腦、分機等在這設定。</dd><dt>在這份</dt><dd>員工<b>分機</b>的來源。</dd></dl></div>
+   <div class="gcardx"><div class="gname">ADToBPM</div><dl><dt>白話</dt><dd>一支排程程式，把 AD 的資料<b>搬進 BPM</b>。</dd><dt>在這份</dt><dd>每天<b>早上與 18:00 各跑一次</b>，同步通訊錄。</dd></dl></div>
+   <div class="gcardx"><div class="gname">BPM</div><dl><dt>白話</dt><dd>公司的表單簽核流程平台（請假、簽核…都在這）。</dd><dt>在這份</dt><dd>它的 <b>SQL 資料庫</b>存著通訊錄。</dd></dl></div>
+   <div class="gcardx"><div class="gname">SQL / User Table</div><dl><dt>白話</dt><dd>SQL＝資料庫；User Table＝其中存「人員資料」的那張表。</dd><dt>在這份</dt><dd>通訊錄的<b>真正資料源</b>（姓名/部門/分機/信箱/職稱/主管…）。</dd></dl></div>
+   <div class="gcardx"><div class="gname">Portal · PhoneSearch</div><dl><dt>白話</dt><dd>公司內部官網；PhoneSearch 是上面「分機查詢」那支程式。</dd><dt>在這份</dt><dd>它<b>讀 User Table</b> 顯示成你看到的通訊錄。</dd></dl></div>
+   <div class="gcardx"><div class="gname">web.config</div><dl><dt>白話</dt><dd>Portal 的設定檔，記錄「怎麼連後端資料庫」（連線字串等）。</dd><dt>在這份</dt><dd>裡面就是 Portal ↔ BPM SQL 的<b>連線設定</b>。</dd></dl></div>
+  </div>
+ </div>
+</div></div>
+
+<!-- ============ 現況 vs 加 AI ============ -->
+<div id="view-compare" hidden><div class="wrap">
+ <div class="archcard">
+  <div class="arch-h">🆚 有 AI vs 沒有 AI</div>
+  <div class="arch-sub">同一個問題「品保部的分機」「黃經理的信箱」，兩種做法差在哪。</div>
+  <div class="cmp2">
+   <div class="lane now">
+    <div class="lane-h">🔴 現況（今天，沒有 AI）<span class="lane-tag">要選欄位 · 只能精準比對</span></div>
+    <div class="lane-flow">
+     <div class="lbox"><span class="le">🖥️</span>開 Portal<small>分機查詢頁</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">⌨️</span>選廠別／輸入<small>工號或姓名</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🔍</span>送出查詢<small>逐欄比對</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">📋</span>看表格<small>自己找那筆</small></div>
+    </div>
+   </div>
+   <div class="lane ai">
+    <div class="lane-h">🟢 導入 AI 後<span class="lane-tag">白話即問 · 可模糊/彙整</span></div>
+    <div class="lane-flow">
+     <div class="lbox"><span class="le">👤</span>白話問一句<small>「品保部的分機？」</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">🤖</span>AI 查 BPM SQL<small>唯讀、即時</small></div>
+     <div class="larr">→</div>
+     <div class="lbox"><span class="le">💬</span>直接給答案<small>免選欄位、免翻表</small></div>
+    </div>
+   </div>
+  </div>
+  <p class="flownote"><b>差別</b>：現況要「會操作、選對欄位、精準輸入」才查得到；AI 是「<b>一句白話、可模糊、可彙整</b>」（例如「西伯有哪些主管」「品保部所有人的分機」）。</p>
+ </div>
+
+ <div class="archcard">
+  <div class="arch-h">⚡ 關鍵差別：資料會不會「即時」</div>
+  <div class="arch-sub">這是這次升級最大的價值——資料新鮮度。</div>
+  <div class="grid">
+   <div class="feat o"><div class="fi">📄</div><h3>舊：分機助手（Excel 寫死）</h3><p>資料是<b>上傳的 Excel</b>、靜態不動。人員異動就<b>過期</b>，得<b>人工重做、重傳</b>，常常不準。</p></div>
+   <div class="feat"><div class="fi">🗄️</div><h3>新：接 BPM SQL（天天同步）</h3><p>直接讀 <b>BPM SQL</b>；AD 每天同步 2 次進來，AI 查到的是「<b>最多半天前</b>」的資料，<b>免手動維護</b>。</p></div>
+  </div>
+  <p class="flownote">※ 不是即時到秒（若要秒級需直連 AD，成本較高、非本期）；但相較 Excel 寫死已是<b>質的提升</b>。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">現況畫面</div>
+  <h2>🖼️ 目前的通訊錄（Portal 分機查詢）</h2>
+  <figure class="shot-ph"><div class="ph-in">🖼️ 現況通訊錄截圖（待置入）<br><small>請把截圖存成 <b>phonebook.png</b> 放到本檔同資料夾，跟我說一聲我就嵌入（可點擊放大）</small></div></figure>
+  <p class="flownote">畫面組成：左＝<b>分機查詢表單</b>（廠別／工號／姓名／信箱／分機／主部門）、中＝公司代表號／會議室分機／VOIP、下＝<b>結果表格</b>（部門／姓名／工號／信箱／分機／職稱／主管）。<b>目前全靠表單精準查詢，沒有結合 AI。</b></p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">情境舉例</div>
+  <h2>💬 加 AI 後能怎麼問</h2>
+  <div class="grid">
+   <div class="feat"><div class="fi">📞</div><h3>直接查</h3><p>「品保部的分機？」「黃經理的信箱？」「工號 024001 是誰？」</p></div>
+   <div class="feat b"><div class="fi">🏢</div><h3>依組織查</h3><p>「西伯有哪些主管？」「財務部（E8100）有哪些人？」</p></div>
+   <div class="feat o"><div class="fi">🧑‍🤝‍🧑</div><h3>依關係查</h3><p>「陳志忠底下有誰？」「誰是徐淑芬的主管？」</p></div>
+   <div class="feat p"><div class="fi">📇</div><h3>彙整</h3><p>「幫我列製造部所有人的分機和信箱」一次給整份。</p></div>
+  </div>
+ </div>
+</div></div>
+
+<!-- ============ 需要 Scott 提供 ============ -->
+<div id="view-needs" hidden><div class="wrap">
+ <div class="verdict">
+  <h2>📋 要做這件事，需要 Scott／MIS 提供</h2>
+  <p>下面 4 項是「AI 能安全連上 BPM SQL、看懂 User Table」的必要材料。取得後即可開始 PoC。</p>
+ </div>
+
+ <div class="needcard"><div class="nn">1</div><div><h3>PhoneSearch.cs <span class="fn">（程式檔）</span></h3><p>看現有分機查詢<b>怎麼查、用到哪些欄位、查詢邏輯</b>——AI 直接沿用同樣的查法，不必重新摸索。</p></div></div>
+ <div class="needcard"><div class="nn">2</div><div><h3>web.config <span class="fn">（開權限給我們）</span></h3><p>裡面是 Portal ↔ BPM SQL 的<b>連線設定</b>（伺服器／資料庫名等）。讓我們知道<b>連到哪一台、哪個庫</b>。</p></div></div>
+ <div class="needcard"><div class="nn">3</div><div><h3>User DB Schema <span class="fn">（表結構）</span></h3><p>User Table 的<b>欄位定義</b>（欄位名／型別／代碼對照）——AI 才知道<b>有哪些欄位可查</b>、怎麼組查詢。<b>（密碼欄已加密，無洩漏疑慮）</b></p></div></div>
+ <div class="needcard" style="border-left-color:var(--accent)"><div class="nn" style="background:var(--accent)">4</div><div><h3>唯讀連線帳號 <span class="fn">（建議新增）</span></h3><p>一組<b>只能 SELECT、只開 User Table（或專用 View）</b>的帳號，讓 AI 中介程式安全連線。<b>只讀不寫</b>，不可能改到通訊錄。</p></div></div>
+
+ <div class="sec">
+  <div class="kick">待釐清</div>
+  <h2>❓ 一項要順便問清楚</h2>
+  <div class="risk r2"><div class="ic">🔎</div><div><h3>哪些欄位來自 AD、哪些來自 BPM？</h3><p>目前確定<b>分機</b>由 AD 設定同步進來；但<b>姓名／部門／工號／信箱／職稱／主管</b>是來自 AD 還是 BPM（或 HR）尚未確認。這會影響「資料多久更新一次、以哪邊為準」，請 Scott 一併說明。</p></div></div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">安全前提</div>
+  <h2>🔒 我們怎麼確保安全</h2>
+  <div class="card">
+   <p>① <b>唯讀帳號</b>：只能 SELECT，不能改任何資料。 ② <b>只開 User Table／專用 View</b>，不碰其他表。 ③ AI 產生的查詢<b>限定在這張表</b>、且經中介程式把關。 ④ 通訊錄屬內部資料，<b>走內網／私有 AI</b>，不外送公開服務。</p>
+  </div>
+ </div>
+</div></div>
+
+<!-- ============ 導入規劃 / 本週進度 ============ -->
+<div id="view-plan" hidden><div class="wrap">
+ <div class="verdict">
+  <h2>📅 本週進度</h2>
+  <p>與 <b>MIS 討論後釐清</b>：通訊錄資料源＝<b>BPM 的 SQL（User Table）</b>，由 <b>AD 每天 2 次同步</b>、Portal 的 <b>PhoneSearch</b> 讀取顯示，連線設定在 <b>web.config</b>。方向確定：<b>AI 用唯讀帳號直接接 BPM SQL</b> 做自然語言查詢。<b>卡點：等 Scott 提供 4 項介接資訊／權限。</b></p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">路線圖</div>
+  <h2>🚀 導入階段</h2>
+  <div class="steps">
+   <div class="step s0"><div class="sn">階段 0 · 現在</div><h3>取得資訊/權限</h3><ul><li>Scott 提供 4 項</li><li>釐清 AD/BPM 欄位歸屬</li><li>開唯讀帳號</li></ul></div>
+   <div class="step"><div class="sn">階段 1 · PoC</div><h3>白話查通訊錄</h3><ul><li>AI 唯讀連 BPM SQL</li><li>問「分機／信箱／部門」</li><li>跑通「問→SQL→答」</li></ul></div>
+   <div class="step"><div class="sn">階段 2 · 擴充</div><h3>組織/關係查詢</h3><ul><li>依部門/主管/廠別查</li><li>彙整（整批分機/信箱）</li><li>上線給同仁用</li></ul></div>
+   <div class="step s3"><div class="sn">未來 · 可選</div><h3>更多資料源</h3><ul><li>同一套接法擴到其他 BPM 資料</li><li>視需求評估</li></ul></div>
+  </div>
+ </div>
+
+ <div class="sec">
+  <div class="kick">PoC 怎麼運作</div>
+  <h2>💡 第一個 PoC 的資料流</h2>
+  <div class="flow">
+   <div class="fbox"><div class="ft">👤 使用者</div><div class="fd">白話問<br>「品保部的分機？」</div></div>
+   <div class="farr"><span class="a">→</span></div>
+   <div class="fbox mid"><div class="ft">🤖 AI 中介</div><div class="fd">組唯讀查詢<br>(限 User Table)</div></div>
+   <div class="farr"><span class="a">→</span></div>
+   <div class="fbox mid"><div class="ft">🗄️ BPM SQL</div><div class="fd">查 User Table<br>回結果</div></div>
+   <div class="farr"><span class="a">→</span></div>
+   <div class="fbox"><div class="ft">💬 白話答案</div><div class="fd">整理成好讀的<br>分機/信箱</div></div>
+  </div>
+  <p class="flownote">全程<b>唯讀</b>：AI 只查不改；查到的是「最多半天前」的 BPM 資料，比 Excel 寫死新鮮太多。</p>
+ </div>
+
+ <div class="sec">
+  <div class="kick">下一步</div>
+  <h2>👉 接下來</h2>
+  <ul class="chk">
+   <li><b>Scott 提供 4 項</b>：PhoneSearch.cs／web.config／User DB Schema／唯讀帳號。</li>
+   <li><b>釐清 AD↔BPM 欄位歸屬</b>與更新頻率。</li>
+   <li>拿到後<b>做 PoC</b>：AI 唯讀連 BPM SQL，跑通白話查通訊錄。</li>
+   <li>驗證 OK → <b>擴充組織/關係查詢</b>，上線取代「Excel 寫死」的舊分機助手。</li>
+  </ul>
+ </div>
+</div></div>
+
+<div class="foot">振曜科技 · AI 推動小組　|　公司通訊錄 × AI 查詢 · 架構與需求　|　與 MIS 討論整理之初版，介接細節以 Scott／MIS 提供為準</div>
+<div class="lb-ovl" id="lbOvl"><span class="lb-x">&times;</span><img id="lbImg" alt="放大檢視"></div>
+<script>
+const vt=[...document.querySelectorAll('.vtab')];
+const views=['arch','compare','needs','plan'];
+vt.forEach(b=>b.addEventListener('click',()=>{
+ vt.forEach(x=>x.classList.remove('active'));b.classList.add('active');
+ views.forEach(v=>document.getElementById('view-'+v).hidden=b.dataset.v!==v);
+ window.scrollTo({top:0});
+}));
+(function(){
+ var ovl=document.getElementById('lbOvl'),lbi=document.getElementById('lbImg');
+ document.addEventListener('click',function(e){
+  var t=e.target;
+  if(t.tagName==='IMG'&&t.id!=='lbImg'){lbi.src=t.src;ovl.classList.add('on');return;}
+  if(t===ovl||t===lbi||t.classList.contains('lb-x')){ovl.classList.remove('on');}
+ });
+ document.addEventListener('keydown',function(e){if(e.key==='Escape')ovl.classList.remove('on');});
+})();
+</script>
+</body></html>
