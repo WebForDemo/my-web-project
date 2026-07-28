@@ -1,0 +1,1236 @@
+<title>TIPTOP ERP 整合架構</title>
+
+<style>
+  /* 兩張圖原本各自命名，這裡同時保留兩套別名，SVG 就能原封不動沿用 */
+  :root {
+    --paper:   #F5F7F9;
+    --surface: #FFFFFF;
+    --sunken:  #EDF0F4;
+    --ink:     #101620;
+    --muted:   #616D7E;
+    --faint:   #8C97A6;
+    --line:    #DDE2E9;
+
+    --host: #2A4FC9;  --host-bg: #EAEFFC;  --host-edge: #C2D0F4;
+    --llm:  #2A4FC9;  --llm-bg:  #EAEFFC;  --llm-edge:  #C2D0F4;
+    --net:  #A9680B;  --net-bg:  #FBF3E4;  --net-edge:  #E8D2A8;
+    --rail: #A9680B;  --rail-bg: #FBF3E4;  --rail-edge: #E8D2A8;
+    --lan:  #0A6870;  --lan-bg:  #E3F1F2;  --lan-edge:  #B4D9DC;
+    --erp:  #0A6870;  --erp-bg:  #E3F1F2;  --erp-edge:  #B4D9DC;
+    --human:#616D7E;  --human-bg:#EFF1F5;  --human-edge:#D6DBE3;
+
+    --ok:  #14764B;  --ok-bg:  #E4F2EA;
+    --bad: #A8322A;  --bad-bg: #FBEBE9;
+    --off: #8A94A3;  --off-bg: #EEF0F3;
+
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC",
+            "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#0C1016; --surface:#151B24; --sunken:#1B222C;
+      --ink:#E7ECF3; --muted:#98A4B4; --faint:#6C788A; --line:#2A323E;
+      --host:#7FA2FF; --host-bg:#131B33; --host-edge:#2A3A66;
+      --llm: #7FA2FF; --llm-bg: #131B33; --llm-edge: #2A3A66;
+      --net: #E0A751; --net-bg: #241B0F; --net-edge: #4A3A1C;
+      --rail:#E0A751; --rail-bg:#241B0F; --rail-edge:#4A3A1C;
+      --lan: #4EBFCB; --lan-bg: #0C2326; --lan-edge: #1D4A4F;
+      --erp: #4EBFCB; --erp-bg: #0C2326; --erp-edge: #1D4A4F;
+      --human:#98A4B4; --human-bg:#1A1F27; --human-edge:#333B47;
+      --ok:#4FC08B; --ok-bg:#10251B;
+      --bad:#F0736A; --bad-bg:#2C1614;
+      --off:#6E7A8A; --off-bg:#1C222B;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:#0C1016; --surface:#151B24; --sunken:#1B222C;
+    --ink:#E7ECF3; --muted:#98A4B4; --faint:#6C788A; --line:#2A323E;
+    --host:#7FA2FF; --host-bg:#131B33; --host-edge:#2A3A66;
+    --llm: #7FA2FF; --llm-bg: #131B33; --llm-edge: #2A3A66;
+    --net: #E0A751; --net-bg: #241B0F; --net-edge: #4A3A1C;
+    --rail:#E0A751; --rail-bg:#241B0F; --rail-edge:#4A3A1C;
+    --lan: #4EBFCB; --lan-bg: #0C2326; --lan-edge: #1D4A4F;
+    --erp: #4EBFCB; --erp-bg: #0C2326; --erp-edge: #1D4A4F;
+    --human:#98A4B4; --human-bg:#1A1F27; --human-edge:#333B47;
+    --ok:#4FC08B; --ok-bg:#10251B;
+    --bad:#F0736A; --bad-bg:#2C1614;
+    --off:#6E7A8A; --off-bg:#1C222B;
+  }
+
+  :root[data-theme="light"] {
+    --paper:#F5F7F9; --surface:#FFFFFF; --sunken:#EDF0F4;
+    --ink:#101620; --muted:#616D7E; --faint:#8C97A6; --line:#DDE2E9;
+    --host:#2A4FC9; --host-bg:#EAEFFC; --host-edge:#C2D0F4;
+    --llm: #2A4FC9; --llm-bg: #EAEFFC; --llm-edge: #C2D0F4;
+    --net: #A9680B; --net-bg: #FBF3E4; --net-edge: #E8D2A8;
+    --rail:#A9680B; --rail-bg:#FBF3E4; --rail-edge:#E8D2A8;
+    --lan: #0A6870; --lan-bg: #E3F1F2; --lan-edge: #B4D9DC;
+    --erp: #0A6870; --erp-bg: #E3F1F2; --erp-edge: #B4D9DC;
+    --human:#616D7E; --human-bg:#EFF1F5; --human-edge:#D6DBE3;
+    --ok:#14764B; --ok-bg:#E4F2EA;
+    --bad:#A8322A; --bad-bg:#FBEBE9;
+    --off:#8A94A3; --off-bg:#EEF0F3;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 56px 28px 80px;
+          display: flex; flex-direction: column; gap: 52px; }
+
+  /* ── 頁首 ── */
+  .masthead { display: flex; flex-direction: column; gap: 14px; }
+  .mast-row { display: flex; align-items: flex-start; gap: 20px; }
+  .mast-row .masthead { flex: 1; min-width: 0; }
+
+  /* 深淺色切換 */
+  .theme-btn {
+    flex: 0 0 auto; margin-top: 4px;
+    width: 38px; height: 38px; display: grid; place-items: center;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--muted); cursor: pointer;
+    transition: color .14s, border-color .14s;
+  }
+  .theme-btn:hover { color: var(--ink); border-color: var(--host); }
+  .theme-btn:focus-visible { outline: 2px solid var(--host); outline-offset: 2px; }
+  .theme-btn .sun { display: none; }
+  :root[data-theme="dark"] .theme-btn .sun  { display: block; }
+  :root[data-theme="dark"] .theme-btn .moon { display: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-btn .sun  { display: block; }
+    :root:not([data-theme="light"]) .theme-btn .moon { display: none; }
+  }
+  .eyebrow { font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em;
+             text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(30px, 4.4vw, 46px); font-weight: 640;
+       letter-spacing: -.022em; line-height: 1.12; text-wrap: balance; }
+  .standfirst { margin: 0; max-width: 64ch; font-size: 16.5px; color: var(--muted); }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px;
+          border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+          font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .pill.is-ok  { color: var(--ok);  background: var(--ok-bg);  border-color: transparent; }
+  .pill.is-off { color: var(--off); background: var(--off-bg); border-color: transparent; }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* ── 導覽 ── */
+  nav { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line); padding: 14px 0; }
+  nav a { display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 13px;
+          border-radius: 8px; text-decoration: none; color: var(--muted);
+          font-size: 13.5px; transition: background .14s, color .14s; }
+  nav a:hover, nav a:focus-visible { background: var(--sunken); color: var(--ink); }
+  nav a:focus-visible { outline: 2px solid var(--host); outline-offset: 2px; }
+  nav a .n { font-family: var(--mono); font-size: 11px; color: var(--host); }
+  nav a.active {
+    background: var(--host-bg); color: var(--host); font-weight: 600;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--host) 26%, transparent);
+  }
+  nav a.active .n { color: var(--host); }
+
+  /* ── 章節 ── */
+  /* 三個章節是獨立分頁，一次只顯示一個 */
+  .part { display: none; flex-direction: column; gap: 26px; }
+  .part.active { display: flex; }
+  .part-head { display: flex; flex-direction: column; gap: 8px; }
+  .part-head .kicker { font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em;
+                       text-transform: uppercase; color: var(--host); }
+  .part-head h2 { margin: 0; font-size: 25px; font-weight: 640; letter-spacing: -.015em; }
+  .part-head p  { margin: 0; max-width: 68ch; font-size: 15px; color: var(--muted); }
+
+  .block { display: flex; flex-direction: column; gap: 15px; }
+  h3.lab { margin: 0; font-size: 12.5px; font-weight: 640; letter-spacing: .1em;
+           text-transform: uppercase; color: var(--muted); }
+
+  /* ── 圖 ── */
+  figure { margin: 0; display: flex; flex-direction: column; gap: 15px; }
+  .shot { position: relative; }
+  .canvas { background: var(--surface); border: 1px solid var(--line);
+            border-radius: 14px; padding: 8px; overflow-x: auto;
+            cursor: zoom-in; transition: border-color .14s; }
+  .canvas:hover { border-color: var(--host); }
+  .canvas:focus-visible { outline: 2px solid var(--host); outline-offset: 3px; }
+  .canvas svg { display: block; width: 100%; min-width: 1080px; height: auto; }
+
+  .zoom-hint {
+    position: absolute; top: 16px; right: 18px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    pointer-events: none; opacity: 0; transition: opacity .15s;
+  }
+  .shot:hover .zoom-hint, .canvas:focus-visible + .zoom-hint { opacity: 1; }
+  @media (hover: none) { .zoom-hint { opacity: 1; } }
+
+  /* ── 放大檢視 ── */
+  dialog.lightbox {
+    width: 100vw; max-width: 100vw; height: 100vh; max-height: 100vh;
+    margin: 0; padding: 0; border: none; background: var(--paper); color: var(--ink);
+  }
+  dialog.lightbox::backdrop { background: rgba(6, 10, 16, .72); }
+  .lb-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 18px; border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .lb-title { font-size: 14px; font-weight: 620; }
+  .lb-tip { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+  .lb-bar .spacer { margin-left: auto; }
+  .lb-btn {
+    padding: 6px 13px; border-radius: 7px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--muted); font-family: inherit; font-size: 12.5px; font-weight: 550;
+    transition: color .14s, border-color .14s;
+  }
+  .lb-btn:hover { color: var(--ink); border-color: var(--host); }
+  .lb-btn:focus-visible { outline: 2px solid var(--host); outline-offset: 2px; }
+  .lb-btn[aria-pressed="true"] { color: var(--host); border-color: var(--host);
+                                 background: var(--host-bg); }
+
+  .lb-stage {
+    height: calc(100vh - 53px); overflow: auto;
+    padding: 20px; background: var(--paper);
+    /* 用 flex + margin:auto 置中，不用 place-items:center ——
+       後者在內容比容器高時會把上緣切掉，而且捲不回去。 */
+    display: flex;
+  }
+  /* 預設「整張看得完」：同時受寬與高限制，不會超出可視範圍 */
+  .lb-stage svg {
+    margin: auto;
+    width: auto; height: auto;
+    max-width: 100%; max-height: 100%;
+  }
+  .lb-stage.zoomed { cursor: grab; }
+  .lb-stage.zoomed svg {
+    margin: 0;
+    width: 2600px; height: auto;
+    max-width: none; max-height: none;
+  }
+  .lb-stage.dragging { cursor: grabbing; }
+  figcaption { font-size: 12.5px; color: var(--muted); max-width: 80ch;
+               display: flex; flex-wrap: wrap; gap: 20px; }
+  .key { display: inline-flex; align-items: center; gap: 8px; }
+  .key svg { display: block; }
+
+  /* ── 表格 ── */
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; min-width: 700px; border-collapse: collapse;
+          background: var(--surface); border: 1px solid var(--line);
+          border-radius: 12px; overflow: hidden; font-size: 13.5px; }
+  th { text-align: left; padding: 11px 15px; background: var(--sunken);
+       border-bottom: 1px solid var(--line); font-size: 11.5px; font-weight: 620;
+       letter-spacing: .07em; text-transform: uppercase; color: var(--muted);
+       white-space: nowrap; }
+  th.hl { color: var(--host); }
+  td { padding: 12px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td code, .m { font-family: var(--mono); font-size: 12.5px; }
+  td code { color: var(--ink); }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 5px;
+         font-family: var(--mono); font-size: 11px; white-space: nowrap; }
+  .tag-ok  { color: var(--ok);  background: var(--ok-bg); }
+  .tag-off { color: var(--off); background: var(--off-bg); }
+
+  /* ── 卡片 ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+          padding: 16px 18px; display: flex; flex-direction: column; gap: 7px; }
+  .card h4 { margin: 0; font-size: 14.5px; font-weight: 620;
+             display: flex; align-items: center; gap: 9px; }
+  .card p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .card .idx { font-family: var(--mono); font-size: 11px; color: var(--host);
+               background: var(--host-bg); padding: 2px 7px; border-radius: 5px; }
+
+  /* ── 實測對照 ── */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+  .proof { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+           padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .proof-head { display: flex; align-items: center; gap: 9px; font-size: 14.5px; font-weight: 620; }
+  .badge { padding: 2px 9px; border-radius: 6px; font-family: var(--mono);
+           font-size: 11px; font-weight: 500; }
+  .badge-bad { color: var(--bad); background: var(--bad-bg); }
+  .badge-ok  { color: var(--ok);  background: var(--ok-bg); }
+  .proof p { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .proof .log { font-family: var(--mono); font-size: 11.5px; background: var(--sunken);
+                border-radius: 8px; padding: 10px 12px; color: var(--ink);
+                overflow-x: auto; white-space: pre; }
+
+  /* ── 提示塊 ── */
+  .note { border-left: 3px solid var(--host); background: var(--host-bg);
+          border-radius: 0 10px 10px 0; padding: 14px 18px; font-size: 13.5px; }
+  .note b { color: var(--host); }
+  .note.warn { border-left-color: var(--net); background: var(--net-bg); }
+  .note.warn b { color: var(--net); }
+  .note p { margin: 0 0 6px; }
+  .note p:last-child { margin-bottom: 0; }
+
+  hr.rule { border: none; border-top: 1px solid var(--line); margin: 0; }
+
+  footer { border-top: 1px solid var(--line); padding-top: 18px;
+           font-size: 12.5px; color: var(--faint); }
+
+  @media (max-width: 640px) { .wrap { padding: 36px 18px 56px; gap: 40px; } }
+</style>
+
+<div class="wrap">
+
+  <div class="mast-row">
+  <div class="masthead">
+    <span class="eyebrow">Netronix · 整合服務原型</span>
+    <h1>TIPTOP ERP 整合架構</h1>
+    <p class="standfirst">
+      原 Windows WinForms POC 已移植為 Linux 服務，並接上 ChatGPT。這份文件分四部分：
+      資料實際上怎麼流動、語言模型負責哪一段、我們做出來的查詢平台長什麼樣，
+      以及現階段還有哪些限制。
+    </p>
+    <div class="meta">
+      <span class="pill"><span class="m">2026/07/27</span></span>
+      <span class="pill is-ok"><span class="dot"></span>SOAP 查詢已實測</span>
+      <span class="pill is-ok"><span class="dot"></span>GPT Actions 已驗證</span>
+      <span class="pill is-off"><span class="dot"></span>STD_ERP_LOG 停用</span>
+    </div>
+  </div>
+
+  <button class="theme-btn" id="themeBtn" title="切換深色／淺色" aria-label="切換深色或淺色主題">
+    <svg class="moon" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+      <path d="M12 3a9 9 0 109 9 7 7 0 01-9-9z" fill="currentColor"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+      <g stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+        <path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2
+                 M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></g></svg>
+  </button>
+  </div>
+
+  <nav aria-label="章節">
+    <a href="#topology" data-page="topology" class="active"><span class="n">01</span>連線架構</a>
+    <a href="#llm" data-page="llm"><span class="n">02</span>語言模型的位置</a>
+    <a href="#platform" data-page="platform"><span class="n">03</span>查詢平台</a>
+    <a href="#limits" data-page="limits"><span class="n">04</span>限制與待辦</a>
+  </nav>
+
+  <!-- ═══════════════ 01 連線架構 ═══════════════ -->
+  <div class="part active" id="topology">
+    <div class="part-head">
+      <span class="kicker">01 — 資料怎麼流動</span>
+      <h2>連線架構</h2>
+      <p>
+        從 ChatGPT 到 TIPTOP 資料表的完整路徑。服務拆成內外兩個行程：
+        對外只開放兩項唯讀查詢並要求金鑰，內部介面只綁 localhost、完全不觸網。
+      </p>
+    </div>
+
+    <figure>
+      <div class="shot">
+      <div class="canvas" tabindex="0" role="button" aria-label="放大檢視此圖">
+<svg data-dg="topology" data-title="連線架構" viewBox="8 96 1424 652" role="img"
+           aria-label="架構圖：使用者經 OpenAI 與 Cloudflare 隧道連到本機 Linux 服務，再以 SOAP 連到公司內網的 TIPTOP ERP">
+
+        <defs>
+          <marker id="ah-host" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--host)"/>
+          </marker>
+          <marker id="ah-lan" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--lan)"/>
+          </marker>
+          <marker id="ah-net" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--net)"/>
+          </marker>
+          <marker id="ah-off" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--off)"/>
+          </marker>
+        </defs>
+
+        <style>
+          [data-dg="topology"] .zone-l { font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
+                    text-transform: uppercase; font-weight: 600; }
+          [data-dg="topology"] .zone-s { font-family: var(--mono); font-size: 11px; }
+          [data-dg="topology"] .n-t    { font-family: var(--sans); font-size: 15px; font-weight: 620; fill: var(--ink); }
+          [data-dg="topology"] .n-s    { font-family: var(--sans); font-size: 12.5px; fill: var(--muted); }
+          [data-dg="topology"] .n-m    { font-family: var(--mono); font-size: 11.5px; }
+          [data-dg="topology"] .e-l    { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+          [data-dg="topology"] .flow   { fill: none; stroke-width: 1.9; }
+        </style>
+
+        <!-- ══ 區域帶 ══ -->
+        <rect x="20"  y="130" width="210" height="590" rx="13"
+              fill="var(--sunken)" stroke="var(--line)" stroke-dasharray="5 4"/>
+        <rect x="258" y="130" width="330" height="310" rx="13"
+              fill="var(--net-bg)" stroke="var(--net-edge)" stroke-dasharray="5 4"/>
+        <rect x="616" y="130" width="330" height="590" rx="13"
+              fill="var(--host-bg)" stroke="var(--host-edge)"/>
+        <rect x="974" y="130" width="446" height="590" rx="13"
+              fill="var(--lan-bg)" stroke="var(--lan-edge)"/>
+
+        <text class="zone-l" x="40"   y="163" fill="var(--muted)">使用者</text>
+        <text class="zone-l" x="278"  y="163" fill="var(--net)">公開網際網路 · 不可信</text>
+        <text class="zone-l" x="636"  y="163" fill="var(--host)">本機 Linux 主機</text>
+        <text class="zone-s" x="636"  y="181" fill="var(--host)">192.168.101.177</text>
+        <text class="zone-l" x="994"  y="163" fill="var(--lan)">公司內網 · TIPTOP ERP</text>
+        <text class="zone-s" x="994"  y="181" fill="var(--lan)">192.168.100.33</text>
+
+        <!-- ══ 連線 ══ -->
+        <!-- ChatGPT 使用者 → OpenAI -->
+        <path class="flow" d="M206 234 L280 238" stroke="var(--net)"
+              stroke-dasharray="6 4" marker-end="url(#ah-net)"/>
+        <text class="e-l" x="212" y="222">提問</text>
+
+        <!-- OpenAI → Cloudflare -->
+        <path class="flow" d="M423 284 L423 310" stroke="var(--net)" marker-end="url(#ah-net)"/>
+
+        <!-- Cloudflare → :8081 -->
+        <path class="flow" d="M560 360 L636 360" stroke="var(--host)" marker-end="url(#ah-host)"/>
+        <text class="e-l" x="500" y="345" text-anchor="middle">HTTPS</text>
+        <text class="e-l" x="598" y="386" text-anchor="middle" fill="var(--host)">X-API-Key</text>
+
+        <!-- :8081 → 核心 -->
+        <path class="flow" d="M781 404 L781 430" stroke="var(--host)" marker-end="url(#ah-host)"/>
+
+        <!-- 瀏覽器 → :8080（走在公網帶下方，視覺上就看得出不觸網） -->
+        <path class="flow" d="M206 634 L636 634" stroke="var(--host)"
+              stroke-dasharray="6 4" marker-end="url(#ah-host)"/>
+        <text class="e-l" x="420" y="622" text-anchor="middle">localhost · 不經網際網路</text>
+
+        <!-- :8080 → 核心 -->
+        <path class="flow" d="M781 596 L781 554" stroke="var(--host)" marker-end="url(#ah-host)"/>
+
+        <!-- 核心 → TIPTOP Gateway -->
+        <path class="flow" d="M920 492 L994 492" stroke="var(--lan)" marker-end="url(#ah-lan)"/>
+        <text class="e-l" x="957" y="478" text-anchor="middle" fill="var(--lan)">SOAP</text>
+
+        <!-- 核心 ⇢ Oracle（停用） -->
+        <path class="flow" d="M920 462 C 950 462, 960 300, 994 298" stroke="var(--off)"
+              stroke-dasharray="4 5" marker-end="url(#ah-off)"/>
+
+        <!-- Gateway → 資料表 -->
+        <path class="flow" d="M1062 548 L1062 592" stroke="var(--lan)" marker-end="url(#ah-lan)"/>
+        <path class="flow" d="M1197 548 L1197 592" stroke="var(--lan)" marker-end="url(#ah-lan)"/>
+        <path class="flow" d="M1332 548 L1332 592" stroke="var(--lan)" marker-end="url(#ah-lan)"/>
+
+        <!-- ══ 節點 ══ -->
+
+        <!-- ChatGPT 使用者 -->
+        <rect x="44" y="196" width="162" height="76" rx="10"
+              fill="var(--surface)" stroke="var(--line)"/>
+        <text class="n-t" x="125" y="228" text-anchor="middle">ChatGPT</text>
+        <text class="n-s" x="125" y="249" text-anchor="middle">自訂 GPT「測試erp」</text>
+
+        <!-- 瀏覽器使用者 -->
+        <rect x="44" y="596" width="162" height="76" rx="10"
+              fill="var(--surface)" stroke="var(--line)"/>
+        <text class="n-t" x="125" y="628" text-anchor="middle">瀏覽器</text>
+        <text class="n-s" x="125" y="649" text-anchor="middle">內部查詢介面</text>
+
+        <!-- OpenAI -->
+        <rect x="286" y="196" width="274" height="88" rx="10"
+              fill="var(--surface)" stroke="var(--net-edge)"/>
+        <text class="n-t" x="306" y="228">OpenAI 伺服器</text>
+        <text class="n-m" x="306" y="250" fill="var(--muted)">172.204.96.x</text>
+        <text class="n-s" x="306" y="270">依 OpenAPI 判斷是否呼叫</text>
+
+        <!-- Cloudflare -->
+        <rect x="286" y="316" width="274" height="88" rx="10"
+              fill="var(--surface)" stroke="var(--net-edge)"/>
+        <text class="n-t" x="306" y="348">Cloudflare 快速隧道</text>
+        <text class="n-m" x="306" y="370" fill="var(--muted)">節點 tpe01 · TLS 終止</text>
+        <text class="n-s" x="306" y="390">網址隨機，重啟即失效</text>
+
+        <!-- :8081 對外行程 -->
+        <rect x="642" y="316" width="278" height="88" rx="10"
+              fill="var(--surface)" stroke="var(--host-edge)" stroke-width="1.6"/>
+        <text class="n-t" x="662" y="346">對外行程</text>
+        <text class="n-m" x="662" y="367" fill="var(--host)">:8081 · /gpt/*</text>
+        <text class="n-s" x="662" y="388">僅國別、幣別，唯讀，需金鑰</text>
+
+        <!-- 共用核心 -->
+        <rect x="642" y="436" width="278" height="112" rx="10"
+              fill="var(--surface)" stroke="var(--host-edge)" stroke-width="1.6"/>
+        <text class="n-t" x="662" y="466">共用核心</text>
+        <text class="n-m" x="662" y="488" fill="var(--muted)">erp_service · soap_client</text>
+        <text class="n-s" x="662" y="509">改寫 SOAP 範本、解析回應</text>
+        <text class="n-s" x="662" y="530">掛上 59 個欄位中文名稱</text>
+
+        <!-- :8080 內部行程 -->
+        <rect x="642" y="596" width="278" height="76" rx="10"
+              fill="var(--surface)" stroke="var(--host-edge)" stroke-width="1.6"/>
+        <text class="n-t" x="662" y="626">內部行程</text>
+        <text class="n-m" x="662" y="648" fill="var(--host)">:8080 · Web UI + /api/*</text>
+
+        <!-- Oracle（停用） -->
+        <rect x="994" y="250" width="400" height="96" rx="10"
+              fill="var(--surface)" stroke="var(--line)" stroke-dasharray="5 4"/>
+        <text class="n-t" x="1014" y="282" fill="var(--off)">Oracle TOPTEST</text>
+        <text class="n-m" x="1014" y="304" fill="var(--off)">:1521 · STD_ERP_LOG</text>
+        <text class="n-s" x="1014" y="325" fill="var(--off)">DB 版本過舊，thin mode 連不上</text>
+        <rect x="1300" y="264" width="76" height="22" rx="6" fill="var(--off-bg)"/>
+        <text class="n-m" x="1338" y="279" text-anchor="middle" fill="var(--off)">已停用</text>
+
+        <!-- TIPTOP Gateway -->
+        <rect x="994" y="436" width="400" height="112" rx="10"
+              fill="var(--surface)" stroke="var(--lan-edge)" stroke-width="1.6"/>
+        <text class="n-t" x="1014" y="466">TIPTOP Service Gateway</text>
+        <text class="n-m" x="1014" y="488" fill="var(--lan)">:6384 · /ws/r/aws_ttsrv2</text>
+        <text class="n-s" x="1014" y="509">Genero 4GL · 營運中心 NX</text>
+        <text class="n-s" x="1014" y="530">GetCountryData／GetCurrencyData</text>
+
+        <!-- 資料表 -->
+        <rect x="1000" y="592" width="124" height="72" rx="9"
+              fill="var(--surface)" stroke="var(--lan-edge)"/>
+        <text class="n-m" x="1062" y="620" text-anchor="middle" fill="var(--lan)">img_file</text>
+        <text class="n-s" x="1062" y="640" text-anchor="middle">料件庫存</text>
+
+        <rect x="1135" y="592" width="124" height="72" rx="9"
+              fill="var(--surface)" stroke="var(--lan-edge)"/>
+        <text class="n-m" x="1197" y="620" text-anchor="middle" fill="var(--lan)">geb_file</text>
+        <text class="n-s" x="1197" y="640" text-anchor="middle">國別 · 87 筆</text>
+
+        <rect x="1270" y="592" width="124" height="72" rx="9"
+              fill="var(--surface)" stroke="var(--lan-edge)"/>
+        <text class="n-m" x="1332" y="620" text-anchor="middle" fill="var(--lan)">azi_file</text>
+        <text class="n-s" x="1332" y="640" text-anchor="middle">幣別 · 7 筆</text>
+
+        <!-- 信任邊界標記 -->
+        <line x1="602" y1="130" x2="602" y2="720" stroke="var(--net)"
+              stroke-width="1.3" stroke-dasharray="3 6" opacity=".55"/>
+        <text class="e-l" x="602" y="122" text-anchor="middle" fill="var(--net)">信任邊界</text>
+
+        <line x1="960" y1="130" x2="960" y2="720" stroke="var(--lan)"
+              stroke-width="1.3" stroke-dasharray="3 6" opacity=".45"/>
+        <text class="e-l" x="960" y="122" text-anchor="middle" fill="var(--lan)">內網邊界</text>
+      </svg>
+      </div>
+      <span class="zoom-hint">點擊放大</span>
+      </div>
+      <figcaption>
+        <span class="key">
+          <svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4"
+               stroke="var(--lan)" stroke-width="2"/></svg>
+          實線：實際資料流
+        </span>
+        <span class="key">
+          <svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4"
+               stroke="var(--host)" stroke-width="2" stroke-dasharray="6 4"/></svg>
+          虛線：使用者操作
+        </span>
+        <span class="key">
+          <svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4"
+               stroke="var(--off)" stroke-width="2" stroke-dasharray="4 5"/></svg>
+          灰虛線：目前停用
+        </span>
+      </figcaption>
+    </figure>
+
+    <div class="block">
+      <h3 class="lab">每一段連線</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>路段</th><th>協定 / 埠</th><th>驗證</th><th>狀態</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ChatGPT → OpenAI</td><td><code>HTTPS</code></td>
+                <td>OpenAI 帳號</td><td><span class="tag tag-ok">已驗證</span></td></tr>
+            <tr><td>OpenAI → Cloudflare 隧道</td><td><code>HTTPS :443</code></td>
+                <td>無（網址即入口）</td><td><span class="tag tag-ok">已驗證</span></td></tr>
+            <tr><td>隧道 → 對外行程</td><td><code>HTTP :8081</code></td>
+                <td><code>X-API-Key</code> 標頭</td><td><span class="tag tag-ok">已驗證</span></td></tr>
+            <tr><td>瀏覽器 → 內部行程</td><td><code>HTTP :8080</code> 僅 localhost</td>
+                <td>無（不對外）</td><td><span class="tag tag-ok">已驗證</span></td></tr>
+            <tr><td>核心 → TIPTOP Gateway</td><td><code>SOAP / XML :6384</code></td>
+                <td>XML 內 <code>&lt;Authentication&gt;</code></td><td><span class="tag tag-ok">已驗證</span></td></tr>
+            <tr><td>核心 → Oracle</td><td><code>Oracle TNS :1521</code></td>
+                <td>帳號密碼</td><td><span class="tag tag-off">停用</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3 class="lab">一次查詢的六個步驟</h3>
+      <div class="cards">
+        <div class="card"><h4><span class="idx">1</span>判斷</h4>
+          <p>模型依 OpenAPI 的描述決定要不要呼叫，並自行帶入 <span class="m">keyword</span> 與 <span class="m">limit</span>。</p></div>
+        <div class="card"><h4><span class="idx">2</span>驗證</h4>
+          <p>對外行程檢查 <span class="m">X-API-Key</span>。錯誤或缺少一律回 401 並寫入日誌。</p></div>
+        <div class="card"><h4><span class="idx">3</span>組封包</h4>
+          <p>讀取 SOAP 範本，改寫營運中心與查詢條件。範本與原版逐位元組相同。</p></div>
+        <div class="card"><h4><span class="idx">4</span>呼叫 ERP</h4>
+          <p>送到 TIPTOP Gateway，由 4GL 服務查詢對應資料表後回傳 XML。</p></div>
+        <div class="card"><h4><span class="idx">5</span>轉譯</h4>
+          <p>解析 <span class="m">&lt;Record&gt;</span>，把 <span class="m">geb02</span> 這類代號換成「國別名稱」。</p></div>
+        <div class="card"><h4><span class="idx">6</span>回傳</h4>
+          <p>附上總筆數與截斷旗標，讓模型知道結果是否完整。實測往返約 41 毫秒。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 02 LLM 的位置 ═══════════════ -->
+  <div class="part" id="llm">
+    <div class="part-head">
+      <span class="kicker">02 — 模型負責哪一段</span>
+      <h2>語言模型的位置</h2>
+      <p>
+        加上語言模型後改變的不是資料，而是「人要懂多少才能取得資料」。
+        模型負責意圖與表達，工程負責契約與權限，ERP 仍是唯一的真相來源。
+      </p>
+    </div>
+
+    <figure>
+      <div class="shot">
+      <div class="canvas" tabindex="0" role="button" aria-label="放大檢視此圖">
+<svg data-dg="llm" data-title="語言模型的位置" viewBox="20 14 1400 852" role="img"
+           aria-label="分層圖：使用者的自然語言提問經過 LLM 意圖層、工程護欄層，抵達 ERP 事實層後原路返回">
+
+        <defs>
+          <marker id="v-llm" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--llm)"/>
+          </marker>
+          <marker id="v-erp" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--erp)"/>
+          </marker>
+        </defs>
+
+        <style>
+          [data-dg="llm"] .lyr  { font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
+                  text-transform: uppercase; font-weight: 600; }
+          [data-dg="llm"] .cap  { font-family: var(--sans); font-size: 12.5px; fill: var(--muted); }
+          [data-dg="llm"] .ttl  { font-family: var(--sans); font-size: 15.5px; font-weight: 620; fill: var(--ink); }
+          [data-dg="llm"] .qt   { font-family: var(--sans); font-size: 17px; font-weight: 600; fill: var(--ink); }
+          [data-dg="llm"] .bd   { font-family: var(--sans); font-size: 13px; fill: var(--muted); }
+          [data-dg="llm"] .mn   { font-family: var(--mono); font-size: 11.5px; }
+          [data-dg="llm"] .step { font-family: var(--mono); font-size: 11px; }
+          [data-dg="llm"] .flow { fill: none; stroke-width: 2.1; }
+        </style>
+
+        <!-- ═══ 提問 / 回答 ═══ -->
+        <rect x="40" y="40" width="640" height="96" rx="11"
+              fill="var(--human-bg)" stroke="var(--human-edge)"/>
+        <text class="lyr" x="62" y="66" fill="var(--human)">使用者說的話</text>
+        <text class="qt"  x="62" y="97">「日幣跟新台幣的小數位數差在哪？」</text>
+        <text class="bd"  x="62" y="120">沒有欄位代號、沒有服務名稱、沒有參數</text>
+
+        <rect x="744" y="40" width="640" height="96" rx="11"
+              fill="var(--human-bg)" stroke="var(--human-edge)"/>
+        <text class="lyr" x="766" y="66" fill="var(--human)">使用者看到的</text>
+        <text class="qt"  x="766" y="97">「差在 1 除匯率：日幣 4 位、新台幣 0 位」</text>
+        <text class="bd"  x="766" y="120">附 ERP 總筆數與是否截斷，可回溯</text>
+
+        <!-- ═══ 往返箭頭 ═══ -->
+        <path class="flow" d="M360 136 L360 178" stroke="var(--llm)" marker-end="url(#v-llm)"/>
+        <path class="flow" d="M1064 178 L1064 136" stroke="var(--llm)" marker-end="url(#v-llm)"/>
+        <path class="flow" d="M360 462 L360 500" stroke="var(--llm)" marker-end="url(#v-llm)"/>
+        <path class="flow" d="M1064 500 L1064 462" stroke="var(--llm)" marker-end="url(#v-llm)"/>
+        <path class="flow" d="M360 608 L360 646" stroke="var(--erp)" marker-end="url(#v-erp)"/>
+        <path class="flow" d="M1064 646 L1064 608" stroke="var(--erp)" marker-end="url(#v-erp)"/>
+
+        <text class="step" x="374" y="163" fill="var(--llm)">問</text>
+        <text class="step" x="1078" y="163" fill="var(--llm)">答</text>
+        <text class="step" x="374" y="487" fill="var(--llm)">呼叫</text>
+        <text class="step" x="1078" y="487" fill="var(--llm)">JSON</text>
+        <text class="step" x="374" y="633" fill="var(--erp)">SOAP</text>
+        <text class="step" x="1078" y="633" fill="var(--erp)">XML</text>
+
+        <!-- ═══ LLM 層（主角）═══ -->
+        <rect x="40" y="178" width="1344" height="284" rx="13"
+              fill="var(--llm-bg)" stroke="var(--llm)" stroke-width="2"/>
+        <text class="lyr" x="62" y="206" fill="var(--llm)">語言模型層 —— 價值集中在這裡</text>
+        <text class="cap" x="1362" y="206" text-anchor="end">不接觸資料庫，不決定權限</text>
+
+        <text class="mn" x="62" y="238" fill="var(--llm)">去程</text>
+        <rect x="112" y="218" width="404" height="88" rx="9"
+              fill="var(--surface)" stroke="var(--llm-edge)"/>
+        <text class="ttl" x="132" y="248">① 辨識意圖</text>
+        <text class="bd"  x="132" y="271">判斷這是幣別問題，</text>
+        <text class="bd"  x="132" y="291">而不是國別或庫存</text>
+
+        <rect x="540" y="218" width="404" height="88" rx="9"
+              fill="var(--surface)" stroke="var(--llm-edge)"/>
+        <text class="ttl" x="560" y="248">② 選擇服務</text>
+        <text class="bd"  x="560" y="271">從 OpenAPI 的描述挑出</text>
+        <text class="mn"  x="560" y="291" fill="var(--llm)">queryCurrencies</text>
+
+        <rect x="968" y="218" width="404" height="88" rx="9"
+              fill="var(--surface)" stroke="var(--llm-edge)"/>
+        <text class="ttl" x="988" y="248">③ 推導參數</text>
+        <text class="bd"  x="988" y="271">自行決定 keyword 與 limit，</text>
+        <text class="bd"  x="988" y="291">使用者不必知道有這些參數</text>
+
+        <text class="mn" x="62" y="368" fill="var(--llm)">回程</text>
+        <rect x="326" y="348" width="404" height="88" rx="9"
+              fill="var(--surface)" stroke="var(--llm-edge)"/>
+        <text class="ttl" x="346" y="378">④ 跨筆推理</text>
+        <text class="bd"  x="346" y="401">取回 7 筆，對齊欄位，</text>
+        <text class="bd"  x="346" y="421">找出唯一有差異的那一欄</text>
+
+        <rect x="754" y="348" width="404" height="88" rx="9"
+              fill="var(--surface)" stroke="var(--llm-edge)"/>
+        <text class="ttl" x="774" y="378">⑤ 組織表達</text>
+        <text class="bd"  x="774" y="401">轉成表格與白話，</text>
+        <text class="bd"  x="774" y="421">標註來源筆數與截斷狀態</text>
+
+        <!-- ═══ 護欄層 ═══ -->
+        <rect x="40" y="500" width="1344" height="108" rx="13"
+              fill="var(--rail-bg)" stroke="var(--rail-edge)"/>
+        <text class="lyr" x="62" y="528" fill="var(--rail)">工程護欄 —— 模型改不動的部分</text>
+
+        <rect x="62"   y="546" width="246" height="42" rx="8" fill="var(--surface)" stroke="var(--rail-edge)"/>
+        <text class="mn" x="185" y="572" text-anchor="middle" fill="var(--rail)">OpenAPI 契約</text>
+        <rect x="330"  y="546" width="246" height="42" rx="8" fill="var(--surface)" stroke="var(--rail-edge)"/>
+        <text class="mn" x="453" y="572" text-anchor="middle" fill="var(--rail)">X-API-Key</text>
+        <rect x="598"  y="546" width="246" height="42" rx="8" fill="var(--surface)" stroke="var(--rail-edge)"/>
+        <text class="mn" x="721" y="572" text-anchor="middle" fill="var(--rail)">服務白名單</text>
+        <rect x="866"  y="546" width="246" height="42" rx="8" fill="var(--surface)" stroke="var(--rail-edge)"/>
+        <text class="mn" x="989" y="572" text-anchor="middle" fill="var(--rail)">筆數上限 200</text>
+        <rect x="1134" y="546" width="248" height="42" rx="8" fill="var(--surface)" stroke="var(--rail-edge)"/>
+        <text class="mn" x="1258" y="572" text-anchor="middle" fill="var(--rail)">唯讀，無交易</text>
+
+        <!-- ═══ 事實層 ═══ -->
+        <rect x="40" y="646" width="1344" height="164" rx="13"
+              fill="var(--erp-bg)" stroke="var(--erp-edge)"/>
+        <text class="lyr" x="62" y="674" fill="var(--erp)">TIPTOP ERP —— 唯一真相來源</text>
+        <text class="cap" x="1362" y="674" text-anchor="end">模型不產生資料，只轉述</text>
+
+        <rect x="62" y="692" width="420" height="98" rx="9"
+              fill="var(--surface)" stroke="var(--erp-edge)"/>
+        <text class="ttl" x="82" y="722">Service Gateway</text>
+        <text class="mn"  x="82" y="745" fill="var(--erp)">:6384 · Genero 4GL</text>
+        <text class="bd"  x="82" y="768">營運中心 NX · 唯讀查詢</text>
+
+        <rect x="506" y="692" width="278" height="98" rx="9"
+              fill="var(--surface)" stroke="var(--erp-edge)"/>
+        <text class="mn" x="645" y="726" text-anchor="middle" fill="var(--erp)">geb_file</text>
+        <text class="bd" x="645" y="749" text-anchor="middle">國別</text>
+        <text class="bd" x="645" y="771" text-anchor="middle">87 筆</text>
+
+        <rect x="808" y="692" width="278" height="98" rx="9"
+              fill="var(--surface)" stroke="var(--erp-edge)"/>
+        <text class="mn" x="947" y="726" text-anchor="middle" fill="var(--erp)">azi_file</text>
+        <text class="bd" x="947" y="749" text-anchor="middle">幣別</text>
+        <text class="bd" x="947" y="771" text-anchor="middle">7 筆</text>
+
+        <rect x="1110" y="692" width="272" height="98" rx="9"
+              fill="var(--surface)" stroke="var(--erp-edge)" stroke-dasharray="5 4" opacity=".6"/>
+        <text class="mn" x="1246" y="726" text-anchor="middle" fill="var(--erp)">img_file</text>
+        <text class="bd" x="1246" y="749" text-anchor="middle">料件庫存</text>
+        <text class="bd" x="1246" y="771" text-anchor="middle">尚未開放</text>
+      </svg>
+      </div>
+      <span class="zoom-hint">點擊放大</span>
+      </div>
+      <figcaption>
+        去程由模型把模糊的問題收斂成一次明確的 API 呼叫；回程由模型把結構化資料展開成人看得懂的答案。
+        中間兩層完全不受模型影響 —— 這是這個架構能被信任的原因。
+      </figcaption>
+    </figure>
+
+    <div class="block">
+      <h3 class="lab">模型改變了什麼、沒改變什麼</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:26%">面向</th>
+              <th style="width:37%">原本的做法</th>
+              <th class="hl" style="width:37%">加上語言模型之後</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>使用者要具備的知識</td>
+                <td>要知道 <span class="m">azi04</span> 是「金額小數位數」，也要知道該開哪個畫面</td>
+                <td>用中文問就好，欄位代號由系統對照</td></tr>
+            <tr><td>查詢條件</td>
+                <td>操作表單、下拉選單、勾選欄位</td>
+                <td>模型自行推導 <span class="m">keyword</span> 與 <span class="m">limit</span></td></tr>
+            <tr><td>跨筆比較</td>
+                <td>匯出 Excel 自己比對</td>
+                <td>直接問差異，模型對齊欄位後回答</td></tr>
+            <tr><td>新增一種查詢</td>
+                <td>設計畫面、寫前端、測試、教育訓練</td>
+                <td>加一個端點與一段文字描述</td></tr>
+            <tr><td>資料由誰保證</td><td>ERP</td><td><b>ERP，完全不變</b></td></tr>
+            <tr><td>權限由誰控管</td><td>ERP 與應用程式</td>
+                <td><b>工程護欄，模型無權放寬</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3 class="lab">為什麼護欄不能省 —— 本次實測</h3>
+      <div class="split">
+        <div class="proof">
+          <div class="proof-head">
+            <span class="badge badge-bad">未接動作</span>指令與動作尚未設定時
+          </div>
+          <p>問「台灣的國別代碼是什麼？」，模型答「TW」，語氣是「根據 TIPTOP ERP 國別檔」。</p>
+          <div class="log">09:58  最後一筆請求（401）
+10:02  使用者提問
+10:02  伺服器端無任何請求紀錄</div>
+          <p>答案來自常識推測，剛好正確。它說不出 <span class="m">TAIWAN 台灣</span> 這個全名，也給不出區域碼 <span class="m">1000</span>。</p>
+        </div>
+        <div class="proof">
+          <div class="proof-head">
+            <span class="badge badge-ok">已接動作</span>補上指令與 API 金鑰之後
+          </div>
+          <p>問「有哪些幣別？」，模型呼叫動作後回傳完整表格。</p>
+          <div class="log">10:07:19  172.204.96.41
+GET /gpt/currencies?limit=200  200 OK
+GetCurrencyData 總數=7 符合=7 回傳=7  41ms</div>
+          <p>7 筆 × 8 欄共 56 個值與 ERP 逐格一致，包含新台幣「1 除匯率」為 <span class="m">0</span> 這種猜不到的設定。</p>
+        </div>
+      </div>
+
+      <div class="note">
+        <p><b>同一個模型，差別只在架構。</b>沒有動作與指令時它會用常識補答案，而且看起來合理 —— 這是最難察覺的失效模式。</p>
+        <p><b>所以價值不在「接上模型」，在於接上之後仍然守得住邊界。</b>模型負責理解與表達，資料正確性、權限與稽核一律留在模型之外。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 03 查詢平台 ═══════════════ -->
+  <div class="part" id="platform">
+    <div class="part-head">
+      <span class="kicker">03 — 我們做的東西</span>
+      <h2>TIPTOP 查詢平台</h2>
+      <p>
+        取代原版 WinForms 的網頁介面。同一批 ERP 服務，但使用者不再需要知道
+        <span class="m">img01</span> 是什麼、也不必記得該開哪個畫面。
+        需登入，對外只走 Cloudflare 隧道。
+      </p>
+    </div>
+
+    <figure>
+      <div class="shot">
+      <div class="canvas" tabindex="0" role="button" aria-label="放大檢視此圖">
+      <svg data-dg="ui" data-title="查詢平台介面結構" viewBox="24 40 1392 700" role="img"
+           aria-label="查詢平台的介面結構圖，標示頂列、側欄、分頁與資料表格各區塊的功能">
+        <defs>
+          <marker id="v-ui" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="var(--host)"/>
+          </marker>
+        </defs>
+        <style>
+          [data-dg="ui"] .ttl  { font-family: var(--sans); font-size: 13.5px; font-weight: 620; fill: var(--ink); }
+          [data-dg="ui"] .sub  { font-family: var(--sans); font-size: 11.5px; fill: var(--muted); }
+          [data-dg="ui"] .mn   { font-family: var(--mono); font-size: 11px; fill: var(--host); }
+          [data-dg="ui"] .zone { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+                                 text-transform: uppercase; fill: var(--muted); }
+          [data-dg="ui"] .num  { font-family: var(--mono); font-size: 11px; font-weight: 700; fill: #fff; }
+          [data-dg="ui"] .note { font-family: var(--sans); font-size: 12.5px; fill: var(--muted); }
+          [data-dg="ui"] .nttl { font-family: var(--sans); font-size: 13px; font-weight: 620; fill: var(--ink); }
+        </style>
+
+        <!-- 視窗外框 -->
+        <rect x="40" y="70" width="940" height="640" rx="12"
+              fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>
+
+        <!-- 頂列 -->
+        <rect x="40" y="70" width="940" height="58" rx="12" fill="var(--sunken)"/>
+        <rect x="40" y="116" width="940" height="12" fill="var(--sunken)"/>
+        <line x1="40" y1="128" x2="980" y2="128" stroke="var(--line)"/>
+        <rect x="58" y="86" width="26" height="26" rx="7" fill="var(--host)"/>
+        <text class="num" x="71" y="103" text-anchor="middle">NX</text>
+        <text class="ttl" x="94" y="99">TIPTOP ERP 查詢平台</text>
+
+        <rect x="470" y="83" width="150" height="32" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <circle cx="486" cy="99" r="4" fill="var(--ok)"/>
+        <text class="sub" x="497" y="103">ERP Gateway</text>
+        <rect x="628" y="83" width="104" height="32" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <circle cx="644" cy="99" r="4" fill="var(--host)"/>
+        <text class="sub" x="655" y="103">營運中心</text>
+        <rect x="740" y="83" width="104" height="32" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <circle cx="756" cy="99" r="4" fill="var(--off)"/>
+        <text class="sub" x="767" y="103">Oracle</text>
+        <text class="sub" x="866" y="103">anson</text>
+        <rect x="916" y="83" width="48" height="32" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="sub" x="940" y="103" text-anchor="middle">登出</text>
+
+        <!-- 側欄 -->
+        <rect x="40" y="128" width="238" height="582" fill="var(--sunken)" opacity=".45"/>
+        <line x1="278" y1="128" x2="278" y2="710" stroke="var(--line)"/>
+        <text class="zone" x="60" y="152">查詢服務</text>
+        <rect x="58" y="162" width="202" height="52" rx="8" fill="var(--host-bg)" stroke="var(--host)" stroke-width="1.5"/>
+        <text class="ttl" x="72" y="182">料件庫存查詢</text>
+        <text class="mn"  x="72" y="200">GetItemStockList</text>
+        <rect x="58" y="222" width="202" height="52" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="ttl" x="72" y="242">國別資料查詢</text>
+        <text class="mn"  x="72" y="260">GetCountryData</text>
+        <rect x="58" y="282" width="202" height="52" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="ttl" x="72" y="302">幣別資料查詢</text>
+        <text class="mn"  x="72" y="320">GetCurrencyData</text>
+
+        <text class="zone" x="60" y="368">料號前綴</text>
+        <rect x="58" y="378" width="202" height="32" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="sub" x="72" y="399">F</text>
+        <g fill="var(--surface)" stroke="var(--line)">
+          <rect x="58"  y="420" width="34" height="24" rx="12"/>
+          <rect x="100" y="420" width="34" height="24" rx="12"/>
+          <rect x="142" y="420" width="34" height="24" rx="12"/>
+          <rect x="184" y="420" width="34" height="24" rx="12"/>
+        </g>
+        <g class="sub" text-anchor="middle" fill="var(--muted)">
+          <text x="75" y="437">F</text><text x="117" y="437">G</text>
+          <text x="159" y="437">I</text><text x="201" y="437">K</text>
+        </g>
+
+        <rect x="58" y="462" width="202" height="38" rx="8" fill="var(--host)"/>
+        <text class="num" x="159" y="486" text-anchor="middle" font-size="13">執行查詢</text>
+
+        <line x1="58" y1="596" x2="260" y2="596" stroke="var(--line)"/>
+        <g class="sub">
+          <text x="58" y="620">回應時間</text><text x="260" y="620" text-anchor="end" fill="var(--ink)">96 ms</text>
+          <text x="58" y="644">資料筆數</text><text x="260" y="644" text-anchor="end" fill="var(--ink)">197</text>
+          <text x="58" y="668">ERP 回傳碼</text><text x="260" y="668" text-anchor="end" fill="var(--ink)">0</text>
+        </g>
+
+        <!-- 分頁列 -->
+        <line x1="278" y1="176" x2="980" y2="176" stroke="var(--line)"/>
+        <text class="ttl" x="300" y="158" fill="var(--host)">資料</text>
+        <rect x="340" y="146" width="34" height="17" rx="9" fill="var(--host-bg)"/>
+        <text class="mn" x="357" y="159" text-anchor="middle">197</text>
+        <line x1="298" y1="176" x2="378" y2="176" stroke="var(--host)" stroke-width="2.5"/>
+        <text class="sub" x="404" y="158">欄位說明</text>
+        <text class="sub" x="486" y="158">SOAP 封包</text>
+        <text class="sub" x="576" y="158">系統日誌</text>
+
+        <!-- 工具列 -->
+        <rect x="300" y="192" width="230" height="30" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="sub" x="316" y="212">在結果中篩選…</text>
+        <rect x="700" y="192" width="76" height="30" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="sub" x="738" y="212" text-anchor="middle">每頁 100</text>
+        <rect x="786" y="192" width="72" height="30" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="sub" x="822" y="212" text-anchor="middle">欄位</text>
+        <rect x="868" y="192" width="96" height="30" rx="7" fill="var(--surface)" stroke="var(--line)"/>
+        <text class="sub" x="916" y="212" text-anchor="middle">匯出 CSV</text>
+
+        <!-- 表格 -->
+        <rect x="300" y="240" width="664" height="36" fill="var(--sunken)"/>
+        <line x1="300" y1="276" x2="964" y2="276" stroke="var(--line)" stroke-width="1.5"/>
+        <g><text class="ttl" x="316" y="257" font-size="12">料件編號</text>
+           <text class="mn"  x="316" y="270" fill="var(--muted)" font-size="9.5">img01</text></g>
+        <g><text class="ttl" x="470" y="257" font-size="12">倉庫編號</text>
+           <text class="mn"  x="470" y="270" fill="var(--muted)" font-size="9.5">img02</text></g>
+        <g><text class="ttl" x="600" y="257" font-size="12">庫存數量</text>
+           <text class="mn"  x="600" y="270" fill="var(--muted)" font-size="9.5">img10</text></g>
+        <g><text class="ttl" x="740" y="257" font-size="12">最近異動日期</text>
+           <text class="mn"  x="740" y="270" fill="var(--muted)" font-size="9.5">img17</text></g>
+        <g><text class="ttl" x="880" y="257" font-size="12">呆滯日期</text>
+           <text class="mn"  x="880" y="270" fill="var(--muted)" font-size="9.5">img37</text></g>
+
+        <g class="sub" fill="var(--ink)" font-family="var(--mono)" font-size="11.5">
+          <text x="316" y="300">F00-1016003K0-1</text><text x="470" y="300">NEM</text>
+          <text x="600" y="300">5945.000</text><text x="740" y="300">2014/02/20</text>
+          <text x="880" y="300">2015/06/30</text>
+        </g>
+        <rect x="300" y="310" width="664" height="26" fill="var(--sunken)" opacity=".5"/>
+        <g class="sub" fill="var(--ink)" font-family="var(--mono)" font-size="11.5">
+          <text x="316" y="328">F00-1016049R9-1</text><text x="470" y="328">NEM</text>
+          <text x="600" y="328">8682.000</text><text x="740" y="328">2012/06/09</text>
+          <text x="880" y="328">2012/06/09</text>
+        </g>
+        <g class="sub" fill="var(--ink)" font-family="var(--mono)" font-size="11.5">
+          <text x="316" y="356">F00-10170000R-1</text><text x="470" y="356">NEM</text>
+          <text x="600" y="356">3755.000</text><text x="740" y="356">2016/03/11</text>
+          <text x="880" y="356">2016/03/11</text>
+        </g>
+        <g stroke="var(--line)">
+          <line x1="300" y1="366" x2="964" y2="366"/>
+          <line x1="300" y1="396" x2="964" y2="396"/>
+          <line x1="300" y1="426" x2="964" y2="426"/>
+          <line x1="300" y1="456" x2="964" y2="456"/>
+        </g>
+        <text class="sub" x="632" y="640" text-anchor="middle">第 1 / 2 頁 · 顯示 1–100 筆，共 197 筆</text>
+
+        <!-- 標號 -->
+        <g>
+          <circle cx="452" cy="99"  r="11" fill="var(--host)"/><text class="num" x="452" y="103" text-anchor="middle">1</text>
+          <circle cx="848" cy="99"  r="11" fill="var(--host)"/><text class="num" x="848" y="103" text-anchor="middle">2</text>
+          <circle cx="40"  cy="188" r="11" fill="var(--host)"/><text class="num" x="40"  y="192" text-anchor="middle">3</text>
+          <circle cx="40"  cy="394" r="11" fill="var(--host)"/><text class="num" x="40"  y="398" text-anchor="middle">4</text>
+          <circle cx="286" cy="158" r="11" fill="var(--host)"/><text class="num" x="286" y="162" text-anchor="middle">5</text>
+          <circle cx="286" cy="207" r="11" fill="var(--host)"/><text class="num" x="286" y="211" text-anchor="middle">6</text>
+          <circle cx="286" cy="258" r="11" fill="var(--host)"/><text class="num" x="286" y="262" text-anchor="middle">7</text>
+          <circle cx="286" cy="632" r="11" fill="var(--host)"/><text class="num" x="286" y="636" text-anchor="middle">8</text>
+        </g>
+
+        <!-- 右側說明 -->
+        <g>
+          <circle cx="1030" cy="96" r="11" fill="var(--host)"/><text class="num" x="1030" y="100" text-anchor="middle">1</text>
+          <text class="nttl" x="1052" y="94">連線狀態</text>
+          <text class="note" x="1052" y="113">ERP 端點、營運中心、Oracle 一眼可見</text>
+
+          <circle cx="1030" cy="156" r="11" fill="var(--host)"/><text class="num" x="1030" y="160" text-anchor="middle">2</text>
+          <text class="nttl" x="1052" y="154">登入者與登出</text>
+          <text class="note" x="1052" y="173">需帳號密碼，Session 12 小時</text>
+
+          <circle cx="1030" cy="216" r="11" fill="var(--host)"/><text class="num" x="1030" y="220" text-anchor="middle">3</text>
+          <text class="nttl" x="1052" y="214">三個查詢服務</text>
+          <text class="note" x="1052" y="233">對應原版三個 checkbox</text>
+
+          <circle cx="1030" cy="276" r="11" fill="var(--host)"/><text class="num" x="1030" y="280" text-anchor="middle">4</text>
+          <text class="nttl" x="1052" y="274">料號前綴與快捷鍵</text>
+          <text class="note" x="1052" y="293">快捷是實測有資料的前綴，免去盲猜</text>
+
+          <circle cx="1030" cy="336" r="11" fill="var(--host)"/><text class="num" x="1030" y="340" text-anchor="middle">5</text>
+          <text class="nttl" x="1052" y="334">四個分頁</text>
+          <text class="note" x="1052" y="353">資料、欄位說明、SOAP 封包、系統日誌</text>
+
+          <circle cx="1030" cy="396" r="11" fill="var(--host)"/><text class="num" x="1030" y="400" text-anchor="middle">6</text>
+          <text class="nttl" x="1052" y="394">工具列</text>
+          <text class="note" x="1052" y="413">篩選、每頁筆數、欄位顯示、CSV 匯出</text>
+
+          <circle cx="1030" cy="456" r="11" fill="var(--host)"/><text class="num" x="1030" y="460" text-anchor="middle">7</text>
+          <text class="nttl" x="1052" y="454">中文欄名 + 原始代號並列</text>
+          <text class="note" x="1052" y="473">滑鼠移上去顯示型別與欄位說明</text>
+
+          <circle cx="1030" cy="516" r="11" fill="var(--host)"/><text class="num" x="1030" y="520" text-anchor="middle">8</text>
+          <text class="nttl" x="1052" y="514">本次查詢統計</text>
+          <text class="note" x="1052" y="533">耗時、筆數、LINKSID、ERP 回傳碼</text>
+        </g>
+      </svg>
+      </div>
+      <span class="zoom-hint">點擊放大</span>
+      </div>
+      <figcaption>
+        原版是三個 checkbox 加一個 DataGridView，欄位標題直接顯示 img01、img02。
+        新版把 59 個欄位的中文名稱掛上去，並補齊篩選、排序、匯出與封包檢視。
+      </figcaption>
+    </figure>
+
+    <div class="block">
+      <h3 class="lab">功能清單</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:22%">功能</th>
+              <th style="width:39%">原版 WinForms</th>
+              <th class="hl" style="width:39%">查詢平台</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>查詢服務</td><td>庫存、國別、幣別（三個 checkbox）</td>
+                <td>相同三項，改為卡片選取</td></tr>
+            <tr><td>欄位名稱</td><td>直接顯示 <span class="m">img01</span>、<span class="m">geb02</span></td>
+                <td><b>中文名稱＋原始代號並列</b>，共 59 個欄位</td></tr>
+            <tr><td>結果篩選</td><td>無</td><td>即時全欄位篩選，命中處高亮</td></tr>
+            <tr><td>排序</td><td>無</td><td>點欄位標題排序，數值與文字分別處理</td></tr>
+            <tr><td>欄位顯示</td><td>無</td><td>可逐欄開關，庫存 37 欄不必全看</td></tr>
+            <tr><td>分頁</td><td>無，一次全塞</td><td>每頁 50 / 100 / 500 / 全部</td></tr>
+            <tr><td>匯出</td><td>無</td><td>CSV（含 BOM，Excel 直接開）</td></tr>
+            <tr><td>封包檢視</td><td>無</td><td>送出與收到的完整 SOAP XML</td></tr>
+            <tr><td>欄位字典</td><td>無</td><td>該資料表所有欄位的型別與說明</td></tr>
+            <tr><td>系統日誌</td><td>寫檔，要自己去翻</td><td>畫面上分來源檢視（GPT／平台／系統）</td></tr>
+            <tr><td>連線狀態</td><td>無，查詢失敗才知道</td><td>頂列常駐顯示</td></tr>
+            <tr><td>錯誤處理</td><td><span class="m">MessageBox</span>，無法無人值守</td>
+                <td>畫面橫幅，並寫入日誌</td></tr>
+            <tr><td>存取控制</td><td>無</td><td>帳號密碼登入，密碼以 scrypt 雜湊儲存</td></tr>
+            <tr><td>可分享連結</td><td>無</td><td><span class="m">/?q=stock&amp;p=F&amp;tab=soap</span></td></tr>
+            <tr><td>深色模式</td><td>無</td><td>有，跟隨系統或手動切換</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3 class="lab">程式對照</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th style="width:34%">新版</th><th style="width:34%">原版 C#</th><th style="width:32%">說明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="m">backend/erp_service.py</span></td><td><span class="m">ERPService.cs</span></td>
+                <td>三個查詢的完整流程</td></tr>
+            <tr><td><span class="m">backend/soap_client.py</span></td>
+                <td><span class="m">Web References/TT_WS/Reference.cs</span></td>
+                <td>SOAP 呼叫。原版用 .NET ASMX，Linux 無對應品</td></tr>
+            <tr><td><span class="m">backend/oracle_db.py</span></td><td><span class="m">PublicFunction.cs</span></td>
+                <td>Oracle 與 <span class="m">STD_ERP_LOG</span></td></tr>
+            <tr><td><span class="m">backend/applog.py</span></td><td><span class="m">clsMsg.cs</span></td>
+                <td>檔案日誌，新版依來源分流</td></tr>
+            <tr><td><span class="m">backend/auth.py</span></td><td>—</td>
+                <td>新增。僅用標準函式庫，不增相依</td></tr>
+            <tr><td><span class="m">backend/main.py</span> ＋ <span class="m">web/</span></td>
+                <td><span class="m">fmain.cs</span></td><td>介面與事件處理</td></tr>
+            <tr><td><span class="m">backend/templates/*.xml</span></td><td><span class="m">bin/Debug/*.xml</span></td>
+                <td><b>逐位元組相同</b>，未修改</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <p><b>ERP 呼叫邏輯完全沿用原版。</b>送出的 SOAP 封包與原版一致，包含那個多餘的雙層信封 ——
+        改動它會改變線上位元組，在沒有實測驗證前不動。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 04 限制與待辦 ═══════════════ -->
+  <div class="part" id="limits">
+    <div class="part-head">
+      <span class="kicker">04 — 現況邊界</span>
+      <h2>限制與待辦</h2>
+      <p>目前是可運作的原型，不是可交付的服務。以下每一項都必須在擴大使用前處理。</p>
+    </div>
+
+    <div class="note warn">
+      <p><b>三個行程都不能關。</b>對外行程、Cloudflare 隧道、這台主機，任一停止 ChatGPT 就查不到資料。內部介面（:8080）可以關，不影響。</p>
+      <p><b>隧道網址是隨機且暫時的。</b>重啟後會換一組，<span class="m">config.ini</span> 與 GPT 的結構描述都要重新設定。要固定網址需改用具名隧道。</p>
+      <p><b>這個 GPT 必須維持「只有我」。</b>金鑰存在 GPT 設定裡並代表擁有者呼叫，一旦公開分享，任何使用者都能查詢公司 ERP。</p>
+      <p><b>Gateway 對大查詢會失效。</b>實測 <span class="m">img01 LIKE 'D%'</span> 等會回 Server Error，連續大查詢會使 <span class="m">aws_ttsrv2</span> 持續報錯直到重啟。需在 ERP 端補分頁或筆數上限。</p>
+      <p><b>庫存查詢僅開放給網頁介面，未開放給語言模型。</b>單次結果可達數千筆，超出 Action 的回應與逾時限制；擴充前需先加上必填料號前綴與筆數上限。</p>
+    </div>
+  </div>
+
+  <footer>
+    資料來源 TIPTOP 正式區（SOAP Gateway :6384）· 單次查詢往返約 41 毫秒 ·
+    專案位置 <span class="m">erp-poc-linux/</span> ·
+    Python 3.11 + FastAPI，移植自 .NET Framework 4.7.2 WinForms POC
+  </footer>
+
+</div>
+
+<dialog class="lightbox" id="lb" aria-label="圖表放大檢視">
+  <div class="lb-bar">
+    <span class="lb-title" id="lbTitle"></span>
+    <span class="lb-tip">Esc 關閉</span>
+    <span class="spacer"></span>
+    <button class="lb-btn" id="lbZoom" aria-pressed="false">放大細節</button>
+    <button class="lb-btn" id="lbClose">關閉</button>
+  </div>
+  <div class="lb-stage" id="lbStage"></div>
+</dialog>
+
+<script>
+/* ── 主題切換 ─────────────────────────────────────────
+   跟隨系統設定，使用者按過按鈕就以按鈕為準並記住選擇。 */
+(function () {
+  const KEY = 'erp-doc-theme';
+  const saved = localStorage.getItem(KEY);
+  if (saved) document.documentElement.dataset.theme = saved;
+
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const el = document.documentElement;
+    const dark = el.dataset.theme
+      ? el.dataset.theme === 'dark'
+      : matchMedia('(prefers-color-scheme: dark)').matches;
+    const next = dark ? 'light' : 'dark';
+    el.dataset.theme = next;
+    localStorage.setItem(KEY, next);
+  });
+})();
+
+/* ── 分頁切換 ─────────────────────────────────────────
+   三個章節各自是一頁，網址 hash 可直接連到指定頁。 */
+(function () {
+  const links = Array.from(document.querySelectorAll('nav a[data-page]'));
+  const parts = Array.from(document.querySelectorAll('.part'));
+
+  function show(id, push) {
+    if (!parts.some((p) => p.id === id)) id = parts[0].id;
+    parts.forEach((p) => p.classList.toggle('active', p.id === id));
+    links.forEach((a) => a.classList.toggle('active', a.dataset.page === id));
+    if (push && location.hash !== '#' + id) history.pushState(null, '', '#' + id);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  links.forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    show(a.dataset.page, true);
+  }));
+
+  // 上一頁／下一頁與直接貼 hash 都要能運作
+  addEventListener('popstate', () => show(location.hash.slice(1), false));
+  if (location.hash) show(location.hash.slice(1), false);
+})();
+
+(function () {
+  const lb     = document.getElementById('lb');
+  const stage  = document.getElementById('lbStage');
+  const title  = document.getElementById('lbTitle');
+  const zoomBtn= document.getElementById('lbZoom');
+  let opener = null;
+
+  function open(canvas) {
+    const svg = canvas.querySelector('svg');
+    if (!svg) return;
+    opener = canvas;
+    title.textContent = svg.dataset.title || '圖表';
+
+    stage.innerHTML = '';
+    // 複製一份放進燈箱，原圖保持不動。
+    // 作用域用 data-dg 屬性而非 id，所以複製品可以原樣保留、樣式照常生效。
+    const copy = svg.cloneNode(true);
+    copy.style.minWidth = '0';
+    stage.appendChild(copy);
+
+    setZoom(false);
+    lb.showModal();
+  }
+
+  function setZoom(on) {
+    stage.classList.toggle('zoomed', on);
+    zoomBtn.setAttribute('aria-pressed', String(on));
+    zoomBtn.textContent = on ? '縮小' : '放大細節';
+    if (!on) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+  }
+
+  document.querySelectorAll('.canvas').forEach((c) => {
+    c.addEventListener('click', () => open(c));
+    c.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(c); }
+    });
+  });
+
+  zoomBtn.addEventListener('click', () => setZoom(!stage.classList.contains('zoomed')));
+  document.getElementById('lbClose').addEventListener('click', () => lb.close());
+
+  // 點空白處關閉；點在圖上不關（方便拖曳）
+  lb.addEventListener('click', (e) => { if (e.target === lb || e.target === stage) lb.close(); });
+
+  // 關閉後把焦點還給原本點擊的圖，鍵盤操作不會迷路
+  lb.addEventListener('close', () => { stage.innerHTML = ''; if (opener) opener.focus(); });
+
+  // 放大後可以直接拖曳平移
+  let dragging = false, sx = 0, sy = 0, sl = 0, st = 0;
+  stage.addEventListener('pointerdown', (e) => {
+    if (!stage.classList.contains('zoomed')) return;
+    dragging = true; stage.classList.add('dragging');
+    sx = e.clientX; sy = e.clientY; sl = stage.scrollLeft; st = stage.scrollTop;
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    stage.scrollLeft = sl - (e.clientX - sx);
+    stage.scrollTop  = st - (e.clientY - sy);
+  });
+  ['pointerup', 'pointercancel'].forEach((ev) =>
+    stage.addEventListener(ev, () => { dragging = false; stage.classList.remove('dragging'); }));
+})();
+</script>
