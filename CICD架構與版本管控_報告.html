@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CI/CD 架構與版本管控 · Netronix AI 平台</title>
+<style>
+:root{
+  --bg:#f6f8f7; --panel:#fff; --ink:#11201b; --dim:#4a5b54; --faint:#7c8b84;
+  --line:#dde5e1; --brand:#12b884; --brand-d:#0d8f68; --brand-soft:#e6f7f0;
+  --warn:#a86200; --warn-soft:#fdf3e3; --bad:#bd2f49; --bad-soft:#fdeef0;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Songti TC","Noto Serif TC",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Noto Sans Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1411; --panel:#151f1b; --ink:#e8f0ec; --dim:#a8bab2; --faint:#7b8d85;
+  --line:#25332d; --brand:#2ad39b; --brand-d:#2ad39b; --brand-soft:#13291f;
+  --warn:#e0a24a; --warn-soft:#2a2114; --bad:#f2758c; --bad-soft:#2c161b;}}
+:root[data-theme="dark"]{
+  --bg:#0d1411; --panel:#151f1b; --ink:#e8f0ec; --dim:#a8bab2; --faint:#7b8d85;
+  --line:#25332d; --brand:#2ad39b; --brand-d:#2ad39b; --brand-soft:#13291f;
+  --warn:#e0a24a; --warn-soft:#2a2114; --bad:#f2758c; --bad-soft:#2c161b;}
+:root[data-theme="light"]{
+  --bg:#f6f8f7; --panel:#fff; --ink:#11201b; --dim:#4a5b54; --faint:#7c8b84;
+  --line:#dde5e1; --brand:#12b884; --brand-d:#0d8f68; --brand-soft:#e6f7f0;
+  --warn:#a86200; --warn-soft:#fdf3e3; --bad:#bd2f49; --bad-soft:#fdeef0;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+
+/* ── 最上方的頁籤列（切換整頁）── */
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg);
+  border-bottom:2px solid var(--line);margin-bottom:26px}
+.topbar-in{max-width:880px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:10px}
+.tablist{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.tablist::-webkit-scrollbar{display:none}
+.tablist button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;
+  margin-bottom:-2px;padding:14px 15px;cursor:pointer;white-space:nowrap;
+  font:700 14.5px/1.3 var(--sans);color:var(--faint);border-radius:8px 8px 0 0}
+.tablist button:hover{color:var(--ink);background:color-mix(in srgb,var(--brand) 8%,transparent)}
+.tablist button[aria-selected="true"]{color:var(--brand-d);border-bottom-color:var(--brand)}
+.tablist button:focus-visible{outline:2px solid var(--brand);outline-offset:-3px}
+#themeBtn{flex:none;background:var(--panel);color:var(--dim);border:1px solid var(--line);
+  border-radius:999px;padding:6px 12px;cursor:pointer;font:600 12px/1 var(--mono)}
+#themeBtn:hover{color:var(--ink);border-color:var(--brand)}
+#themeBtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+header{padding:34px 0 16px;border-bottom:2px solid var(--ink);margin-bottom:4px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--brand-d);font-weight:700}
+h1{font-family:var(--serif);font-size:31px;line-height:1.2;margin:8px 0 8px;text-wrap:balance}
+.sub{color:var(--dim);font-size:15.5px;margin:0;max-width:60ch}
+.meta{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+
+.page{padding-top:22px}
+.page[hidden]{display:none}
+.page > h2:first-of-type{margin-top:6px}
+h2{font-family:var(--serif);font-size:24px;margin:40px 0 4px;text-wrap:balance}
+h2 .n{font-family:var(--mono);font-size:12px;color:var(--brand-d);display:block;letter-spacing:.1em}
+h3{font-size:16.5px;margin:26px 0 4px}
+h4{font-size:15.5px;margin:22px 0 2px}
+h4 .badge{font:700 11px/1 var(--mono);color:var(--brand-d);background:var(--brand-soft);
+  padding:3px 7px;border-radius:999px;margin-left:8px;vertical-align:2px}
+p{margin:10px 0}
+code{font-family:var(--mono);font-size:.86em;background:var(--brand-soft);color:var(--brand-d);
+  padding:.1em .36em;border-radius:4px;white-space:nowrap}
+
+figure{margin:22px 0}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:12.5px;color:var(--faint);margin-top:6px;font-family:var(--mono);text-align:center}
+
+.decide{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;border-top:4px solid var(--line)}
+.card.one{border-top-color:var(--brand)} .card.two{border-top-color:var(--warn)}
+.card .cnum{font-family:var(--mono);font-size:11px;letter-spacing:.12em;font-weight:700;color:var(--faint)}
+.card h4{margin:3px 0 8px;font-size:17px;font-family:var(--serif)}
+.card ul{margin:6px 0 0;padding-left:19px;font-size:14px;color:var(--dim)}
+.card li{margin:4px 0}
+.card .vl{margin-top:12px;font-weight:700;font-size:14px}
+.card.one .vl{color:var(--brand-d)} .card.two .vl{color:var(--warn)}
+@media (max-width:660px){.decide{grid-template-columns:1fr}}
+
+.box{border-radius:10px;padding:14px 16px;margin:18px 0;border:1px solid var(--line);background:var(--panel);font-size:15px}
+.box.warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 32%,transparent)}
+.box.bad{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 32%,transparent)}
+.box.good{background:var(--brand-soft);border-color:color-mix(in srgb,var(--brand) 34%,transparent)}
+.box .tag{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;display:block;margin-bottom:5px}
+.box.warn .tag{color:var(--warn)} .box.bad .tag{color:var(--bad)} .box.good .tag{color:var(--brand-d)}
+.box p:first-of-type{margin-top:0} .box p:last-child{margin-bottom:0}
+
+.tw{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:color-mix(in srgb,var(--brand) 7%,transparent);font-size:12px;letter-spacing:.05em;
+  color:var(--dim);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+.ok{color:var(--brand-d);font-weight:700} .no{color:var(--bad);font-weight:700} .wa{color:var(--warn);font-weight:700}
+td.c,th.c{text-align:center;white-space:nowrap}
+ul.tight{margin:10px 0;padding-left:21px} ul.tight li{margin:5px 0}
+
+.pagenav{display:flex;justify-content:space-between;gap:10px;margin:44px 0 0;padding-top:18px;
+  border-top:1px solid var(--line)}
+.pagenav button{appearance:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:10px 16px;cursor:pointer;color:var(--dim);font:600 14px/1.3 var(--sans)}
+.pagenav button:hover{color:var(--brand-d);border-color:var(--brand)}
+.pagenav button[disabled]{opacity:.35;cursor:default}
+footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+@media (max-width:640px){h1{font-size:25px}h2{font-size:20px}.wrap{padding:0 15px 60px}
+  .topbar-in{padding:0 15px}.tablist button{padding:12px 11px;font-size:13.5px}}
+@media print{.topbar{position:static}.page[hidden]{display:block}}
+
+/* Prompt 區塊 */
+.promptbox{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;background:var(--panel)}
+.promptbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;background:color-mix(in srgb,var(--brand) 8%,transparent);
+  border-bottom:1px solid var(--line);font:700 12.5px/1 var(--mono);color:var(--dim)}
+.copybtn{appearance:none;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-d);
+  border-radius:8px;padding:6px 12px;cursor:pointer;font:700 12.5px/1 var(--sans)}
+.copybtn:hover{background:var(--brand);color:#fff}
+.copybtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.copybtn.done{background:var(--brand);color:#fff}
+.promptbox pre{margin:0;border:0;border-radius:0;max-height:420px;overflow:auto;
+  font-size:12.5px;line-height:1.6;white-space:pre;background:transparent}
+
+.hint2{font-size:13px;color:var(--dim);margin:10px 0 0}
+.box.ok2{background:var(--brand-soft);border-color:var(--brand)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:20px 0}
+.kpi .k{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.kpi .kn{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1.15}
+.kpi .kl{font-size:12.5px;color:var(--dim);margin-top:4px}
+.kpi .k.good .kn{color:var(--brand-d)} .kpi .k.bad .kn{color:var(--bad)}
+.kpi .k.warn .kn{color:var(--warn)}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.ba .card.b{border-top-color:var(--bad)} .ba .card.a{border-top-color:var(--brand)}
+.ba h4{margin:0 0 10px;font-size:13px;font-family:var(--mono);letter-spacing:.1em;color:var(--dim)}
+.ba ul{margin:0;padding-left:1.15em;font-size:14.5px}
+.ba li{margin:6px 0}
+.step{display:flex;gap:12px;align-items:flex-start;margin:14px 0}
+.step .n2{flex:none;width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step .t{font-size:15px}
+.step .t b{display:block;margin-bottom:2px}
+.step .t span{color:var(--dim);font-size:14px}
+@media(max-width:640px){.ba,.decide{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="tablist" role="tablist" aria-label="報告頁籤">
+      <button role="tab" id="t1" aria-controls="p1" aria-selected="true">為什麼要做</button>
+      <button role="tab" id="t2" aria-controls="p2" aria-selected="false">架構</button>
+      <button role="tab" id="t3" aria-controls="p3" aria-selected="false">版本管控</button>
+      <button role="tab" id="t4" aria-controls="p4" aria-selected="false">帶來什麼</button>
+      <button role="tab" id="t5" aria-controls="p5" aria-selected="false">成本與分工</button>
+    </div>
+    <button id="themeBtn" type="button" aria-label="切換深淺色">◐ 自動</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Netronix AI 平台 · 開發維運</div>
+  <h1>程式碼版本管控與自動化上線（CI/CD）</h1>
+  <p class="sub">六個線上服務的程式碼原本只存在一台筆電。
+     版本管控已於 <strong>2026-08-17 完成</strong>；
+     自動化上線的增量成本為 <strong>零</strong>，僅需 IT 管理者協助一次性的權限設定。</p>
+  <div class="meta">2026-08-17 · 數據均為實際盤點</div>
+</header>
+
+<section class="page" role="tabpanel" id="p1" aria-labelledby="t1">
+<h2><span class="n">為什麼要做</span>現在的三個風險</h2>
+
+<p class="sub">這三項都是 2026-08-17 實際盤點出來的狀況，不是假設。</p>
+
+<div class="kpi">
+  <div class="k bad"><div class="kn">5 / 6</div><div class="kl">個服務的程式碼<br>原本只存在一台筆電</div></div>
+  <div class="k bad"><div class="kn">答不出來</div><div class="kl">線上跑的是<br>哪一版程式碼</div></div>
+  <div class="k warn"><div class="kn">手動</div><div class="kl">每次上線都是<br>人工打包上傳</div></div>
+</div>
+
+<h3>風險一 · 人員與設備的單點依賴</h3>
+<p>六個服務裡有五個，能修改的原始碼只存在開發人員的筆電。
+   筆電故障或遺失時，<strong>線上服務會繼續運作，但沒有任何人能再修改它</strong> ——
+   前端要重寫、容器要重建、建置設定會全部消失。</p>
+
+<h3>風險二 · 無法回溯</h3>
+<p>目前的上線方式是人工打包後上傳。因此以下問題目前都沒有答案：</p>
+<ul class="tight">
+  <li>線上這一版是哪一份程式碼？</li>
+  <li>上週三改了什麼？為什麼改？</li>
+  <li>要退回上一個正常的版本，怎麼退？</li>
+</ul>
+
+<h3>風險三 · 沒有把關</h3>
+<p>從寫完程式到上線，中間沒有任何自動檢查。
+   近期有一個「使用者以為存檔成功、實際上資料沒寫入」的問題，
+   就是靠使用者回報才發現的。</p>
+
+<div class="box"><span class="tag">重點</span>
+<p><strong>版本管控與 CI/CD 是兩件事。</strong>
+   版本管控解決風險一與風險二，<strong>已於 2026-08-17 完成</strong>；
+   CI/CD 解決風險三，並讓上線變成可重複、有紀錄的動作。</p></div>
+</section>
+<section class="page" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+<h2><span class="n">架構</span>GitHub 與 Azure 怎麼溝通</h2>
+
+<figure>
+<svg viewBox="0 0 760 330" role="img" aria-label="CI/CD 部署流程架構圖">
+  <defs><marker id="af" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6" fill="none" stroke="currentColor" stroke-width="1.5"/></marker></defs>
+
+  <!-- 開發者 -->
+  <rect x="8" y="96" width="150" height="96" rx="12" fill="var(--panel)" stroke="var(--line)" stroke-width="1.6"/>
+  <text x="83" y="124" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">開發者</text>
+  <text x="83" y="146" text-anchor="middle" font-size="11.5" fill="var(--dim)">改完程式</text>
+  <text x="83" y="164" text-anchor="middle" font-size="11.5" fill="var(--dim)">git push</text>
+
+  <g stroke="var(--dim)" stroke-width="1.5" fill="none" marker-end="url(#af)" opacity=".8">
+    <path d="M158,144 L214,144"/>
+  </g>
+
+  <!-- GitHub -->
+  <rect x="220" y="40" width="200" height="250" rx="12" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+  <text x="320" y="64" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">GitHub</text>
+
+  <rect x="238" y="80" width="164" height="52" rx="9" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="320" y="102" text-anchor="middle" font-size="13" font-weight="700" fill="var(--brand-d)">程式碼倉庫</text>
+  <text x="320" y="120" text-anchor="middle" font-size="11" fill="var(--dim)">6 個服務 · 完整歷史</text>
+
+  <rect x="238" y="146" width="164" height="70" rx="9" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.5"/>
+  <text x="320" y="168" text-anchor="middle" font-size="13" font-weight="700" fill="var(--warn)">自動化流程</text>
+  <text x="320" y="186" text-anchor="middle" font-size="11" fill="var(--dim)">檢查 → 建置 → 部署</text>
+  <text x="320" y="203" text-anchor="middle" font-size="11" fill="var(--dim)">→ 健康檢查</text>
+
+  <rect x="238" y="230" width="164" height="44" rx="9" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="4 3"/>
+  <text x="320" y="248" text-anchor="middle" font-size="11.5" fill="var(--dim)">不存任何密碼</text>
+  <text x="320" y="264" text-anchor="middle" font-size="11.5" fill="var(--dim)">改用臨時通行證</text>
+
+  <!-- Entra：換證是「來回」，不是 Entra 去部署 -->
+  <g stroke="var(--warn)" stroke-width="1.5" fill="none" opacity=".9"
+     marker-end="url(#af)" marker-start="url(#af)">
+    <path d="M420,248 L474,264"/>
+  </g>
+  <rect x="474" y="236" width="120" height="58" rx="10" fill="var(--panel)" stroke="var(--warn)" stroke-width="1.6"/>
+  <text x="534" y="258" text-anchor="middle" font-size="12" font-weight="700" fill="var(--warn)">Entra ID</text>
+  <text x="534" y="275" text-anchor="middle" font-size="10.5" fill="var(--dim)">出示身分 →</text>
+  <text x="534" y="289" text-anchor="middle" font-size="10.5" fill="var(--dim)">← 換臨時通行證</text>
+
+  <!-- 部署：GitHub 自己帶著通行證去部署 -->
+  <g stroke="var(--brand)" stroke-width="1.8" fill="none" marker-end="url(#af)">
+    <path d="M420,118 L604,118"/>
+  </g>
+  <text x="512" y="108" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--brand-d)">帶通行證部署</text>
+
+  <!-- Azure -->
+  <rect x="608" y="40" width="144" height="250" rx="12" fill="var(--panel)" stroke="var(--line)" stroke-width="1.6"/>
+  <text x="680" y="64" text-anchor="middle" font-size="13" font-weight="700" fill="var(--dim)">Azure</text>
+
+  <rect x="622" y="80" width="116" height="76" rx="9" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="680" y="102" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--brand-d)">六個服務</text>
+  <text x="680" y="120" text-anchor="middle" font-size="10.5" fill="var(--dim)">商店 · 入口網站</text>
+  <text x="680" y="134" text-anchor="middle" font-size="10.5" fill="var(--dim)">簡報 · 問卷</text>
+  <text x="680" y="148" text-anchor="middle" font-size="10.5" fill="var(--dim)">登入 · 個人資料</text>
+
+  <rect x="622" y="170" width="116" height="46" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="680" y="190" text-anchor="middle" font-size="11.5" fill="var(--dim)">容器登錄</text>
+  <text x="680" y="206" text-anchor="middle" font-size="10.5" fill="var(--faint)">映像存放處</text>
+
+  <rect x="622" y="230" width="116" height="44" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="680" y="250" text-anchor="middle" font-size="11.5" fill="var(--dim)">資料庫</text>
+  <text x="680" y="266" text-anchor="middle" font-size="10.5" fill="var(--faint)">Blob 儲存體</text>
+
+  <text x="380" y="316" text-anchor="middle" font-size="11" fill="var(--faint)">
+    全程約 3 分鐘 · 失敗時線上維持舊版不受影響</text>
+</svg>
+
+<figcaption>開發者只做一件事：git push。其餘由自動化流程完成</figcaption></figure>
+
+<h3>一次上線的五個步驟</h3>
+
+<div class="step"><div class="n2">1</div><div class="t"><b>開發者推送程式碼</b>
+  <span>改完程式後推上 GitHub。這一步同時就是備份與留下紀錄。</span></div></div>
+<div class="step"><div class="n2">2</div><div class="t"><b>自動檢查</b>
+  <span>語法、建置、安全性掃描。有問題就在這裡擋下來，不會流到線上。</span></div></div>
+<div class="step"><div class="n2">3</div><div class="t"><b>向 Azure 換取臨時通行證</b>
+  <span>GitHub 出示身分，Entra ID 驗明後發給一張數分鐘後就失效的通行證。</span></div></div>
+<div class="step"><div class="n2">4</div><div class="t"><b>部署到對應的服務</b>
+  <span>只更新有變動的那個服務，其餘五個不受影響。</span></div></div>
+<div class="step"><div class="n2">5</div><div class="t"><b>健康檢查</b>
+  <span>自動確認服務有正常回應。異常則標記失敗並通知，線上維持舊版。</span></div></div>
+
+<div class="box ok2"><span class="tag" style="color:var(--brand-d)">安全性設計</span>
+<p><strong>GitHub 上不儲存任何密碼。</strong>
+   傳統做法是把一組固定密碼存在 GitHub 上，缺點是會外洩、會過期、要定期更換。
+   這次採用的方式是「出示身分、換取臨時通行證」——
+   GitHub 每次都拿它自己簽發的身分證明去換一張數分鐘有效的通行證，
+   <strong>沒有任何長期有效的密碼存在於系統之外</strong>。</p></div>
+
+<h3>兩種服務、兩條路徑</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:120px">類型</th><th>服務</th><th>做法</th><th style="width:76px">耗時</th></tr></thead>
+<tbody>
+<tr><td><strong>程式碼型</strong></td><td>商店、入口網站、個人資料</td>
+    <td>建置前端 → 打包 → 上傳至服務</td><td>約 3 分鐘</td></tr>
+<tr><td><strong>容器型</strong></td><td>簡報系統、問卷系統、登入中心</td>
+    <td>建立映像 → 存入容器登錄 → 服務換新映像</td><td>約 5 分鐘</td></tr>
+</tbody></table></div>
+
+<p class="hint2">每個映像都以程式碼版本編號命名，因此「線上跑的是哪一版」永遠查得到，
+   也才能夠退回上一版。</p>
+</section>
+<section class="page" role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+<h2><span class="n">版本管控</span>已完成的部分</h2>
+
+<p class="sub">這一項不需要任何額外授權，已於 2026-08-17 完成並驗證。</p>
+
+<figure>
+<svg viewBox="0 0 760 250" role="img" aria-label="真相來源從筆電搬到 GitHub 的對比圖">
+  <defs><marker id="at" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6" fill="none" stroke="currentColor" stroke-width="1.5"/></marker></defs>
+
+  <!-- 之前 -->
+  <rect x="8" y="26" width="352" height="200" rx="12" fill="var(--panel)" stroke="var(--bad)" stroke-width="1.6"/>
+  <text x="184" y="50" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--bad)">之前</text>
+
+  <rect x="112" y="66" width="144" height="52" rx="9" fill="var(--bad-soft)" stroke="var(--bad)" stroke-width="1.5"/>
+  <text x="184" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="var(--bad)">一台筆電</text>
+  <text x="184" y="106" text-anchor="middle" font-size="10.5" fill="var(--dim)">唯一的一份</text>
+
+  <g stroke="var(--dim)" stroke-width="1.4" fill="none" marker-end="url(#at)" opacity=".7">
+    <path d="M184,118 L184,150"/>
+  </g>
+  <text x="196" y="140" font-size="10.5" fill="var(--faint)">手動打包上傳</text>
+
+  <rect x="112" y="156" width="144" height="46" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="184" y="176" text-anchor="middle" font-size="12" fill="var(--dim)">Azure（執行）</text>
+  <text x="184" y="192" text-anchor="middle" font-size="10.5" fill="var(--faint)">沒有紀錄、無法回溯</text>
+
+  <!-- 現在 -->
+  <rect x="400" y="26" width="352" height="200" rx="12" fill="var(--panel)" stroke="var(--brand)" stroke-width="1.8"/>
+  <text x="576" y="50" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--brand-d)">現在</text>
+
+  <rect x="504" y="66" width="144" height="52" rx="9" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="576" y="88" text-anchor="middle" font-size="13" font-weight="700" fill="var(--brand-d)">GitHub</text>
+  <text x="576" y="106" text-anchor="middle" font-size="10.5" fill="var(--dim)">真相來源 · 完整歷史</text>
+
+  <g stroke="var(--dim)" stroke-width="1.4" fill="none" marker-end="url(#at)" opacity=".7">
+    <path d="M576,118 L576,150"/><path d="M504,92 L440,92"/>
+  </g>
+  <text x="588" y="140" font-size="10.5" fill="var(--faint)">自動部署</text>
+  <text x="410" y="112" font-size="10.5" fill="var(--faint)">筆電＝</text>
+  <text x="410" y="126" font-size="10.5" fill="var(--faint)">工作區</text>
+
+  <rect x="504" y="156" width="144" height="46" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="576" y="176" text-anchor="middle" font-size="12" fill="var(--dim)">Azure（執行）</text>
+  <text x="576" y="192" text-anchor="middle" font-size="10.5" fill="var(--faint)">每一版都對得上紀錄</text>
+</svg>
+
+<figcaption>真相來源從「一台筆電」搬到 GitHub；筆電回歸單純的工作區</figcaption></figure>
+
+<div class="kpi">
+  <div class="k good"><div class="kn">6 / 6</div><div class="kl">個服務<br>已完成版本管控</div></div>
+  <div class="k good"><div class="kn">已驗證</div><div class="kl">從 GitHub 重新取回<br>逐檔比對與線上一致</div></div>
+  <div class="k good"><div class="kn">$0</div><div class="kl">費用</div></div>
+</div>
+
+<h3>做了什麼</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:150px">服務</th><th>狀態</th></tr></thead>
+<tbody>
+<tr><td>AI 應用商店</td><td>✅ 已同步（含近期的共用資料檔與存檔修正）</td></tr>
+<tr><td>入口網站</td><td>✅ 已同步</td></tr>
+<tr><td>簡報上傳系統</td><td>✅ 已同步</td></tr>
+<tr><td>痛點問卷系統</td><td>✅ 已同步</td></tr>
+<tr><td>登入中心</td><td>✅ 已同步</td></tr>
+<tr><td>個人資料服務</td><td>✅ 已同步（此服務原本完全沒有版本管控）</td></tr>
+</tbody></table></div>
+
+<h3>同時處理掉的資訊安全問題</h3>
+<p>程式碼進入版本管控前，逐項檢查並排除了不應納入的內容：</p>
+<div class="tw"><table>
+<thead><tr><th style="width:220px">排除的內容</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td>4 組系統間的驗證密鑰</td><td>外洩後可冒充內部系統取得使用者資料</td></tr>
+<tr><td>44 筆員工名單與電子郵件</td><td>個人資料</td></tr>
+<tr><td>31 份問卷回覆 PDF</td><td>檔名與內容均含員工姓名與電子郵件</td></tr>
+<tr><td>使用者上傳的檔案（306 個）</td><td>營運資料，非程式碼</td></tr>
+</tbody></table></div>
+
+<div class="box"><span class="tag">說明</span>
+<p>使用者的登入密碼<strong>不在</strong>上述範圍內 ——
+   密碼由使用者自行設定、僅以不可還原的形式儲存於登入中心，
+   從未出現在任何程式碼或設定檔中。</p></div>
+
+<h3>現在能做到什麼</h3>
+<ul class="tight">
+  <li>筆電故障 → 任一台電腦取回程式碼即可繼續開發</li>
+  <li>查得到每一次修改的內容、時間與原因</li>
+  <li>要比對「上週和今天差在哪」是一個動作</li>
+</ul>
+</section>
+<section class="page" role="tabpanel" id="p4" aria-labelledby="t4" hidden>
+<h2><span class="n">帶來什麼</span>前後對照</h2>
+
+<div class="ba">
+  <div class="card b"><h4>現在</h4><ul>
+    <li>上線＝人工打包上傳，步驟靠記憶</li>
+    <li>沒有任何自動檢查</li>
+    <li>問題常由使用者先發現</li>
+    <li>要退版幾乎做不到</li>
+    <li>只有一個人做得到這件事</li>
+  </ul></div>
+  <div class="card a"><h4>導入後</h4><ul>
+    <li>上線＝按一次確認，流程固定</li>
+    <li>語法、建置、安全性自動把關</li>
+    <li>部署後自動確認服務正常</li>
+    <li>退版＝重跑上一次成功的流程</li>
+    <li>流程寫在檔案裡，任何人都執行得起來</li>
+  </ul></div>
+</div>
+
+<h3>對營運的四個實際好處</h3>
+
+<div class="step"><div class="n2">1</div><div class="t"><b>降低人員依賴</b>
+  <span>上線流程從「某個人知道怎麼做」變成「寫在檔案裡的步驟」。
+        人員請假、離職或交接時，系統仍然可以維護。</span></div></div>
+
+<div class="step"><div class="n2">2</div><div class="t"><b>問題提早被發現</b>
+  <span>目前累積的自動化測試（含近期資料遺失問題的重現測試）可以接進流程，
+        在上線前執行。近期那個問題若有這道關卡，不會流到使用者手上。</span></div></div>
+
+<div class="step"><div class="n2">3</div><div class="t"><b>出錯能快速復原</b>
+  <span>每次上線都對應一個明確的程式碼版本，退回上一版是標準動作，
+        不需要憑印象重建。</span></div></div>
+
+<div class="step"><div class="n2">4</div><div class="t"><b>稽核與交接有依據</b>
+  <span>任何時間點都查得到「線上是哪一版、誰改的、為什麼改」。
+        未來若需通過內部或客戶的資訊安全查核，這是基本要求。</span></div></div>
+
+<div class="box warn"><span class="tag">誠實說明限制</span>
+<p>目前的方案<strong>不包含</strong>零中斷上線。每次部署服務會中斷約 10–30 秒，
+   原因是現行的服務方案不具備該功能，升級後每年約增加 <strong>500 美元</strong>。</p>
+<p style="margin-top:8px">評估結論：這些是內部工具，將部署安排在非上班時段即可，
+   <strong>建議暫不升級</strong>。日後若有對外服務的需求再評估。</p></div>
+</section>
+<section class="page" role="tabpanel" id="p5" aria-labelledby="t5" hidden>
+<h2><span class="n">成本與分工</span>要花什麼、誰要做什麼</h2>
+
+<div class="kpi">
+  <div class="k good"><div class="kn">$0</div><div class="kl">新增月費</div></div>
+  <div class="k good"><div class="kn">15 分鐘</div><div class="kl">需要 IT 管理者<br>協助的部分</div></div>
+  <div class="k"><div class="kn">3 天</div><div class="kl">預估完成<br>六個服務</div></div>
+</div>
+
+<h3>費用明細</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:200px">項目</th><th style="width:90px">費用</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td>程式碼倉庫</td><td><strong class="ok">$0</strong></td><td>私有倉庫與人數均無限制</td></tr>
+<tr><td>自動化流程執行時間</td><td><strong class="ok">$0</strong></td>
+    <td>免費額度每月 2,000 分鐘；預估用量約 300 分鐘</td></tr>
+<tr><td>身分驗證機制</td><td><strong class="ok">$0</strong></td><td>現有訂閱已包含</td></tr>
+<tr><td>容器映像存放</td><td><strong class="ok">$0</strong></td>
+    <td>現有方案已足夠，但需設定自動清理舊版（見下方）</td></tr>
+</tbody></table></div>
+
+<div class="box warn"><span class="tag">需要注意的一項</span>
+<p>容器映像的存放空間目前已使用 <strong>5.2 GB / 上限 10 GB</strong>。
+   導入後每次上線都會產生一個新映像，若不處理，約三至四個月會達到上限。</p>
+<p style="margin-top:8px">處理方式：設定「只保留最近 10 個版本」的自動清理規則，
+   <strong>不需額外費用</strong>，會在建置流程時一併完成。</p></div>
+
+<h3>分工</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:120px">誰</th><th>做什麼</th><th style="width:110px">時間</th></tr></thead>
+<tbody>
+<tr><td><strong>IT 管理者</strong></td>
+    <td>建立一組供自動化流程使用的系統身分，並授予部署權限。<br>
+        <span style="color:var(--dim);font-size:13.5px">此步驟需要目錄層級權限，AI 推動小組的權限不足，需協助辦理。</span></td>
+    <td>一次性 15 分鐘</td></tr>
+<tr><td><strong>AI 推動小組</strong></td>
+    <td>建立自動化流程、設定檢查與健康檢查、驗證六個服務</td><td>約 3 個工作日</td></tr>
+</tbody></table></div>
+
+<h3>導入順序</h3>
+<div class="tw"><table>
+<thead><tr><th class="c" style="width:38px">#</th><th>階段</th><th>狀態</th></tr></thead>
+<tbody>
+<tr><td class="c">1</td><td>六個服務納入版本管控</td><td><strong class="ok">✅ 已完成（2026-08-17）</strong></td></tr>
+<tr><td class="c">2</td><td>建立系統身分與權限</td><td>待 IT 管理者協助</td></tr>
+<tr><td class="c">3</td><td>先完成一個服務並驗證</td><td>接續第 2 項</td></tr>
+<tr><td class="c">4</td><td>推廣至其餘服務</td><td>第 3 項驗證通過後</td></tr>
+<tr><td class="c">5</td><td>接入既有的自動化測試</td><td>後續強化</td></tr>
+</tbody></table></div>
+
+<div class="box"><span class="tag">結論</span>
+<p>版本管控已完成，<strong>最大的單點風險已經解除</strong>。
+   CI/CD 的增量成本為零，主要投入是三個工作日的設定時間，
+   目前僅需 IT 管理者協助一次性的權限設定即可展開。</p></div>
+</section>
+
+<div class="pagenav">
+  <button id="prevBtn" type="button">← 上一頁</button>
+  <button id="nextBtn" type="button">下一頁 →</button>
+</div>
+
+<footer>
+  NTX AI 推動委員會 · 程式碼版本管控與自動化上線 · 2026-08-17<br>
+  本報告為單檔 HTML，不連外、不載入任何外部資源。
+</footer>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  /* ── 頁籤：切換整頁 ── */
+  var tabs = [].slice.call(document.querySelectorAll('[role="tab"]'));
+  var prevBtn = document.getElementById("prevBtn"), nextBtn = document.getElementById("nextBtn");
+  var cur = 0;
+  function show(i, scroll) {
+    cur = Math.max(0, Math.min(tabs.length - 1, i));
+    tabs.forEach(function (t, k) {
+      var on = k === cur;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      var panel = document.getElementById(t.getAttribute("aria-controls"));
+      if (panel) panel.hidden = !on;
+    });
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === tabs.length - 1;
+    nextBtn.textContent = cur === tabs.length - 1 ? "已是最後一頁" : (tabs[cur + 1].textContent.trim() + " →");
+    prevBtn.textContent = cur === 0 ? "已是第一頁" : ("← " + tabs[cur - 1].textContent.trim());
+    try { history.replaceState(null, "", "#" + tabs[cur].getAttribute("aria-controls")); } catch (e) {}
+    if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { show(i, true); });
+    t.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = (i + d + tabs.length) % tabs.length;
+      tabs[n].focus(); show(n, true);
+    });
+  });
+  prevBtn.addEventListener("click", function () { show(cur - 1, true); });
+  nextBtn.addEventListener("click", function () { show(cur + 1, true); });
+  /* 開啟時若網址帶 #p3 就直接跳到那一頁（方便把某一頁的連結傳給別人） */
+  var want = (location.hash || "").replace("#", "");
+  var idx = 0;
+  tabs.forEach(function (t, k) { if (t.getAttribute("aria-controls") === want) idx = k; });
+  show(idx, false);
+
+  /* ── 深淺色 ── */
+  var btn = document.getElementById("themeBtn"), KEY = "ntx-report-theme";
+  var modes = [["auto", "◐ 自動"], ["light", "☀ 淺色"], ["dark", "☾ 深色"]];
+  function read() { try { return localStorage.getItem(KEY) || "auto"; } catch (e) { return "auto"; } }
+  function apply(m) {
+    if (m === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", m);
+    var hit = modes.filter(function (x) { return x[0] === m; })[0] || modes[0];
+    btn.textContent = hit[1];
+    try { localStorage.setItem(KEY, m); } catch (e) {}   /* file:// 可能不給存，不影響切換 */
+  }
+  apply(read());
+  btn.addEventListener("click", function () {
+    var c = read(), i = 0;
+    modes.forEach(function (x, k) { if (x[0] === c) i = k; });
+    apply(modes[(i + 1) % modes.length][0]);
+  });
+})();
+</script>
+</body>
+</html>

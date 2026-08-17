@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>大使工具上架 · 兩種情境與四個階段</title>
+<style>
+:root{
+  --bg:#f6f8f7; --panel:#fff; --ink:#11201b; --dim:#4a5b54; --faint:#7c8b84;
+  --line:#dde5e1; --brand:#12b884; --brand-d:#0d8f68; --brand-soft:#e6f7f0;
+  --warn:#a86200; --warn-soft:#fdf3e3; --bad:#bd2f49; --bad-soft:#fdeef0;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Songti TC","Noto Serif TC",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Noto Sans Mono",monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0d1411; --panel:#151f1b; --ink:#e8f0ec; --dim:#a8bab2; --faint:#7b8d85;
+  --line:#25332d; --brand:#2ad39b; --brand-d:#2ad39b; --brand-soft:#13291f;
+  --warn:#e0a24a; --warn-soft:#2a2114; --bad:#f2758c; --bad-soft:#2c161b;}}
+:root[data-theme="dark"]{
+  --bg:#0d1411; --panel:#151f1b; --ink:#e8f0ec; --dim:#a8bab2; --faint:#7b8d85;
+  --line:#25332d; --brand:#2ad39b; --brand-d:#2ad39b; --brand-soft:#13291f;
+  --warn:#e0a24a; --warn-soft:#2a2114; --bad:#f2758c; --bad-soft:#2c161b;}
+:root[data-theme="light"]{
+  --bg:#f6f8f7; --panel:#fff; --ink:#11201b; --dim:#4a5b54; --faint:#7c8b84;
+  --line:#dde5e1; --brand:#12b884; --brand-d:#0d8f68; --brand-soft:#e6f7f0;
+  --warn:#a86200; --warn-soft:#fdf3e3; --bad:#bd2f49; --bad-soft:#fdeef0;}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 80px}
+
+/* ── 最上方的頁籤列（切換整頁）── */
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg);
+  border-bottom:2px solid var(--line);margin-bottom:26px}
+.topbar-in{max-width:880px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:10px}
+.tablist{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.tablist::-webkit-scrollbar{display:none}
+.tablist button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;
+  margin-bottom:-2px;padding:14px 15px;cursor:pointer;white-space:nowrap;
+  font:700 14.5px/1.3 var(--sans);color:var(--faint);border-radius:8px 8px 0 0}
+.tablist button:hover{color:var(--ink);background:color-mix(in srgb,var(--brand) 8%,transparent)}
+.tablist button[aria-selected="true"]{color:var(--brand-d);border-bottom-color:var(--brand)}
+.tablist button:focus-visible{outline:2px solid var(--brand);outline-offset:-3px}
+#themeBtn{flex:none;background:var(--panel);color:var(--dim);border:1px solid var(--line);
+  border-radius:999px;padding:6px 12px;cursor:pointer;font:600 12px/1 var(--mono)}
+#themeBtn:hover{color:var(--ink);border-color:var(--brand)}
+#themeBtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+header{padding:34px 0 16px;border-bottom:2px solid var(--ink);margin-bottom:4px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--brand-d);font-weight:700}
+h1{font-family:var(--serif);font-size:31px;line-height:1.2;margin:8px 0 8px;text-wrap:balance}
+.sub{color:var(--dim);font-size:15.5px;margin:0;max-width:60ch}
+.meta{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+
+.page{padding-top:22px}
+.page[hidden]{display:none}
+.page > h2:first-of-type{margin-top:6px}
+h2{font-family:var(--serif);font-size:24px;margin:40px 0 4px;text-wrap:balance}
+h2 .n{font-family:var(--mono);font-size:12px;color:var(--brand-d);display:block;letter-spacing:.1em}
+h3{font-size:16.5px;margin:26px 0 4px}
+h4{font-size:15.5px;margin:22px 0 2px}
+h4 .badge{font:700 11px/1 var(--mono);color:var(--brand-d);background:var(--brand-soft);
+  padding:3px 7px;border-radius:999px;margin-left:8px;vertical-align:2px}
+p{margin:10px 0}
+code{font-family:var(--mono);font-size:.86em;background:var(--brand-soft);color:var(--brand-d);
+  padding:.1em .36em;border-radius:4px;white-space:nowrap}
+
+figure{margin:22px 0}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:12.5px;color:var(--faint);margin-top:6px;font-family:var(--mono);text-align:center}
+
+.decide{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;border-top:4px solid var(--line)}
+.card.one{border-top-color:var(--brand)} .card.two{border-top-color:var(--warn)}
+.card .cnum{font-family:var(--mono);font-size:11px;letter-spacing:.12em;font-weight:700;color:var(--faint)}
+.card h4{margin:3px 0 8px;font-size:17px;font-family:var(--serif)}
+.card ul{margin:6px 0 0;padding-left:19px;font-size:14px;color:var(--dim)}
+.card li{margin:4px 0}
+.card .vl{margin-top:12px;font-weight:700;font-size:14px}
+.card.one .vl{color:var(--brand-d)} .card.two .vl{color:var(--warn)}
+@media (max-width:660px){.decide{grid-template-columns:1fr}}
+
+.box{border-radius:10px;padding:14px 16px;margin:18px 0;border:1px solid var(--line);background:var(--panel);font-size:15px}
+.box.warn{background:var(--warn-soft);border-color:color-mix(in srgb,var(--warn) 32%,transparent)}
+.box.bad{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 32%,transparent)}
+.box.good{background:var(--brand-soft);border-color:color-mix(in srgb,var(--brand) 34%,transparent)}
+.box .tag{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;display:block;margin-bottom:5px}
+.box.warn .tag{color:var(--warn)} .box.bad .tag{color:var(--bad)} .box.good .tag{color:var(--brand-d)}
+.box p:first-of-type{margin-top:0} .box p:last-child{margin-bottom:0}
+
+.tw{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{background:color-mix(in srgb,var(--brand) 7%,transparent);font-size:12px;letter-spacing:.05em;
+  color:var(--dim);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+.ok{color:var(--brand-d);font-weight:700} .no{color:var(--bad);font-weight:700} .wa{color:var(--warn);font-weight:700}
+td.c,th.c{text-align:center;white-space:nowrap}
+ul.tight{margin:10px 0;padding-left:21px} ul.tight li{margin:5px 0}
+
+.pagenav{display:flex;justify-content:space-between;gap:10px;margin:44px 0 0;padding-top:18px;
+  border-top:1px solid var(--line)}
+.pagenav button{appearance:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:10px 16px;cursor:pointer;color:var(--dim);font:600 14px/1.3 var(--sans)}
+.pagenav button:hover{color:var(--brand-d);border-color:var(--brand)}
+.pagenav button[disabled]{opacity:.35;cursor:default}
+footer{margin-top:30px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+@media (max-width:640px){h1{font-size:25px}h2{font-size:20px}.wrap{padding:0 15px 60px}
+  .topbar-in{padding:0 15px}.tablist button{padding:12px 11px;font-size:13.5px}}
+@media print{.topbar{position:static}.page[hidden]{display:block}}
+
+/* Prompt 區塊 */
+.promptbox{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:14px 0;background:var(--panel)}
+.promptbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;background:color-mix(in srgb,var(--brand) 8%,transparent);
+  border-bottom:1px solid var(--line);font:700 12.5px/1 var(--mono);color:var(--dim)}
+.copybtn{appearance:none;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand-d);
+  border-radius:8px;padding:6px 12px;cursor:pointer;font:700 12.5px/1 var(--sans)}
+.copybtn:hover{background:var(--brand);color:#fff}
+.copybtn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.copybtn.done{background:var(--brand);color:#fff}
+.promptbox pre{margin:0;border:0;border-radius:0;max-height:420px;overflow:auto;
+  font-size:12.5px;line-height:1.6;white-space:pre;background:transparent}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="tablist" role="tablist" aria-label="報告頁籤">
+      <button role="tab" id="t1" aria-controls="p1" aria-selected="true">概覽</button>
+      <button role="tab" id="t2" aria-controls="p2" aria-selected="false">運作方式</button>
+      <button role="tab" id="t3" aria-controls="p3" aria-selected="false">四個階段</button>
+      <button role="tab" id="t4" aria-controls="p4" aria-selected="false">實例</button>
+      <button role="tab" id="tD" aria-controls="pD" aria-selected="false">要不要資料庫</button>
+      <button role="tab" id="t5" aria-controls="p5" aria-selected="false">實作清單</button>
+      <button role="tab" id="tP" aria-controls="pP" aria-selected="false">Prompt 範本</button>
+    </div>
+    <button id="themeBtn" type="button" aria-label="切換深淺色">◐ 自動</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">AI 應用商店 · 上架架構</div>
+  <h1>大使的工具要讀寫資料檔,上架後怎麼辦?</h1>
+  <p class="sub">上架情境只有<strong>兩種</strong>;需要共用資料的那一種,再分成<strong>四個成熟度階段</strong>。
+     大使幾乎不必改程式。</p>
+  <div class="meta">2026-08-17 · 技術限制均為實測</div>
+</header>
+
+<!-- ══════════ 頁 1 · 概覽 ══════════ -->
+<section class="page" role="tabpanel" id="p1" aria-labelledby="t1">
+<h2><span class="n">概覽</span>先問一句話</h2>
+<figure>
+<svg viewBox="0 0 720 200" role="img" aria-label="判斷分流圖">
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6" fill="none" stroke="currentColor" stroke-width="1.4"/></marker></defs>
+  <g color="var(--faint)">
+    <rect x="8" y="66" width="250" height="68" rx="12" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+    <text x="133" y="93" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">我操作完的結果,</text>
+    <text x="133" y="114" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">別人需不需要看到?</text>
+    <path d="M262,88 L330,44" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+    <path d="M262,112 L330,156" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+    <text x="288" y="56" font-size="12" fill="var(--brand-d)" font-weight="700">不需要</text>
+    <text x="288" y="150" font-size="12" fill="var(--warn)" font-weight="700">需要</text>
+  </g>
+  <rect x="340" y="14" width="372" height="62" rx="12" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+  <text x="358" y="38" font-size="14.5" font-weight="700" fill="var(--brand-d)">情境一 · 一個 HTML 就好</text>
+  <text x="358" y="60" font-size="13" fill="var(--dim)">現在就能上架,商店不必開發任何東西</text>
+  <rect x="340" y="124" width="372" height="62" rx="12" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.6"/>
+  <text x="358" y="148" font-size="14.5" font-weight="700" fill="var(--warn)">情境二 · HTML ＋ 資料檔</text>
+  <text x="358" y="170" font-size="13" fill="var(--dim)">要拆成兩個檔,並等商店做好通道</text>
+</svg>
+<figcaption>一句話就能把工具分流到正確的路上</figcaption>
+</figure>
+
+<div class="decide">
+  <div class="card one">
+    <div class="cnum">情境 一</div>
+    <h4>不需要與他人共用</h4>
+    <ul>
+      <li>稅額計算、抽籤、QR Code</li>
+      <li>把我自己的 Excel 丟進來算報表</li>
+      <li>查對照表(純查詢,不累積紀錄)</li>
+    </ul>
+    <div class="vl">✓ 現在就能上架</div>
+  </div>
+  <div class="card two">
+    <div class="cnum">情境 二</div>
+    <h4>需要與他人共用</h4>
+    <ul>
+      <li>Project Code 發號(不能撞號)</li>
+      <li>共用料號主檔、客戶清單</li>
+      <li>大家一起維護的檢驗規範</li>
+    </ul>
+    <div class="vl">→ 分四階段,見「四個階段」</div>
+  </div>
+</div>
+
+<div class="box bad"><span class="tag">最常見的誤解</span>
+<p><strong>「大家拿到同一個檔案」不等於「資料互通」。</strong>
+   資料寫在 HTML 裡的工具,所有人看到的內容一樣 —— 那是<strong>同一版影印本</strong>。
+   你在自己那本上寫一筆,別人那本不會出現。</p></div>
+
+<div class="box warn"><span class="tag">判斷要按「資料」不是按「工具」</span>
+<p>一支工具可能同時有兩種資料。<strong>只要有任何一份需要共用,整支就按情境二處理。</strong></p></div>
+
+<div class="box good"><span class="tag">成本</span>
+<p>整件事<strong>不需要新增任何 Azure 資源,不花錢</strong>。沙箱與其他五個系統一律不動。</p></div>
+</section>
+
+<!-- ══════════ 頁 2 · 運作方式 ══════════ -->
+<section class="page" role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+<h2><span class="n">運作方式</span>情境二怎麼運作</h2>
+<figure>
+<svg viewBox="0 0 760 300" role="img" aria-label="情境二資料流架構圖">
+  <defs><marker id="a2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6" fill="none" stroke="currentColor" stroke-width="1.5"/></marker></defs>
+  <rect x="8" y="30" width="236" height="240" rx="14" fill="var(--panel)" stroke="var(--line)" stroke-width="1.6"/>
+  <text x="126" y="55" text-anchor="middle" font-size="13" font-weight="700" fill="var(--dim)">使用者的瀏覽器</text>
+  <rect x="30" y="72" width="192" height="80" rx="10" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="126" y="102" text-anchor="middle" font-size="14" font-weight="700" fill="var(--brand-d)">大使的 HTML</text>
+  <text x="126" y="124" text-anchor="middle" font-size="12" fill="var(--dim)">程式一行都不用改</text>
+  <rect x="30" y="168" width="192" height="76" rx="10" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="4 3"/>
+  <text x="126" y="196" text-anchor="middle" font-size="12.5" fill="var(--dim)">工具以為自己在</text>
+  <text x="126" y="216" text-anchor="middle" font-size="12.5" fill="var(--dim)">讀寫本機檔案</text>
+
+  <rect x="272" y="30" width="196" height="240" rx="14" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+  <text x="370" y="55" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">AI 應用商店</text>
+  <rect x="292" y="80" width="156" height="60" rx="10" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.5"/>
+  <text x="370" y="105" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--warn)">攔截層</text>
+  <text x="370" y="126" text-anchor="middle" font-size="11.5" fill="var(--dim)">接手讀檔與存檔</text>
+  <rect x="292" y="158" width="156" height="86" rx="10" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="370" y="182" text-anchor="middle" font-size="11.5" fill="var(--dim)">· 版本檢查</text>
+  <text x="370" y="202" text-anchor="middle" font-size="11.5" fill="var(--dim)">· 誰在編輯</text>
+  <text x="370" y="222" text-anchor="middle" font-size="11.5" fill="var(--dim)">· 權限與舊版保留</text>
+
+  <rect x="496" y="30" width="256" height="240" rx="14" fill="var(--panel)" stroke="var(--line)" stroke-width="1.6"/>
+  <text x="624" y="55" text-anchor="middle" font-size="13" font-weight="700" fill="var(--dim)">伺服器</text>
+  <rect x="520" y="80" width="208" height="76" rx="10" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="624" y="107" text-anchor="middle" font-size="14" font-weight="700" fill="var(--brand-d)">唯一一份資料檔</text>
+  <text x="624" y="129" text-anchor="middle" font-size="12" fill="var(--dim)">Excel／PDF／CSV 都可以</text>
+  <rect x="520" y="172" width="208" height="72" rx="10" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="624" y="199" text-anchor="middle" font-size="12" fill="var(--dim)">最近 10 個舊版</text>
+  <text x="624" y="221" text-anchor="middle" font-size="12" fill="var(--dim)">＋ 誰在何時改的</text>
+
+  <g color="var(--brand)">
+    <path d="M246,100 L288,100" stroke="currentColor" stroke-width="1.8" fill="none" marker-end="url(#a2)"/>
+    <path d="M452,100 L516,100" stroke="currentColor" stroke-width="1.8" fill="none" marker-end="url(#a2)"/>
+    <text x="258" y="92" font-size="11" font-weight="700" fill="var(--brand-d)">讀</text>
+    <text x="476" y="92" font-size="11" font-weight="700" fill="var(--brand-d)">讀</text>
+  </g>
+  <g color="var(--warn)">
+    <path d="M516,132 L456,132" stroke="currentColor" stroke-width="1.8" fill="none" marker-end="url(#a2)"/>
+    <path d="M288,132 L250,132" stroke="currentColor" stroke-width="1.8" fill="none" marker-end="url(#a2)"/>
+    <text x="476" y="150" font-size="11" font-weight="700" fill="var(--warn)">寫</text>
+    <text x="258" y="150" font-size="11" font-weight="700" fill="var(--warn)">寫</text>
+  </g>
+</svg>
+<figcaption>工具以為在讀寫本機檔案,實際上被商店接到伺服器上那份唯一的檔</figcaption>
+</figure>
+
+<div class="box good"><span class="tag">為什麼大使不用改程式</span>
+<p>商店在中間<strong>接手</strong>工具的讀檔與存檔動作。工具照原本的寫法跑,
+   拿到的卻是伺服器上那份共用資料;它以為存到本機,實際上存回了伺服器。</p></div>
+
+<h3>共同編輯的四道防護</h3>
+<p>Excel 是整份檔案,不像資料庫可以一列一列改,所以同時編輯必須處理:</p>
+<div class="tw"><table>
+<thead><tr><th class="c" style="width:38px">#</th><th>防護</th><th>效果</th></tr></thead>
+<tbody>
+<tr><td class="c">1</td><td>版本檢查</td><td>存檔時比對版本,不符就<strong>明確拒絕</strong>,絕不靜默覆蓋</td></tr>
+<tr><td class="c">2</td><td>誰在編輯的提示</td><td>有人開著時其他人看得到;是提醒不是強制鎖</td></tr>
+<tr><td class="c">3</td><td>自動留舊版</td><td>保留最近 10 版,誤覆蓋一鍵還原</td></tr>
+<tr><td class="c">4</td><td>不自動合併</td><td>商店不懂內容語意,硬合併會產生假資料 → 後存的人重做一次</td></tr>
+</tbody></table></div>
+<div class="box warn"><span class="tag">對照</span>
+<p>把 Excel 放共用網路磁碟時問題<strong>一模一樣而且更糟</strong> —— 那時候是靜默覆蓋,沒人知道。
+   搬到商店至少會擋你、告訴你、還留有備份。</p></div>
+<h2><span class="n">附錄</span>白話 ↔ 技術</h2>
+<div class="tw"><table>
+<thead><tr><th style="width:210px">討論時的說法</th><th>實際是什麼</th></tr></thead>
+<tbody>
+<tr><td>「每個人一本自己的筆記本」</td><td>瀏覽器的 <code>localStorage</code>,各自獨立、互不相通</td></tr>
+<tr><td>「牆上的公用白板」</td><td>伺服器上的共用檔案或資料表</td></tr>
+<tr><td>「同一版影印本」</td><td>資料寫在 HTML 裡 —— 內容一致,但寫入不互通</td></tr>
+<tr><td>「攔截」</td><td>在工具程式跑之前,先換掉它讀檔／存檔用的函式</td></tr>
+<tr><td>「後存的人要重做」</td><td>樂觀鎖:比對版本號,不符就拒絕</td></tr>
+</tbody></table></div>
+</section>
+
+<!-- ══════════ 頁 3 · 四個階段 ══════════ -->
+<section class="page" role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+<h2><span class="n">四個階段</span>成熟度階梯</h2>
+<figure>
+<svg viewBox="0 0 760 290" role="img" aria-label="四個階段階梯圖">
+  <text x="20" y="26" font-size="11.5" fill="var(--faint)">能力越往右越強 ↗　但成本也越高</text>
+  <rect x="20" y="212" width="168" height="58" rx="10" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+  <text x="104" y="238" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--brand-d)">第 0 階 · 單檔</text>
+  <text x="104" y="258" text-anchor="middle" font-size="11.5" fill="var(--dim)">不需共用</text>
+  <text x="104" y="203" text-anchor="middle" font-size="11" font-weight="700" fill="var(--brand-d)">✓ 現在可用</text>
+
+  <rect x="204" y="158" width="168" height="112" rx="10" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.6"/>
+  <text x="288" y="184" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--brand-d)">第 1 階 · zip 下載</text>
+  <text x="288" y="206" text-anchor="middle" font-size="11.5" fill="var(--dim)">功能完整</text>
+  <text x="288" y="226" text-anchor="middle" font-size="11.5" fill="var(--dim)">但各自一份</text>
+  <text x="288" y="149" text-anchor="middle" font-size="11" font-weight="700" fill="var(--brand-d)">✓ 現在可用</text>
+
+  <rect x="388" y="104" width="168" height="166" rx="10" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.8"/>
+  <text x="472" y="130" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--warn)">第 2 階 · ＋資料檔</text>
+  <text x="472" y="152" text-anchor="middle" font-size="11.5" fill="var(--dim)">線上統一資料</text>
+  <text x="472" y="172" text-anchor="middle" font-size="11.5" fill="var(--dim)">檔案級權限</text>
+  <text x="472" y="95" text-anchor="middle" font-size="11" font-weight="700" fill="var(--warn)">待開發 · 做一次全部受用</text>
+
+  <rect x="572" y="50" width="168" height="220" rx="10" fill="var(--panel)" stroke="var(--line)" stroke-width="1.6"/>
+  <text x="656" y="76" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--ink)">第 3 階 · ＋資料庫</text>
+  <text x="656" y="98" text-anchor="middle" font-size="11.5" fill="var(--dim)">列級權限與稽核</text>
+  <text x="656" y="118" text-anchor="middle" font-size="11.5" fill="var(--dim)">可串接 ERP</text>
+  <text x="656" y="41" text-anchor="middle" font-size="11" font-weight="700" fill="var(--faint)">待開發 · 每支各做一次</text>
+</svg>
+<figcaption>大多數工具停在第 2 階就夠;只有真的需要權限與稽核的才升到第 3 階</figcaption>
+</figure>
+
+<div class="tw"><table>
+<thead><tr><th style="width:92px">階段</th><th>做得到</th><th>做不到</th><th class="c" style="width:96px">誰要動</th></tr></thead>
+<tbody>
+<tr><td><strong>第 0 階</strong><br>單檔 HTML</td>
+  <td>算完就走的工具;使用者自己丟檔案進來</td>
+  <td>任何共用</td><td class="c"><span class="ok">都不用</span></td></tr>
+<tr><td><strong>第 1 階</strong><br>zip 下載</td>
+  <td>功能完整、可離線、資料不出公司</td>
+  <td>線上同步。<strong>每個人手上是他下載那天的版本</strong>,而且沒有機制通知他有新版</td>
+  <td class="c"><span class="ok">都不用</span></td></tr>
+<tr><td><strong>第 2 階</strong><br>＋ 資料檔</td>
+  <td>所有人讀到<strong>同一份最新資料</strong>;更新只要換檔;可共同編輯;可下載成 Excel;
+      留舊版可還原;權限到<strong>檔案級</strong>(誰看得到、誰能寫)</td>
+  <td>列級權限(「只能看自己那幾列」);伺服器端計算與報表;
+      整檔覆寫 → <strong>兩人同時存,後者要重做</strong></td>
+  <td class="c">商店<br><span class="wa">一次</span></td></tr>
+<tr><td><strong>第 3 階</strong><br>＋ 資料庫</td>
+  <td><strong>列級新增修改不會互相覆蓋</strong>(發號結構上不可能撞);列級權限;
+      誰改了哪一筆的稽核;報表與 ERP 串接</td>
+  <td>—</td>
+  <td class="c">商店<br><span class="no">每支各一次</span></td></tr>
+</tbody></table></div>
+
+<div class="box warn"><span class="tag">第 1 階有個容易誤會的地方</span>
+<p>zip 裡如果是「HTML ＋ 資料檔」,對方解壓後<strong>雙擊是讀不到那個資料檔的</strong>(瀏覽器的安全限制)。
+   所以第 1 階能跑的形態是:<strong>資料內嵌在 HTML 裡</strong>,或<strong>讓使用者自己選檔案</strong>。
+   真正的分離要到第 2 階才成立。</p></div>
+
+<h3>什麼時候該往上升一階</h3>
+<ul class="tight">
+<li><strong>第 1 階 → 第 2 階</strong>:開始有人拿到舊資料;或資料一個月更新一次以上。
+    <span style="color:var(--faint)">升級成本低 —— 把資料抽出來 ＋ 十幾行載入器</span></li>
+<li><strong>第 2 階 → 第 3 階</strong>:真的發生撞號或覆蓋事故;需要「誰改了哪一筆」的稽核;
+    需要只給部分人看部分資料;要跟 ERP 對接。
+    <span style="color:var(--faint)">升級成本中高,而且每支工具各做一次 → 不要規劃「全部都要到第 3 階」</span></li>
+</ul>
+</section>
+
+<!-- ══════════ 頁 4 · 實例 ══════════ -->
+<section class="page" role="tabpanel" id="p4" aria-labelledby="t4" hidden>
+<h2><span class="n">實例</span>NTX Project Code 編碼產生器</h2>
+<p>這支工具很有代表性 —— <strong>它同時需要兩個不同階段</strong>。</p>
+
+<div class="tw"><table>
+<thead><tr><th>那份資料</th><th class="c" style="width:110px">適合階段</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>規則表 188 筆</td><td class="c"><span class="wa">第 2 階</span></td><td>偶爾由維護者更新,其他人只讀 → 用共用檔案就夠</td></tr>
+<tr><td>歷史料號 186 筆</td><td class="c"><span class="wa">第 2 階</span></td><td>同上</td></tr>
+<tr><td><strong>新開的申請紀錄</strong></td><td class="c"><span class="no">第 3 階</span></td>
+    <td>要防撞號、要知道是誰開的 → <strong>必須列級</strong></td></tr>
+</tbody></table></div>
+
+<div class="box bad"><span class="tag">不處理的話會發生什麼</span>
+<p>李工程師 09:00 核發 <code>E60Q32</code>,只寫進他自己的瀏覽器。<br>
+   翁工程師 09:20 選一樣的規格,工具查的還是內建那份 —— <strong>不知道 20 分鐘前發生了什麼</strong> ——
+   於是也核發 <code>E60Q32</code>。<strong>同一個代碼發給兩個專案。</strong></p></div>
+
+<div class="box good"><span class="tag">最省工的做法</span>
+<p><strong>混合:規則與歷史走第 2 階(共用檔案),申請紀錄走第 3 階(資料庫)。</strong>
+   比整支升到第 3 階省很多工,而撞號問題一樣解決。</p></div>
+
+<h3>資料已經抽出來了</h3>
+<p>用工具<strong>自己的匯出功能</strong>撈出來的,原始檔一個 byte 都沒動:</p>
+<div class="tw"><table>
+<thead><tr><th>檔案</th><th>內容</th><th class="c" style="width:150px">餵回工具驗證</th></tr></thead>
+<tbody>
+<tr><td>完整更新包 JSON</td><td>規則 188 筆 ＋ 歷史 186 筆,25 個欄位齊全</td>
+    <td class="c"><span class="ok">零差異</span></td></tr>
+<tr><td>發布檔 xlsx</td><td>兩張表(規則／歷史),給人用 Excel 看</td>
+    <td class="c"><span class="wa">118 筆有細微差異</span></td></tr>
+<tr><td>歷史 CSV 單獨匯入</td><td>—</td><td class="c"><span class="no">工具本身有 bug,匯入失敗</span></td></tr>
+</tbody></table></div>
+<p style="color:var(--faint);font-size:14px">→ 所以<strong>程式要讀的用 JSON,xlsx 只給人看</strong>。
+   另外做了一份「讀外部資料版」的 HTML(副本,不是原檔),已實測:改資料檔畫面就跟著變。</p>
+</section>
+
+<!-- ══════════ 頁 5 · 實作清單 ══════════ -->
+<section class="page" role="tabpanel" id="pD" aria-labelledby="tD" hidden>
+<h2><span class="n">要不要資料庫</span>檔案 vs 資料庫，差在哪</h2>
+
+<p class="sub">一句話：<strong>檔案是「一份文件」，資料庫是「一個櫃台」。</strong>
+   文件可以人手一份影本；櫃台只有一個，所有人排隊，由櫃台決定誰先誰後。</p>
+
+<figure>
+<svg viewBox="0 0 760 320" role="img" aria-label="檔案模式與資料庫模式的對比圖">
+  <defs><marker id="ad" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6" fill="none" stroke="currentColor" stroke-width="1.5"/></marker></defs>
+
+  <!-- 左：檔案模式 -->
+  <rect x="8" y="26" width="352" height="272" rx="14" fill="var(--panel)" stroke="var(--line)" stroke-width="1.6"/>
+  <text x="184" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="var(--dim)">現在：檔案</text>
+
+  <rect x="120" y="66" width="128" height="46" rx="9" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="184" y="94" text-anchor="middle" font-size="13" font-weight="700" fill="var(--brand-d)">共用資料檔</text>
+
+  <g stroke="var(--dim)" stroke-width="1.4" fill="none" marker-end="url(#ad)" opacity=".75">
+    <path d="M150,116 L74,158"/><path d="M184,116 L184,158"/><path d="M218,116 L294,158"/>
+  </g>
+  <text x="184" y="140" text-anchor="middle" font-size="10.5" fill="var(--dim)">開啟時各拿一份影本</text>
+
+  <g font-size="11.5" fill="var(--dim)" text-anchor="middle">
+    <rect x="26" y="164" width="96" height="60" rx="9" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="4 3"/>
+    <text x="74" y="188" font-weight="700" fill="var(--ink)">A 的影本</text><text x="74" y="208">開啟當下</text>
+    <rect x="136" y="164" width="96" height="60" rx="9" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="4 3"/>
+    <text x="184" y="188" font-weight="700" fill="var(--ink)">B 的影本</text><text x="184" y="208">開啟當下</text>
+    <rect x="246" y="164" width="96" height="60" rx="9" fill="var(--bg)" stroke="var(--line)" stroke-dasharray="4 3"/>
+    <text x="294" y="188" font-weight="700" fill="var(--ink)">C 的影本</text><text x="294" y="208">開啟當下</text>
+  </g>
+  <text x="184" y="252" text-anchor="middle" font-size="12" font-weight="700" fill="var(--warn)">各自檢查自己的影本</text>
+  <text x="184" y="272" text-anchor="middle" font-size="11.5" fill="var(--dim)">→ 同時做同一件事，當下擋不住</text>
+
+  <!-- 右：資料庫模式 -->
+  <rect x="400" y="26" width="352" height="272" rx="14" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/>
+  <text x="576" y="50" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">需要時：資料庫</text>
+
+  <g font-size="11.5" fill="var(--dim)" text-anchor="middle">
+    <rect x="418" y="66" width="96" height="46" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+    <text x="466" y="94" font-weight="700" fill="var(--ink)">A</text>
+    <rect x="528" y="66" width="96" height="46" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+    <text x="576" y="94" font-weight="700" fill="var(--ink)">B</text>
+    <rect x="638" y="66" width="96" height="46" rx="9" fill="var(--bg)" stroke="var(--line)"/>
+    <text x="686" y="94" font-weight="700" fill="var(--ink)">C</text>
+  </g>
+  <g stroke="var(--dim)" stroke-width="1.4" fill="none" marker-end="url(#ad)" opacity=".75">
+    <path d="M466,116 L552,152"/><path d="M576,116 L576,152"/><path d="M686,116 L600,152"/>
+  </g>
+
+  <rect x="480" y="158" width="192" height="52" rx="10" fill="var(--warn-soft)" stroke="var(--warn)" stroke-width="1.6"/>
+  <text x="576" y="180" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--warn)">櫃台（寫入的那一刻）</text>
+  <text x="576" y="199" text-anchor="middle" font-size="11" fill="var(--dim)">檢查與寫入是同一個動作</text>
+
+  <rect x="480" y="222" width="192" height="52" rx="10" fill="var(--brand-soft)" stroke="var(--brand)" stroke-width="1.5"/>
+  <text x="576" y="244" text-anchor="middle" font-size="13.5" font-weight="700" fill="var(--brand-d)">資料庫</text>
+  <text x="576" y="263" text-anchor="middle" font-size="11" fill="var(--dim)">唯一性由它本身保證</text>
+</svg>
+<figcaption>左邊人手一份影本，右邊所有人排同一個櫃台 —— 差別就在這裡</figcaption>
+</figure>
+
+<h3>這次真的踩到了：編碼產生器</h3>
+<p>兩位同事都開著編碼產生器的頁面，各自要申請一個新料號：</p>
+
+<div class="tw"><table>
+<thead><tr><th class="c" style="width:96px">時間</th><th>發生什麼</th><th style="width:150px">問題在哪</th></tr></thead>
+<tbody>
+<tr><td class="c">09:15</td><td>A 和 B 分別打開工具 —— 各自拿到一份當下的影本</td><td>—</td></tr>
+<tr><td class="c">09:40</td><td>A 建立 <strong>E00620</strong>，存檔成功</td><td>—</td></tr>
+<tr><td class="c">09:41</td><td>B 也建立 <strong>E00620</strong>，畫面同樣顯示「建立成功」</td>
+    <td>B 的影本裡沒有 A 那筆，<strong>查不出重複</strong></td></tr>
+<tr><td class="c">09:55</td><td>B 重新整理，才發現 E00620 是 A 的，自己那筆不見了</td>
+    <td>白做工，而且中間那段時間他以為號碼是他的</td></tr>
+</tbody></table></div>
+
+<div class="box warn"><span class="tag">關鍵</span>
+<p>平台<strong>擋住了資料被覆蓋</strong>（A 的號碼完好無損，B 的沒有寫進去），
+   這部分是對的。做不到的是<strong>在 B 按下建立的當下就告訴他</strong> ——
+   因為那個檢查發生在 B 自己的電腦裡，而他手上是一份舊影本。</p></div>
+
+<h3>資料庫能做到、檔案做不到的五件事</h3>
+
+<div class="tw"><table>
+<thead><tr><th class="c" style="width:38px">#</th><th style="width:150px">能力</th><th>白話</th><th style="width:180px">什麼時候會需要</th></tr></thead>
+<tbody>
+<tr><td class="c">1</td><td>唯一性保證</td>
+    <td>兩個人同一秒申請同一個號碼，資料庫保證只有一個會成功</td>
+    <td>料號、工單號、專案編號</td></tr>
+<tr><td class="c">2</td><td>只改其中一筆</td>
+    <td>檔案是整份一起寫，兩個人改不同列也會互相擋；資料庫可以只動自己那一筆</td>
+    <td>多人同時維護同一張表</td></tr>
+<tr><td class="c">3</td><td>寫入時附條件</td>
+    <td>「庫存不可以扣成負數」這種規則，由資料庫在寫入當下把關</td>
+    <td>庫存、額度、金額</td></tr>
+<tr><td class="c">4</td><td>查得動</td>
+    <td>幾十萬筆裡找一筆、做統計報表，不必整份讀進瀏覽器</td>
+    <td>資料量大、要出報表</td></tr>
+<tr><td class="c">5</td><td>多系統共用</td>
+    <td>ERP、BI、其他系統可以接同一份真實資料，不必各自複製一份</td>
+    <td>跨部門、跨系統</td></tr>
+</tbody></table></div>
+
+<h3>代價差在哪</h3>
+
+<div class="tw"><table>
+<thead><tr><th style="width:130px"></th><th>檔案（現在）</th><th>資料庫</th></tr></thead>
+<tbody>
+<tr><td><strong>誰能做</strong></td><td>大使自己，用 AI 幾小時就能生出來</td>
+    <td>要有人設計資料表與介面，是開發工作</td></tr>
+<tr><td><strong>上線速度</strong></td><td>當天就能上架</td><td>以天／週計，且要排進開發順序</td></tr>
+<tr><td><strong>改需求</strong></td><td>大使自己改，改完重新上架</td><td>要回頭找開發改</td></tr>
+<tr><td><strong>同時操作</strong></td><td>不會弄錯資料，但後做的人要重做一次</td>
+    <td>當下就擋，不會有人白做工</td></tr>
+<tr><td><strong>適合</strong></td><td>部門級小工具 —— 目前約九成的情境</td>
+    <td>涉及唯一編號、庫存、金額、跨部門的少數幾支</td></tr>
+</tbody></table></div>
+
+<div class="box bad"><span class="tag">判斷準則</span>
+<p><strong>這份資料如果兩個人同時改，會不會產生「錯誤的事實」？</strong></p>
+<p style="margin-top:8px">
+  <strong>不會</strong> —— 會議記錄、交接筆記、點檢表、清單 → <strong>檔案就夠了</strong>，
+  最壞的情況是有人要重做一次。<br>
+  <strong>會</strong> —— 兩個專案拿到同一個料號、庫存被扣兩次、同一筆錢付兩次
+  → <strong>需要資料庫</strong>，因為錯誤會流到公司外面去。</p></div>
+
+<h3>現在的狀況與建議</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:150px">項目</th><th>狀態</th></tr></thead>
+<tbody>
+<tr><td>資料不會被默默覆蓋</td><td>✅ 已經做到 —— 後存的人會被明確擋下，並保留最近 10 個版本</td></tr>
+<tr><td>存檔失敗會明確告知</td><td>✅ 已經做到 —— 跳出必須處理的提示，不會讓人以為存好了</td></tr>
+<tr><td>資料被別人更新會提醒</td><td>✅ 已經做到 —— 工具上方會出現橫幅提示重新載入</td></tr>
+<tr><td>按下當下就擋住重複</td><td>❌ 做不到 —— 這需要資料庫，目前<strong>暫不執行</strong></td></tr>
+</tbody></table></div>
+
+<div class="box"><span class="tag">目前的作法</span>
+<p>編碼產生器這類發號工具，先用一條規矩頂著：
+   <strong>重新整理後還看得到的號碼才算數，不要在那之前把號碼給客戶或寫進文件。</strong></p>
+<p style="margin-top:8px">要升級成資料庫版本的話，就這一支工具而言不是大工程 ——
+   一張資料表、一個介面、工具本身改幾行，估計一天內可以完成。
+   等這類工具變多、或撞號真的造成損失時再做即可。</p></div>
+</section>
+
+<section class="page" role="tabpanel" id="p5" aria-labelledby="t5" hidden>
+<h2><span class="n">實作清單</span>第 2 階段各自要做什麼</h2>
+
+<h3>一 · 大使要做的</h3>
+<p>先看這支工具<strong>原本是哪種起點</strong>,要做的事差很多。</p>
+
+<h4>起點 A · 資料本來就寫在 HTML 裡<span class="badge">NTX 那種</span></h4>
+<div class="tw"><table>
+<thead><tr><th class="c" style="width:38px">#</th><th>要做的</th><th style="width:200px">難度</th></tr></thead>
+<tbody>
+<tr><td class="c">1</td><td>把資料<strong>抽出來成一個檔</strong>(xlsx / csv / json 都行)</td>
+    <td><span class="ok">低</span> —— 用工具自己的匯出功能就有</td></tr>
+<tr><td class="c">2</td><td>程式改成<strong>啟動時讀那個檔</strong>,而不是用內建資料</td>
+    <td><span class="wa">約十幾行</span></td></tr>
+<tr><td class="c">3</td><td>保留內建資料當<strong>後備</strong>(讀不到就用內建)</td>
+    <td>建議做 —— 本機雙擊才不會壞</td></tr>
+<tr><td class="c">4</td><td>壓成一個 zip 上傳(<code>index.html</code> ＋ 資料檔)</td><td><span class="ok">低</span></td></tr>
+<tr><td class="c">5</td><td>上架表單選「需要共用」＋「誰可以修改」</td><td><span class="ok">低</span></td></tr>
+</tbody></table></div>
+
+<h4>起點 B · 本來就是「HTML ＋ 資料檔」</h4>
+<div class="tw"><table>
+<thead><tr><th class="c" style="width:38px">#</th><th>要做的</th><th style="width:200px">難度</th></tr></thead>
+<tbody>
+<tr><td class="c">1</td><td>確認用的是<strong>相對路徑</strong> <code>./資料檔.xlsx</code></td><td><span class="ok">通常一行</span></td></tr>
+<tr><td class="c">2</td><td>壓成一個 zip 上傳</td><td><span class="ok">低</span></td></tr>
+<tr><td class="c">3</td><td>上架表單選「需要共用」＋「誰可以修改」</td><td><span class="ok">低</span></td></tr>
+</tbody></table></div>
+
+<div class="box good"><span class="tag">兩種起點都一樣</span>
+<p><strong>讀寫的程式邏輯完全不用改</strong>,不用學 API、不用碰資料庫。<br>
+   但兩件事一定要遵守:<strong>不要引用 CDN</strong>(程式庫一起放進 zip)、
+   <strong>不要寫死本機絕對路徑</strong>。</p></div>
+
+<h3>二 · 商店要做的</h3>
+
+<h4>A · 上架與儲存</h4>
+<div class="tw"><table><tbody>
+<tr><td class="c" style="width:38px">1</td><td><strong>接受 zip 並解開</strong> —— 找出 <code>index.html</code> 當主程式,其餘存成「這個工具的資料檔」</td></tr>
+<tr><td class="c">2</td><td>資料檔存到專屬位置;<strong>每次覆寫前先把舊版留起來</strong>,保留最近 10 版</td></tr>
+<tr><td class="c">3</td><td>上架表單新增兩個欄位:<strong>「需要共用資料嗎」</strong>、<strong>「誰可以修改」</strong></td></tr>
+</tbody></table></div>
+
+<h4>B · 記帳(資料本體仍在檔案裡)</h4>
+<div class="tw"><table><tbody>
+<tr><td class="c" style="width:38px">4</td><td>新增一張表:工具、資料檔名、<strong>目前版本號</strong>、大小、<strong>最後修改者</strong>、修改時間</td></tr>
+<tr><td class="c">5</td><td>記錄<strong>誰正在編輯</strong>(開著工具時定時回報,逾時視為離開)</td></tr>
+<tr><td class="c">6</td><td>工具本身加兩個設定:是否共用、誰可以寫</td></tr>
+</tbody></table></div>
+
+<h4>C · 兩個通道<span class="badge">核心</span></h4>
+<div class="tw"><table><tbody>
+<tr><td class="c" style="width:38px">7</td><td><strong>讀檔通道</strong> —— 工具讀相對路徑時,接到伺服器上那份唯一的檔</td></tr>
+<tr><td class="c">8</td><td><strong>存檔通道</strong> —— 攔下工具的「下載存檔」動作,改成上傳覆蓋伺服器那份</td></tr>
+<tr><td class="c">9</td><td>存檔時<strong>比對版本號</strong>:相符才覆寫並 +1;不符<strong>明確拒絕</strong></td></tr>
+</tbody></table></div>
+
+<h4>D · 權限</h4>
+<div class="tw"><table><tbody>
+<tr><td class="c" style="width:38px">10</td><td><strong>讀</strong>:沿用現有的可見範圍(看得到這個工具的人才讀得到資料)</td></tr>
+<tr><td class="c">11</td><td><strong>寫</strong>:依上架時選的設定擋掉沒權限的人</td></tr>
+<tr><td class="c">12</td><td>只讀模式下按存檔要<strong>明確提示「這份資料是唯讀的」</strong></td></tr>
+</tbody></table></div>
+
+<h4>E · 使用者看得到的介面</h4>
+<div class="tw"><table><tbody>
+<tr><td class="c" style="width:38px">13</td><td>工具上方一條<strong>狀態列</strong>:檔名 · 版本 · 最後由誰於何時更新 · 目前幾人開啟</td></tr>
+<tr><td class="c">14</td><td>兩顆鈕:<strong>下載這份資料檔</strong>、<strong>重新載入</strong></td></tr>
+<tr><td class="c">15</td><td>存檔成功 →「已更新共用資料(版本 N)」;衝突 →「已被 XXX 更新,請重新載入」</td></tr>
+</tbody></table></div>
+
+<h4>F · 後台</h4>
+<div class="tw"><table><tbody>
+<tr><td class="c" style="width:38px">16</td><td>工具管理裡可以<strong>直接替換資料檔</strong>(維護者不必重新上架整個工具)</td></tr>
+<tr><td class="c">17</td><td>看<strong>版本歷史</strong>、<strong>還原舊版</strong></td></tr>
+</tbody></table></div>
+
+<h3>三 · 最小可行版本</h3>
+<p>想先上線一半的話,只做 <strong>1、2、4、7、10、12、13</strong> 這七項,就得到<strong>唯讀共用</strong>:</p>
+<div class="tw"><table>
+<thead><tr><th>做完之後</th><th class="c" style="width:96px"></th></tr></thead>
+<tbody>
+<tr><td>所有人讀到<strong>同一份最新資料</strong></td><td class="c"><span class="ok">✓</span></td></tr>
+<tr><td>維護者<strong>換檔就更新</strong>,不必重新上架工具</td><td class="c"><span class="ok">✓</span></td></tr>
+<tr><td>資料檔可下載、留有舊版</td><td class="c"><span class="ok">✓</span></td></tr>
+<tr><td>從工具裡改資料(按存檔會被明確擋掉)</td><td class="c"><span class="no">✗</span></td></tr>
+</tbody></table></div>
+<div class="box good"><span class="tag">為什麼建議先做這一半</span>
+<p>它<strong>解決了「有人拿到舊資料」這個最常見的問題</strong>,而且<strong>風險最低</strong> ——
+   沒有覆寫就沒有衝突,不必處理同時編輯。剩下的是「共同編輯」那一半,可以等真的有需要再做。</p></div>
+</section>
+
+
+<!-- ══════════ 頁 · Prompt 範本 ══════════ -->
+<section class="page" role="tabpanel" id="pP" aria-labelledby="tP" hidden>
+<h2><span class="n">Prompt 範本</span>叫 AI 幫你寫出合規的工具</h2>
+<p>把下面的 Prompt 複製到 ChatGPT／Claude，<strong>填好前面那幾題</strong>就送出。
+   後半段的「平台規範」<strong>原封不動貼過去</strong>，不要改 —— 那是讓產出的工具能在商店裡跑的關鍵。</p>
+
+<div class="box warn"><span class="tag">先確認你是哪一種</span>
+<p><strong>「我操作完的結果，別人需不需要看到?」</strong><br>
+   不需要 → 用<strong>範本 A</strong>(一個 HTML 就好)　/　需要 → 用<strong>範本 B</strong>(HTML ＋ 資料檔)</p></div>
+
+<h3>範本 A · 不需要與他人共用</h3>
+<p>適合:稅額計算、抽籤、QR Code、「把我自己的 Excel 丟進來算報表」這類工具。</p>
+<div class="promptbox">
+  <div class="promptbar">
+    <span>範本 A · 單檔工具</span>
+    <button type="button" class="copybtn" data-target="promptA">複製全文</button>
+  </div>
+  <pre id="promptA"># 角色
+你是前端工程師，要為「Netronix AI 應用商店」開發一支單檔網頁小工具。
+這個平台有嚴格限制，請完全遵守下方「平台規範」，不得變通。
+
+# 一、我要做的工具（我填）
+1. 工具用途：______________________（例：發票稅額換算、會議抽籤）
+2. 誰會用：________________________
+3. 工具要做什麼：__________________
+4. 資料從哪來：
+   □ 不需要資料      □ 資料量很小，直接寫在程式裡
+   □ 使用者每次自己挑檔案／拖檔案進來（xlsx / csv / json / txt / pdf）
+
+# 二、平台規範（請勿更動）
+A. 只交出**一個檔案**：index.html。不要拆成多個 js / css 檔。
+B. **完全不連外**：不得使用 CDN、Google Fonts、外部圖片或任何 http(s) 網址。
+   需要的程式庫請**直接內嵌**，或改用瀏覽器原生 API：
+     · CSV / TXT → 自己寫解析（TextDecoder 可用）
+     · JSON      → JSON.parse
+     · XLSX      → 用 DecompressionStream(&#x27;deflate-raw&#x27;) 解 zip 後讀 sheet XML
+     · PDF       → 平台不能用 &lt;embed&gt;/&lt;iframe&gt; 顯示 PDF，Web Worker 也被禁用。
+                   只能：①提供「下載」按鈕　②內嵌 pdf.js 並關閉 worker、畫到 canvas
+C. 要讓使用者提供檔案時，用 &lt;input type=&quot;file&quot;&gt; 或拖放，**不要**去讀固定路徑。
+D. 要讓使用者把結果存下來時，**只能**用：
+   產生 Blob → URL.createObjectURL → &lt;a download&gt; 觸發下載。
+   不要用 showSaveFilePicker，不要呼叫任何伺服器 API。
+E. **不要依賴 localStorage 保存重要資料**（平台可能不給用）。
+   若要用必須 try/catch 包住，而且不能是唯一的保存手段。
+F. 介面：繁體中文、系統內建字型、支援深淺色（prefers-color-scheme）、手機可用。
+
+# 三、交付內容
+1. index.html 完整原始碼
+2. **自我檢查清單**，逐條回答「是／否」並附證據：
+   □ 只有一個 index.html？
+   □ 全檔沒有任何 http:// 或 https:// 的外部資源？
+   □ 沒有引用 CDN 程式庫？
+   □ 沒有絕對路徑（C:\ 之類）？
+   □ 存檔是用 Blob + a download？
+   □ 沒有把 localStorage 當唯一保存手段？
+</pre>
+</div>
+
+<h3>範本 B · 需要與他人共用資料</h3>
+<p>適合:發號、共用主檔、大家一起維護的清單。產出會是<strong>兩個檔案</strong>。</p>
+<div class="promptbox">
+  <div class="promptbar">
+    <span>範本 B · HTML ＋ 資料檔</span>
+    <button type="button" class="copybtn" data-target="promptB">複製全文</button>
+  </div>
+  <pre id="promptB"># 角色
+你是前端工程師，要為「Netronix AI 應用商店」開發一支單檔網頁小工具。
+這支工具的資料**要給全公司共用**，所以程式與資料必須分開。
+這個平台有嚴格限制，請完全遵守下方「平台規範」，不得變通。
+
+# 一、我要做的工具（我填）
+1. 工具用途：______________________（例：依六碼規則產生產品代碼並防止重複）
+2. 誰會用：________________________（例：各部門大使，約 40 人）
+3. 資料檔格式：____________________（xlsx / csv / json / txt / pdf）
+4. 資料長什麼樣：直接貼上前 3～5 列，或描述欄位名稱與意義
+5. 工具要做什麼：__________________（查詢／計算／產生代碼／出報表…）
+6. 使用者需不需要「改資料並存回去」？  □ 只讀   □ 要能改
+
+# 二、平台規範（請勿更動）
+A. 交出**兩個檔案**，檔名固定：
+     index.html      ← 程式
+     data.&lt;副檔名&gt;   ← 資料（例 data.xlsx、data.csv、data.json、data.pdf）
+   **資料不要寫死在 HTML 裡**，一定要獨立成檔。
+B. 讀資料一律用 fetch(&#x27;./data.xlsx&#x27;) 這種**相對路徑**。
+   絕對不要出現 C:\Users\... 這種本機路徑。
+C. 一定要做「讀不到就退回內建範例資料」的處理：
+       let data = BUILTIN_SAMPLE;
+       try { data = await loadFrom(&#x27;./data.xlsx&#x27;); } catch (e) { /* 用內建 */ }
+   理由：使用者可能直接雙擊 HTML，那時瀏覽器不給讀外部檔，工具必須照樣能開。
+   畫面上請顯示目前用的是「外部共用檔」還是「內建範例」。
+D. 存檔**只能**用這一種方式：
+   產生 Blob → URL.createObjectURL → &lt;a download&gt; 觸發下載，
+   而且下載的檔名要與來源相同（data.xlsx）。
+   不要用 showSaveFilePicker，不要呼叫任何伺服器 API，不要用 fetch 上傳。
+E. **完全不連外**：不得使用 CDN、Google Fonts、外部圖片或任何 http(s) 網址。
+   需要的程式庫請**直接內嵌**，或改用瀏覽器原生 API：
+     · CSV / TXT → 自己寫解析（TextDecoder 可用）
+     · JSON      → JSON.parse
+     · XLSX      → 用 DecompressionStream(&#x27;deflate-raw&#x27;) 解 zip 後讀 sheet XML
+     · PDF       → 平台不能用 &lt;embed&gt;/&lt;iframe&gt; 顯示 PDF，Web Worker 也被禁用。
+                   只能：①提供「下載這份 PDF」按鈕
+                         ②內嵌 pdf.js 並關閉 worker、畫到 canvas
+F. **不要依賴 localStorage 保存重要資料**（平台可能不給用）。
+   若要用必須 try/catch 包住，而且不能是唯一的保存手段。
+   使用者的成果要靠「存回 data 檔」保存，不是靠瀏覽器記住。
+G. 介面：繁體中文、系統內建字型、支援深淺色（prefers-color-scheme）、手機可用。
+H. 只用單一個 index.html，不要拆成多個 js / css 檔。
+
+# 三、交付內容
+1. index.html 完整原始碼
+2. data.&lt;副檔名&gt; 範例檔（含 3～5 筆示範資料）
+3. 「資料檔欄位說明」表格 —— 讓維護者知道怎麼用 Excel 編輯
+4. **自我檢查清單**，逐條回答「是／否」並附證據：
+   □ 資料有獨立成 data 檔，沒有寫死在 HTML？
+   □ 讀取用相對路徑 ./data.xxx？
+   □ 有「讀不到就用內建範例」的後備，而且畫面看得出用的是哪一份？
+   □ 存檔是用 Blob + a download，檔名與來源相同？
+   □ 全檔沒有任何 http:// 或 https:// 的外部資源？
+   □ 沒有引用 CDN 程式庫？
+   □ 沒有絕對路徑（C:\ 之類）？
+   □ 沒有把 localStorage 當唯一保存手段？
+</pre>
+</div>
+
+<h3>各種資料格式怎麼處理</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:100px">格式</th><th>在平台裡的做法</th><th class="c" style="width:96px">難度</th></tr></thead>
+<tbody>
+<tr><td><code>csv</code> / <code>txt</code></td><td>自己寫解析,不需要任何程式庫</td><td class="c"><span class="ok">最簡單</span></td></tr>
+<tr><td><code>json</code></td><td><code>JSON.parse</code> 一行搞定</td><td class="c"><span class="ok">最簡單</span></td></tr>
+<tr><td><code>xlsx</code></td><td>用瀏覽器原生的 <code>DecompressionStream</code> 解 zip 再讀 sheet —— <strong>不需要 SheetJS</strong></td><td class="c"><span class="ok">中等</span></td></tr>
+<tr><td><code>pdf</code></td><td>🔴 平台<strong>不能</strong>用 <code>&lt;embed&gt;</code> 顯示 PDF,Worker 也被禁 →
+    只能「提供下載按鈕」或「內嵌 pdf.js 並關閉 worker」</td><td class="c"><span class="wa">較麻煩</span></td></tr>
+<tr><td>圖片</td><td>只允許 <code>data:</code> 與 <code>blob:</code> —— 圖片請轉成 base64 內嵌</td><td class="c"><span class="ok">中等</span></td></tr>
+</tbody></table></div>
+
+<h3>檔名規則</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:170px">檔案</th><th>規定</th></tr></thead>
+<tbody>
+<tr><td><code>index.html</code></td><td>程式一律用這個名字</td></tr>
+<tr><td><code>data.xlsx</code> 等</td><td>資料檔一律叫 <code>data.</code> ＋ 副檔名。<strong>不要用中文檔名</strong> —— 不同系統與瀏覽器對中文檔名的處理不一致,容易讀不到</td></tr>
+<tr><td>上傳時</td><td>兩個檔<strong>壓成一個 zip</strong>(壓縮時不要多包一層資料夾)</td></tr>
+</tbody></table></div>
+
+<div class="box bad"><span class="tag">AI 最常犯的三個錯,拿到成品先檢查這三項</span>
+<p><strong>① 偷偷引用 CDN</strong> —— 搜尋原始碼裡有沒有 <code>https://</code>,有就是錯的<br>
+   <strong>② 把資料寫死在 HTML 裡</strong> —— 範本 B 一定要有獨立的 data 檔<br>
+   <strong>③ 用了 <code>showSaveFilePicker</code></strong> —— 存檔必須是「觸發下載」那種寫法</p>
+<p style="margin-top:8px">Prompt 最後那份<strong>自我檢查清單</strong>就是為了逼 AI 自己回答這幾點。
+   如果它沒有逐條回答,直接叫它「請補上自我檢查清單」。</p></div>
+</section>
+
+<!-- ══════════ 頁 6 · 待決定・附錄 ══════════ -->
+
+<div class="pagenav">
+  <button id="prevBtn" type="button">← 上一頁</button>
+  <button id="nextBtn" type="button">下一頁 →</button>
+</div>
+
+<footer>
+  NTX AI 推動委員會 · AI 應用商店上架架構 · 2026-08-17<br>
+  本報告為單檔 HTML,不連外、不載入任何外部資源 —— 與要求大使遵守的規範一致。
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  /* ── 頁籤：切換整頁 ── */
+  var tabs = [].slice.call(document.querySelectorAll('[role="tab"]'));
+  var prevBtn = document.getElementById("prevBtn"), nextBtn = document.getElementById("nextBtn");
+  var cur = 0;
+  function show(i, scroll) {
+    cur = Math.max(0, Math.min(tabs.length - 1, i));
+    tabs.forEach(function (t, k) {
+      var on = k === cur;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      var panel = document.getElementById(t.getAttribute("aria-controls"));
+      if (panel) panel.hidden = !on;
+    });
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === tabs.length - 1;
+    nextBtn.textContent = cur === tabs.length - 1 ? "已是最後一頁" : (tabs[cur + 1].textContent.trim() + " →");
+    prevBtn.textContent = cur === 0 ? "已是第一頁" : ("← " + tabs[cur - 1].textContent.trim());
+    try { history.replaceState(null, "", "#" + tabs[cur].getAttribute("aria-controls")); } catch (e) {}
+    if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { show(i, true); });
+    t.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = (i + d + tabs.length) % tabs.length;
+      tabs[n].focus(); show(n, true);
+    });
+  });
+  prevBtn.addEventListener("click", function () { show(cur - 1, true); });
+  nextBtn.addEventListener("click", function () { show(cur + 1, true); });
+  /* 開啟時若網址帶 #p3 就直接跳到那一頁（方便把某一頁的連結傳給別人） */
+  var want = (location.hash || "").replace("#", "");
+  var idx = 0;
+  tabs.forEach(function (t, k) { if (t.getAttribute("aria-controls") === want) idx = k; });
+  show(idx, false);
+
+  /* ── 深淺色 ── */
+  var btn = document.getElementById("themeBtn"), KEY = "ntx-report-theme";
+  var modes = [["auto", "◐ 自動"], ["light", "☀ 淺色"], ["dark", "☾ 深色"]];
+  function read() { try { return localStorage.getItem(KEY) || "auto"; } catch (e) { return "auto"; } }
+  function apply(m) {
+    if (m === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", m);
+    var hit = modes.filter(function (x) { return x[0] === m; })[0] || modes[0];
+    btn.textContent = hit[1];
+    try { localStorage.setItem(KEY, m); } catch (e) {}   /* file:// 可能不給存，不影響切換 */
+  }
+  apply(read());
+  btn.addEventListener("click", function () {
+    var c = read(), i = 0;
+    modes.forEach(function (x, k) { if (x[0] === c) i = k; });
+    apply(modes[(i + 1) % modes.length][0]);
+  });
+})();
+</script>
+<script>
+/* 一鍵複製 Prompt（clipboard 不給用時退回舊方法，file:// 也能複製） */
+document.querySelectorAll(".copybtn").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var el = document.getElementById(b.getAttribute("data-target"));
+    if (!el) return;
+    var text = el.textContent, done = function () {
+      var old = b.textContent; b.textContent = "已複製 ✓"; b.classList.add("done");
+      setTimeout(function () { b.textContent = old; b.classList.remove("done"); }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) { b.textContent = "請手動選取複製"; }
+      document.body.removeChild(ta);
+    }
+  });
+});
+</script>
+</body>
+</html>
