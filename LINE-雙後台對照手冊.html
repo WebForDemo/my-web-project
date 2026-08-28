@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LINE 雙後台對照手冊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+
+<style>
+  :root{
+    --bg:#F5F7F6; --surface:#FFFFFF; --surface-2:#EEF2F0;
+    --ink:#16201C; --ink-2:#5C6C65; --ink-3:#8A9992;
+    --line:#DCE4E0; --line-2:#C6D2CC;
+    --accent:#0E7C48; --accent-soft:#E4F1EA;
+    --dev:#2E5C8A; --dev-soft:#E3EDF6;
+    --warn:#96601A; --warn-soft:#F8EEDD;
+    --crit:#A83A26; --crit-soft:#F9E9E4;
+    --shadow:0 1px 2px rgba(22,32,28,.05), 0 8px 24px -16px rgba(22,32,28,.24);
+    --sans:'IBM Plex Sans','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    --mono:'IBM Plex Mono','Noto Sans TC',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1412; --surface:#151D1A; --surface-2:#1B2521;
+      --ink:#E3ECE7; --ink-2:#93A49B; --ink-3:#6E7F77;
+      --line:#25302B; --line-2:#33403A;
+      --accent:#45C084; --accent-soft:#12291E;
+      --dev:#78A9D8; --dev-soft:#15222E;
+      --warn:#D9A354; --warn-soft:#2A2114;
+      --crit:#E58166; --crit-soft:#2E1B16;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1412; --surface:#151D1A; --surface-2:#1B2521;
+    --ink:#E3ECE7; --ink-2:#93A49B; --ink-3:#6E7F77;
+    --line:#25302B; --line-2:#33403A;
+    --accent:#45C084; --accent-soft:#12291E;
+    --dev:#78A9D8; --dev-soft:#15222E;
+    --warn:#D9A354; --warn-soft:#2A2114;
+    --crit:#E58166; --crit-soft:#2E1B16;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 28px}
+
+  .masthead{padding:60px 0 28px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px;font-weight:500}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.14;margin:0 0 16px;font-weight:600;
+    letter-spacing:-.02em;text-wrap:balance}
+  .lede{font-size:17.5px;color:var(--ink-2);margin:0;max-width:64ch}
+  .meta-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .chip{font-family:var(--mono);font-size:11.5px;padding:5px 11px;border-radius:3px;
+    background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+  .chip.oa{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+  .chip.dev{background:var(--dev-soft);color:var(--dev);border-color:transparent}
+
+  .tabbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+  .tablist{display:flex;gap:2px;overflow-x:auto;max-width:1000px;margin:0 auto;padding:0 28px}
+  .tab{flex:0 0 auto;appearance:none;background:none;border:0;cursor:pointer;
+    font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-2);
+    padding:15px 15px 13px;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:3px}
+  .tab .num{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:7px}
+  .tab[aria-selected="true"] .num{color:var(--accent)}
+
+  .panel{padding:42px 0 90px}
+  .panel[hidden]{display:none}
+
+  h2{font-size:25px;font-weight:600;letter-spacing:-.015em;margin:0 0 6px;text-wrap:balance}
+  h2 + .sub{color:var(--ink-2);margin:0 0 28px;font-size:15.5px;max-width:62ch}
+  h3{font-size:17.5px;font-weight:600;margin:38px 0 12px;letter-spacing:-.01em;text-wrap:balance}
+  h4{font-size:14.5px;font-weight:600;margin:24px 0 8px}
+  p{margin:0 0 16px;max-width:68ch}
+  ul,ol{margin:0 0 18px;padding-left:22px;max-width:68ch}
+  li{margin-bottom:7px}
+  code{font-family:var(--mono);font-size:.875em;background:var(--surface-2);
+    padding:2px 5px;border-radius:3px;border:1px solid var(--line)}
+  a{color:var(--accent)}
+  .divider{height:1px;background:var(--line);margin:42px 0;border:0}
+
+  .pre-wrap{overflow-x:auto;margin:0 0 20px;border-radius:5px;border:1px solid var(--line);background:var(--surface)}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.66;margin:0;padding:15px 17px;color:var(--ink);white-space:pre}
+  pre .c{color:var(--ink-3)}
+  pre .g{color:var(--accent)}
+  pre .r{color:var(--crit)}
+
+  .table-wrap{overflow-x:auto;margin:0 0 22px;border:1px solid var(--line);border-radius:5px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{text-align:left;padding:10px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;background:var(--surface-2);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  td.path{font-family:var(--mono);font-size:12px;white-space:nowrap}
+  .yes{color:var(--accent);font-weight:600}
+  .no{color:var(--ink-3)}
+  .both{color:var(--warn);font-weight:600}
+  .tag-oa{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;
+    background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+  .tag-dev{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;
+    background:var(--dev-soft);color:var(--dev);white-space:nowrap}
+
+  .note{border:1px solid var(--line);border-left:3px solid var(--ink-3);background:var(--surface);
+    padding:16px 20px;border-radius:0 5px 5px 0;margin:0 0 22px}
+  .note.warn{border-left-color:var(--warn);background:var(--warn-soft);border-color:transparent}
+  .note.crit{border-left-color:var(--crit);background:var(--crit-soft);border-color:transparent}
+  .note.ok{border-left-color:var(--accent);background:var(--accent-soft);border-color:transparent}
+  .note-title{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+    font-weight:500;margin:0 0 7px;color:var(--ink-2)}
+  .note.warn .note-title{color:var(--warn)}
+  .note.crit .note-title{color:var(--crit)}
+  .note.ok .note-title{color:var(--accent)}
+  .note p{max-width:none}
+  .note p:last-child{margin-bottom:0}
+
+  figure{margin:0 0 30px;background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:24px 22px 16px;overflow-x:auto}
+  figure svg{display:block;max-width:100%;height:auto;color:var(--ink);min-width:660px}
+  figcaption{font-size:13px;color:var(--ink-2);margin-top:16px;padding-top:13px;
+    border-top:1px solid var(--line);max-width:none}
+
+  .grid{display:grid;gap:14px;margin-bottom:24px}
+  .grid.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:18px 20px;box-shadow:var(--shadow)}
+  .card.oa{border-top:3px solid var(--accent)}
+  .card.dev{border-top:3px solid var(--dev)}
+  .card h4{margin:0 0 4px;font-size:15px}
+  .card .url{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin:0 0 12px}
+  .card ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-2);max-width:none}
+  .card li{margin-bottom:4px}
+
+  .steps{list-style:none;padding:0;margin:0 0 24px;max-width:none;counter-reset:s}
+  .steps > li{position:relative;padding:0 0 22px 42px;margin:0;counter-increment:s;
+    border-left:1px solid var(--line);margin-left:13px}
+  .steps > li:last-child{border-left-color:transparent;padding-bottom:0}
+  .steps > li::before{content:counter(s);position:absolute;left:-13px;top:0;
+    width:26px;height:26px;border-radius:50%;background:var(--accent-soft);
+    border:1px solid transparent;color:var(--accent);font-family:var(--mono);
+    font-size:11.5px;font-weight:500;display:flex;align-items:center;justify-content:center}
+  .steps > li.dev-step::before{background:var(--dev-soft);color:var(--dev)}
+  .step-h{font-weight:600;margin:0 0 5px;font-size:15px;padding-top:1px}
+  .steps p{font-size:14px;color:var(--ink-2);margin:0 0 9px;max-width:66ch}
+
+  .footer{border-top:1px solid var(--line);padding:26px 0 60px;color:var(--ink-3);font-size:13px}
+  .footer p{max-width:none;margin:0}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:640px){.wrap,.tablist{padding:0 18px}.masthead{padding:40px 0 22px}}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">對照手冊 · LINE 官方帳號</p>
+    <h1>LINE 雙後台對照手冊</h1>
+    <p class="lede">
+      同一個 LINE 官方帳號，卻有兩個管理後台。它們不是新舊版本，也不是主從關係——
+      而是同一個帳號的兩種視角，各管一半。搞清楚哪件事在哪邊做，能省下大量鬼打牆的時間。
+    </p>
+    <div class="meta-strip">
+      <span class="chip oa">Official Account Manager</span>
+      <span class="chip dev">Developers Console</span>
+      <span class="chip">一個帳號，兩個入口</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar">
+  <div class="tablist" role="tablist" aria-label="手冊章節">
+    <button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true"><span class="num">01</span>全貌</button>
+    <button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1"><span class="num">02</span>各管什麼</button>
+    <button class="tab" role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1"><span class="num">03</span>重疊的陷阱</button>
+    <button class="tab" role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1"><span class="num">04</span>正確順序</button>
+    <button class="tab" role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1"><span class="num">05</span>方案與計費</button>
+    <button class="tab" role="tab" id="t6" aria-controls="p6" aria-selected="false" tabindex="-1"><span class="num">06</span>LIFF 應用</button>
+    <button class="tab" role="tab" id="t7" aria-controls="p7" aria-selected="false" tabindex="-1"><span class="num">07</span>疑難排解</button>
+  </div>
+</nav>
+
+<main>
+<!-- ===== 01 全貌 ===== -->
+<section class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+  <div class="wrap">
+    <h2>一個帳號，兩個入口</h2>
+    <p class="sub">使用者加為好友的只有一個帳號。兩個後台看的是同一個東西，只是各自負責不同的面向。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 400" role="img" aria-label="架構圖：中央是 LINE 官方帳號實體，左側 Official Account Manager 管理經營面，右側 Developers Console 以 Provider 與 Channel 的階層管理技術面，兩者操作的是同一個帳號">
+        <defs>
+          <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- centre: the account -->
+        <rect x="366" y="26" width="228" height="72" rx="6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <text x="480" y="52" text-anchor="middle" font-size="13" fill="currentColor" font-weight="600">LINE 官方帳號</text>
+        <text x="480" y="70" text-anchor="middle" font-size="11" fill="currentColor" opacity=".65">使用者加好友的那個實體</text>
+        <text x="480" y="87" text-anchor="middle" font-family="monospace" font-size="10.5" fill="currentColor" opacity=".5">@335uiwfi</text>
+
+        <!-- split arrows -->
+        <path d="M 400 98 L 250 140" fill="none" stroke="#0E7C48" stroke-width="1.4" marker-end="url(#a1)"/>
+        <path d="M 560 98 L 712 140" fill="none" stroke="#2E5C8A" stroke-width="1.4" marker-end="url(#a1)"/>
+        <text x="300" y="120" text-anchor="middle" font-size="10.5" fill="#0E7C48">經營面</text>
+        <text x="662" y="120" text-anchor="middle" font-size="10.5" fill="#2E5C8A">技術面</text>
+
+        <!-- left console -->
+        <rect x="26" y="148" width="404" height="228" rx="6" fill="none" stroke="#0E7C48" stroke-width="1.5"/>
+        <text x="46" y="174" font-size="12.5" fill="#0E7C48" font-weight="600">Official Account Manager</text>
+        <text x="46" y="191" font-family="monospace" font-size="10.5" fill="#0E7C48" opacity=".75">manager.line.biz</text>
+        <line x1="46" y1="202" x2="410" y2="202" stroke="#0E7C48" stroke-width="1" opacity=".28"/>
+        <text x="46" y="223" font-size="11.5" fill="currentColor" opacity=".8">帳號設定 — 名稱、頭像、類別</text>
+        <text x="46" y="245" font-size="11.5" fill="currentColor" opacity=".8">回應設定 — 自動回應、聊天、Webhook</text>
+        <text x="46" y="267" font-size="11.5" fill="currentColor" opacity=".8">聊天 — 人工客服介面</text>
+        <text x="46" y="289" font-size="11.5" fill="currentColor" opacity=".8">分析 — 好友數、訊息成效</text>
+        <text x="46" y="311" font-size="11.5" fill="currentColor" opacity=".8">群發訊息、圖文選單、LINE VOOM</text>
+        <text x="46" y="333" font-size="11.5" fill="currentColor" opacity=".8">帳務專區 — 方案、付款、專屬 ID</text>
+        <text x="46" y="358" font-size="10.5" fill="#0E7C48">扁平結構：帳號 → 各項設定</text>
+
+        <!-- right console -->
+        <rect x="530" y="148" width="404" height="228" rx="6" fill="none" stroke="#2E5C8A" stroke-width="1.5"/>
+        <text x="550" y="174" font-size="12.5" fill="#2E5C8A" font-weight="600">Developers Console</text>
+        <text x="550" y="191" font-family="monospace" font-size="10.5" fill="#2E5C8A" opacity=".75">developers.line.biz</text>
+        <line x1="550" y1="202" x2="914" y2="202" stroke="#2E5C8A" stroke-width="1" opacity=".28"/>
+
+        <!-- nested hierarchy -->
+        <rect x="550" y="212" width="364" height="120" rx="4" fill="none" stroke="#2E5C8A" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/>
+        <text x="562" y="230" font-size="11" fill="#2E5C8A" font-weight="600">Provider「NetronixAI」</text>
+        <rect x="570" y="238" width="330" height="84" rx="4" fill="none" stroke="#2E5C8A" stroke-width="1" opacity=".45"/>
+        <text x="582" y="256" font-size="11" fill="#2E5C8A" font-weight="600">Channel「Netronix_AI_Bot」</text>
+        <text x="582" y="276" font-size="11" fill="currentColor" opacity=".8">Basic settings — Channel secret</text>
+        <text x="582" y="294" font-size="11" fill="currentColor" opacity=".8">Messaging API — token、Webhook</text>
+        <text x="582" y="312" font-size="11" fill="currentColor" opacity=".8">LIFF / Security / Roles</text>
+
+        <text x="550" y="358" font-size="10.5" fill="#2E5C8A">巢狀結構：Provider → Channel → 分頁</text>
+      </svg>
+      <figcaption>
+        兩個後台操作的是同一個帳號。左邊是扁平的設定清單，右邊多了
+        <strong>Provider → Channel</strong> 兩層——這是最容易迷路的地方，因為 OA Manager 完全沒有這個概念。
+      </figcaption>
+    </figure>
+
+    <div class="grid g2">
+      <div class="card oa">
+        <h4>Official Account Manager</h4>
+        <p class="url">manager.line.biz</p>
+        <ul>
+          <li>給行銷、客服、營運人員用</li>
+          <li>不需要任何程式知識</li>
+          <li>大多數 LINE 官方帳號<strong>只用這個</strong></li>
+        </ul>
+      </div>
+      <div class="card dev">
+        <h4>Developers Console</h4>
+        <p class="url">developers.line.biz/console</p>
+        <ul>
+          <li>給工程師用</li>
+          <li>金鑰、webhook、API 設定</li>
+          <li>只有要串接系統時才需要</li>
+        </ul>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <h2>為什麼要分成兩個</h2>
+    <p>
+      因為 LINE 官方帳號<strong>本來就不一定要接 API</strong>。
+    </p>
+    <p>
+      餐廳、零售、診所這類使用者只想群發優惠券、設個圖文選單、看看好友數，
+      完全不碰程式。對他們來說 Developers Console 是多餘的複雜度。
+    </p>
+    <p>
+      所以 LINE 把「開店做生意」和「串接系統」拆成兩個介面。
+      Messaging API 是<strong>額外啟用的能力</strong>，不是預設就有。
+    </p>
+
+    <div class="note ok">
+      <p class="note-title">綁定關係</p>
+      <p>
+        一個 Messaging API channel <strong>對應一個</strong>官方帳號，一對一。
+        當初在 OA Manager 點「設定 → Messaging API → 啟用」的那一步，
+        就是把既有的官方帳號綁進 Developers Console 的某個 Provider 底下。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 02 各管什麼 ===== -->
+<section class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+  <div class="wrap">
+    <h2>哪件事該去哪邊做</h2>
+    <p class="sub">找不到某個設定時，先查這張表，通常是走錯後台。</p>
+
+    <h3>只有 Official Account Manager 能做</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>要做的事</th><th>位置</th></tr></thead>
+        <tbody>
+          <tr><td>改 bot 名稱、頭像、狀態消息</td><td class="path">設定 → 帳號設定</td></tr>
+          <tr><td>關閉自動回應訊息</td><td class="path">設定 → 回應設定</td></tr>
+          <tr><td>設定加入好友的歡迎訊息</td><td class="path">設定 → 回應設定</td></tr>
+          <tr><td>切換人工聊天模式</td><td class="path">設定 → 回應設定</td></tr>
+          <tr><td>群發訊息、圖文選單</td><td class="path">主頁</td></tr>
+          <tr><td>查好友數、訊息成效</td><td class="path">分析</td></tr>
+          <tr><td>方案變更、付款、發票</td><td class="path">帳務專區</td></tr>
+          <tr><td>購買專屬 ID</td><td class="path">帳務專區 → 專屬ID</td></tr>
+          <tr><td>營運人員權限管理</td><td class="path">設定 → 權限管理</td></tr>
+          <tr><td>是否接受邀請加入群組</td><td class="path">設定 → 帳號設定</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p class="note-title">Developers Console 會提醒你</p>
+      <p>
+        在 Basic settings 頁想改名稱時，它會直接寫著
+        「You can change your app name and icon in <strong>LINE Official Account Manager</strong>」，
+        並附上連結。這是刻意的設計，不是缺功能。
+      </p>
+    </div>
+
+    <h3>只有 Developers Console 能做</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>要拿／要設的東西</th><th>分頁</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Channel secret</strong></td><td class="path">Basic settings</td><td>約 32 位英數字，用於驗證 webhook 簽章</td></tr>
+          <tr><td><strong>Channel access token</strong></td><td class="path">Messaging API</td><td>捲到最下方按 <strong>Issue</strong>，約 170 字元</td></tr>
+          <tr><td><strong>Webhook URL</strong></td><td class="path">Messaging API</td><td>你的伺服器位址</td></tr>
+          <tr><td>Use webhook 開關</td><td class="path">Messaging API</td><td>與 OA Manager 連動，見下一頁</td></tr>
+          <tr><td>Verify（連線測試）</td><td class="path">Messaging API</td><td>LINE 主動送一個測試事件</td></tr>
+          <tr><td>Channel ID</td><td class="path">Basic settings</td><td>本例為 2011282819</td></tr>
+          <tr><td>LIFF 應用</td><td class="path">LIFF</td><td>在 LINE 內開網頁</td></tr>
+          <tr><td>IP 白名單等安全設定</td><td class="path">Security</td><td></td></tr>
+          <tr><td>開發人員權限</td><td class="path">Roles</td><td>與 OA Manager 的權限管理各自獨立</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>兩邊都有</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>OA Manager</th><th>Developers Console</th></tr></thead>
+        <tbody>
+          <tr><td>加好友 QR code</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Channel ID</td><td>顯示於 Messaging API 頁</td><td class="yes">✓ Basic settings</td></tr>
+          <tr><td><strong>Webhook 開關</strong></td><td class="both">回應設定</td><td class="both">Messaging API</td></tr>
+          <tr><td>權限管理</td><td>營運人員</td><td>開發人員（Roles）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <p class="note-title">兩套權限互不相通</p>
+      <p>
+        把同事加進 OA Manager 的「權限管理」，<strong>不代表</strong>他能進 Developers Console；
+        反之亦然。要讓人同時能做兩邊的事，兩邊都得加。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 03 重疊的陷阱 ===== -->
+<section class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+  <div class="wrap">
+    <h2>Webhook 開關為什麼點不動</h2>
+    <p class="sub">這是最常見的卡關點。它不是故障，是順序限制。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 300" role="img" aria-label="依賴關係圖：Webhook URL 必須先在 Developers Console 填入，Official Account Manager 的 Webhook 開關才會解鎖，兩邊都開啟後訊息才會送達你的伺服器">
+        <defs>
+          <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="a2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C48"/>
+          </marker>
+        </defs>
+
+        <!-- step 1 -->
+        <rect x="24" y="60" width="192" height="88" rx="5" fill="none" stroke="#2E5C8A" stroke-width="1.5"/>
+        <text x="120" y="82" text-anchor="middle" font-size="10" fill="#2E5C8A" font-weight="600">DEVELOPERS CONSOLE</text>
+        <text x="120" y="104" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">填入 Webhook URL</text>
+        <text x="120" y="124" text-anchor="middle" font-family="monospace" font-size="9.5" fill="currentColor" opacity=".6">https://…/line/webhook</text>
+        <text x="120" y="140" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">按 Update</text>
+
+        <line x1="216" y1="104" x2="270" y2="104" stroke="currentColor" stroke-width="1.3" marker-end="url(#a2)" opacity=".7"/>
+        <text x="243" y="94" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">解鎖</text>
+
+        <!-- step 2 -->
+        <rect x="276" y="60" width="192" height="88" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.5"/>
+        <text x="372" y="82" text-anchor="middle" font-size="10" fill="#0E7C48" font-weight="600">OA MANAGER</text>
+        <text x="372" y="106" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">Webhook 開關</text>
+        <text x="372" y="128" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".65">回應設定 → 打開</text>
+
+        <line x1="468" y1="104" x2="522" y2="104" stroke="#0E7C48" stroke-width="1.4" marker-end="url(#a2g)"/>
+
+        <!-- step 3 -->
+        <rect x="528" y="60" width="192" height="88" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.5"/>
+        <text x="624" y="82" text-anchor="middle" font-size="10" fill="#0E7C48" font-weight="600">兩邊都開啟後</text>
+        <text x="624" y="106" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">訊息開始送達</text>
+        <text x="624" y="128" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".65">你的伺服器收得到</text>
+
+        <line x1="720" y1="104" x2="774" y2="104" stroke="#0E7C48" stroke-width="1.4" marker-end="url(#a2g)"/>
+        <rect x="780" y="60" width="156" height="88" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/>
+        <text x="858" y="106" text-anchor="middle" font-size="12" fill="currentColor" opacity=".8">你的 Bot</text>
+
+        <!-- locked state below -->
+        <text x="24" y="196" font-size="11.5" fill="#A83A26" font-weight="600">若跳過第一步：</text>
+        <rect x="276" y="212" width="192" height="56" rx="5" fill="none" stroke="#A83A26" stroke-width="1.4" stroke-dasharray="5 3"/>
+        <text x="372" y="236" text-anchor="middle" font-size="11.5" fill="#A83A26" font-weight="600">開關呈灰色</text>
+        <text x="372" y="255" text-anchor="middle" font-size="10.5" fill="#A83A26" opacity=".85">點不動，非故障</text>
+        <text x="490" y="244" font-size="11" fill="currentColor" opacity=".7">← LINE 不接受「開啟 webhook 但沒有目的地」</text>
+      </svg>
+      <figcaption>
+        依賴方向是單向的：<strong>先在 Developers Console 填 URL，OA Manager 的開關才會解鎖</strong>。
+        兩個開關本質上是同一個設定的兩個入口，兩邊都要處於開啟狀態訊息才會轉送。
+      </figcaption>
+    </figure>
+
+    <div class="note crit">
+      <p class="note-title">實際踩過的狀況</p>
+      <p>
+        在 OA Manager 的回應設定看到 Webhook 開關是灰的、怎麼點都沒反應。
+        頁面下方其實已經寫了原因：
+        <em>「如需操作Webhook，請在Messaging API的設定畫面中設定Webhook網址。」</em>
+      </p>
+      <p>
+        而填 URL 需要一個公開的 HTTPS 位址，所以真正的順序是：
+        <strong>先架好通道 → 填 URL → 才回來開開關</strong>。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>自動回應訊息會蓋掉你的 Bot</h2>
+    <p class="sub">另一個重疊陷阱，症狀是「使用者收到罐頭訊息，不是我的回覆」。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 250" role="img" aria-label="訊息流程圖：使用者訊息抵達 LINE 平台後，若自動回應訊息開啟會直接送出罐頭訊息，同時 webhook 也轉送到你的伺服器，導致使用者收到兩則或錯誤的回覆">
+        <defs>
+          <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="a3r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#A83A26"/>
+          </marker>
+          <marker id="a3g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C48"/>
+          </marker>
+        </defs>
+
+        <rect x="24" y="98" width="140" height="56" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="94" y="131" text-anchor="middle" font-size="12" fill="currentColor">使用者發問</text>
+
+        <line x1="164" y1="126" x2="222" y2="126" stroke="currentColor" stroke-width="1.2" marker-end="url(#a3)" opacity=".7"/>
+
+        <rect x="228" y="98" width="150" height="56" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="303" y="131" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">LINE 平台</text>
+
+        <!-- branch up: auto reply -->
+        <path d="M 378 112 L 470 62" fill="none" stroke="#A83A26" stroke-width="1.3" marker-end="url(#a3r)"/>
+        <rect x="476" y="34" width="214" height="52" rx="5" fill="none" stroke="#A83A26" stroke-width="1.4"/>
+        <text x="583" y="55" text-anchor="middle" font-size="11.5" fill="#A83A26" font-weight="600">自動回應訊息（若開啟）</text>
+        <text x="583" y="73" text-anchor="middle" font-size="10.5" fill="#A83A26" opacity=".85">立刻送出罐頭訊息</text>
+
+        <!-- branch down: webhook -->
+        <path d="M 378 140 L 470 190" fill="none" stroke="#0E7C48" stroke-width="1.3" marker-end="url(#a3g)"/>
+        <rect x="476" y="164" width="214" height="52" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.4"/>
+        <text x="583" y="185" text-anchor="middle" font-size="11.5" fill="#0E7C48" font-weight="600">Webhook（若開啟）</text>
+        <text x="583" y="203" text-anchor="middle" font-size="10.5" fill="#0E7C48" opacity=".85">轉送到你的伺服器</text>
+
+        <!-- converge -->
+        <path d="M 690 60 L 762 110" fill="none" stroke="currentColor" stroke-width="1.1" marker-end="url(#a3)" opacity=".5"/>
+        <path d="M 690 190 L 762 142" fill="none" stroke="currentColor" stroke-width="1.1" marker-end="url(#a3)" opacity=".5"/>
+        <rect x="768" y="98" width="168" height="56" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="852" y="122" text-anchor="middle" font-size="11.5" fill="currentColor">使用者收到</text>
+        <text x="852" y="140" text-anchor="middle" font-size="11" fill="#A83A26">兩則，或錯的那則</text>
+      </svg>
+      <figcaption>
+        兩條路徑是<strong>並行</strong>的，不是二選一。自動回應沒關掉時，
+        使用者會先收到罐頭訊息，你的 bot 回覆隨後才到——或者根本被誤認為沒作用。
+        解法是在 OA Manager 把「自動回應訊息」停用。
+      </figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>回應設定項目</th><th>接 Bot 時該設成</th><th>不設會怎樣</th></tr></thead>
+        <tbody>
+          <tr><td>自動回應訊息</td><td class="no"><strong>停用</strong></td><td>使用者收到罐頭訊息</td></tr>
+          <tr><td>聊天</td><td class="no"><strong>停用</strong></td><td>進入人工客服模式</td></tr>
+          <tr><td>加入好友的歡迎訊息</td><td>可留</td><td>不影響 bot 運作</td></tr>
+          <tr><td>Webhook</td><td class="yes"><strong>啟用</strong></td><td>訊息不會轉送到你的伺服器</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 04 正確順序 ===== -->
+<section class="panel" id="p4" role="tabpanel" aria-labelledby="t4" hidden>
+  <div class="wrap">
+    <h2>從零到收得到訊息</h2>
+    <p class="sub">綠色是 OA Manager 的步驟，藍色是 Developers Console。注意兩邊是交錯進行的。</p>
+
+    <ol class="steps">
+      <li>
+        <p class="step-h"><span class="tag-oa">OA Manager</span> 建立官方帳號</p>
+        <p>用 LINE 帳號登入 <code>manager.line.biz</code>，建立官方帳號，填名稱、頭像、類別。</p>
+      </li>
+      <li>
+        <p class="step-h"><span class="tag-oa">OA Manager</span> 啟用 Messaging API</p>
+        <p>設定 → Messaging API → 啟用。過程中要選或建一個 <strong>Provider</strong>（組織容器，名字隨意）。</p>
+        <p>這一步就是把帳號綁進 Developers Console。<strong>隱私權政策與服務條款欄位為選填</strong>，測試階段可留空。</p>
+      </li>
+      <li>
+        <p class="step-h"><span class="tag-oa">OA Manager</span> 調整回應設定</p>
+        <p>設定 → 回應設定：關閉「自動回應訊息」與「聊天」。此時 Webhook 開關仍是灰的，正常。</p>
+      </li>
+      <li class="dev-step">
+        <p class="step-h"><span class="tag-dev">Developers</span> 取得兩把金鑰</p>
+        <p><strong>Channel secret</strong> 在 <code>Basic settings</code>；<strong>Channel access token</strong> 在 <code>Messaging API</code> 分頁最下方按 <strong>Issue</strong>。</p>
+        <p>兩把鑰匙任何人拿到都能冒用你的 bot，請當作密碼保管。</p>
+      </li>
+      <li>
+        <p class="step-h">架設公開 HTTPS 位址</p>
+        <p>LINE 的伺服器必須連得進你的機器。本機開發需要通道工具（cloudflared、ngrok）或有公網 IP 的主機。</p>
+      </li>
+      <li class="dev-step">
+        <p class="step-h"><span class="tag-dev">Developers</span> 填入 Webhook URL</p>
+        <p><code>Messaging API</code> → Webhook settings → 填完整路徑並按 <strong>Update</strong>，接著打開 <strong>Use webhook</strong>，按 <strong>Verify</strong>。</p>
+      </li>
+      <li>
+        <p class="step-h"><span class="tag-oa">OA Manager</span> 打開 Webhook 開關</p>
+        <p>回到回應設定，先前灰掉的開關現在已解鎖，打開它。<strong>兩邊都開，訊息才會送達。</strong></p>
+      </li>
+      <li>
+        <p class="step-h">加好友實測</p>
+        <p>用任一後台的 QR code 加好友並發訊息。收不到就照下一頁排查。</p>
+      </li>
+    </ol>
+
+    <div class="note ok">
+      <p class="note-title">記住這條規則就不會迷路</p>
+      <p>
+        <strong>要金鑰、設 webhook → Developers Console。</strong><br>
+        <strong>改外觀、關自動回覆、看數據 → Official Account Manager。</strong><br>
+        唯一的例外是 Webhook 開關，兩邊都要開。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 05 方案與計費 ===== -->
+<section class="panel" id="p5" role="tabpanel" aria-labelledby="t5" hidden>
+  <div class="wrap">
+    <h2>免費就能做 Bot，但要看清楚計費的是什麼</h2>
+    <p class="sub">
+      Messaging API 本身不收錢，收費的是<strong>訊息則數</strong>。
+      而關鍵在於：不是每一則訊息都會被計算。
+    </p>
+
+    <h3>三種方案（台灣，未稅）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>方案</th><th>月費</th><th>免費訊息</th><th>超量加購</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>輕用量</strong></td>
+            <td class="yes">NT$0</td>
+            <td>200 則／月</td>
+            <td class="no">不可加購</td>
+          </tr>
+          <tr>
+            <td><strong>中用量</strong></td>
+            <td>NT$800</td>
+            <td>3,000 則／月</td>
+            <td class="no">不可加購</td>
+          </tr>
+          <tr>
+            <td><strong>高用量</strong></td>
+            <td>NT$1,200</td>
+            <td>6,000 則／月</td>
+            <td class="yes">可加購，NT$0.2/則起（階梯計價）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <p class="note-title">中用量的陷阱</p>
+      <p>
+        中用量<strong>不可加購</strong>。3,000 則用完就是用完，只能等下個月，
+        或當月升級到高用量。要做量大的推播，直接評估高用量比較實際。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>真正的重點：回覆免費，推播才計費</h2>
+    <p class="sub">這是整頁最重要的一段。搞懂它，200 則的免費額度可以撐很久。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 320" role="img" aria-label="計費路徑圖：使用者發問後若在 reply token 有效期內回覆則完全免費，超時後改用 push 訊息會計入額度，而改送 postback 按鈕讓使用者點擊可取得新的 reply token 維持免費">
+        <defs>
+          <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="a4g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C48"/>
+          </marker>
+          <marker id="a4r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#A83A26"/>
+          </marker>
+        </defs>
+
+        <rect x="24" y="126" width="136" height="60" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="92" y="152" text-anchor="middle" font-size="11.5" fill="currentColor">使用者發問</text>
+        <text x="92" y="170" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">產生 reply token</text>
+
+        <line x1="160" y1="156" x2="216" y2="156" stroke="currentColor" stroke-width="1.2" marker-end="url(#a4)" opacity=".7"/>
+
+        <rect x="222" y="126" width="150" height="60" rx="5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="297" y="150" text-anchor="middle" font-size="11.5" fill="currentColor" font-weight="600">Bot 思考中</text>
+        <text x="297" y="169" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">token 有效期數十秒</text>
+
+        <!-- fast path -->
+        <path d="M 372 140 L 462 74" fill="none" stroke="#0E7C48" stroke-width="1.5" marker-end="url(#a4g)"/>
+        <text x="404" y="98" font-size="10" fill="#0E7C48">來得及</text>
+        <rect x="468" y="42" width="216" height="60" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.6"/>
+        <text x="576" y="66" text-anchor="middle" font-size="11.5" fill="#0E7C48" font-weight="600">Reply 回覆訊息</text>
+        <text x="576" y="85" text-anchor="middle" font-size="10.5" fill="#0E7C48">不計入額度 · 無限量</text>
+
+        <!-- slow path -->
+        <path d="M 372 172 L 462 238" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#a4)" opacity=".7"/>
+        <text x="398" y="220" font-size="10" fill="currentColor" opacity=".75">超時</text>
+
+        <rect x="468" y="208" width="216" height="60" rx="5" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".6"/>
+        <text x="576" y="232" text-anchor="middle" font-size="11.5" fill="currentColor" font-weight="600">token 失效，兩條路</text>
+        <text x="576" y="251" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">Hermes 預設走下面那條</text>
+
+        <!-- push (costs) -->
+        <path d="M 684 226 L 748 194" fill="none" stroke="#A83A26" stroke-width="1.4" marker-end="url(#a4r)"/>
+        <rect x="754" y="164" width="182" height="56" rx="5" fill="none" stroke="#A83A26" stroke-width="1.5"/>
+        <text x="845" y="187" text-anchor="middle" font-size="11.5" fill="#A83A26" font-weight="600">Push 推播</text>
+        <text x="845" y="205" text-anchor="middle" font-size="10.5" fill="#A83A26">每人每則計 1 則</text>
+
+        <!-- postback (free) -->
+        <path d="M 684 250 L 748 282" fill="none" stroke="#0E7C48" stroke-width="1.4" marker-end="url(#a4g)"/>
+        <rect x="754" y="254" width="182" height="56" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.6"/>
+        <text x="845" y="277" text-anchor="middle" font-size="11.5" fill="#0E7C48" font-weight="600">送出按鈕氣泡</text>
+        <text x="845" y="295" text-anchor="middle" font-size="10.5" fill="#0E7C48">點擊產生新 token · 免費</text>
+      </svg>
+      <figcaption>
+        Reply token 在使用者發訊時產生，有效期只有數十秒，期間內回覆<strong>完全免費且不限則數</strong>。
+        超時後主動推播就要計費——所以 Hermes 改送一顆按鈕，使用者一點就產生新的 reply token，全程維持免費。
+        那顆你以為是「卡住」的按鈕，其實是省錢機制。
+      </figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>訊息類型</th><th>API</th><th>計費</th><th>什麼時候會用到</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Reply 回覆</strong></td>
+            <td class="path">/v2/bot/message/reply</td>
+            <td class="yes">免費</td>
+            <td>使用者發訊後數十秒內回覆</td>
+          </tr>
+          <tr>
+            <td><strong>Push 推播</strong></td>
+            <td class="path">/v2/bot/message/push</td>
+            <td class="both">計 1 則／人</td>
+            <td>主動通知、reply token 過期後補送</td>
+          </tr>
+          <tr>
+            <td>Multicast 群發</td>
+            <td class="path">/v2/bot/message/multicast</td>
+            <td class="both">依人數計</td>
+            <td>一次發給多人</td>
+          </tr>
+          <tr>
+            <td>Broadcast 全體廣播</td>
+            <td class="path">/v2/bot/message/broadcast</td>
+            <td class="both">依好友數計</td>
+            <td>OA Manager 的群發功能</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note ok">
+      <p class="note-title">計費單位是「人」不是「訊息物件」</p>
+      <p>
+        一次 API 請求最多可帶 5 個訊息物件。發給<strong>一個人</strong>時，
+        那 5 則只算 <strong>1 則</strong>。所以要傳圖文並茂的長回覆，
+        塞在同一個請求裡比分次送划算得多。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>對純問答 Bot 的意義</h2>
+
+    <div class="note ok">
+      <p class="note-title">好消息</p>
+      <p>
+        只回答使用者提問的 bot，<strong>幾乎不會用到付費額度</strong>。
+        因為每一次回覆都是使用者先發問觸發的，走的是免費的 reply 路徑。
+        輕用量方案（月費 0 元）就足夠——那 200 則是留給「主動推播」用的。
+      </p>
+    </div>
+
+    <div class="note crit">
+      <p class="note-title">會燒掉額度的三件事</p>
+      <p>
+        <strong>1. 把慢速門檻設成 0。</strong> Hermes 的
+        <code>LINE_SLOW_RESPONSE_THRESHOLD=0</code> 會停用按鈕機制、
+        一律改用 Push 補送。回應慢的問題會變成每題扣 1 則額度，
+        輕用量方案 200 則很快見底。
+      </p>
+      <p>
+        <strong>2. 排程主動通知。</strong> cron 任務主動發訊息一定是 Push，全部計費。
+      </p>
+      <p>
+        <strong>3. 群發公告。</strong> 100 個好友發一次 = 100 則。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>另一個獨立的軸：帳號認證</h2>
+    <p class="sub">跟方案費用無關，常被混為一談。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>狀態</th><th>差別</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>未認證</strong>（一般帳號）</td>
+            <td>灰色盾牌。功能完整，但<strong>不會出現在 LINE 的搜尋結果</strong>，只能靠 QR code 或連結加好友</td>
+          </tr>
+          <tr>
+            <td><strong>已認證</strong>（認證帳號）</td>
+            <td>藍色盾牌。可被搜尋到，曝光度較高。需送審，審核公司資料</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      認證與否<strong>不影響訊息計費，也不影響 Messaging API 能不能用</strong>。
+      內部使用的 bot 通常不需要認證——反而不出現在搜尋結果比較安全。
+    </p>
+
+    <div class="note">
+      <p class="note-title">價格資訊的時效</p>
+      <p>
+        以上為 2026 年台灣地區方案，未稅。LINE 調整過數次計價，
+        實際費用請以 OA Manager 的「帳務專區 → 推廣方案」為準。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 06 LIFF 應用 ===== -->
+<section class="panel" id="p6" role="tabpanel" aria-labelledby="t6" hidden>
+  <div class="wrap">
+    <h2>LIFF：能跑在 LINE 裡、而且知道你是誰的網頁</h2>
+    <p class="sub">
+      LIFF 是 LINE Front-end Framework 的縮寫。
+      它不是特殊的 App 格式，本質上<strong>就是你自己寫的網頁</strong>——
+      只是多了兩件一般網頁做不到的事。
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>一般網頁</th><th>LIFF</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>使用者身分</td>
+            <td class="no">不知道你是誰，要註冊登入</td>
+            <td class="yes">直接取得 LINE user ID 與名稱</td>
+          </tr>
+          <tr>
+            <td>開啟方式</td>
+            <td class="no">跳出 LINE 開瀏覽器</td>
+            <td class="yes">在 LINE 內開，體驗不中斷</td>
+          </tr>
+          <tr>
+            <td>回到聊天室</td>
+            <td class="no">做不到</td>
+            <td class="yes">可把訊息送回原對話</td>
+          </tr>
+          <tr>
+            <td>金流</td>
+            <td>自行串接</td>
+            <td class="yes">可接 LINE Pay</td>
+          </tr>
+          <tr>
+            <td>程式放哪</td>
+            <td colspan="2"><strong>兩者都在你自己的伺服器上。LINE 不提供執行環境。</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note ok">
+      <p class="note-title">同一組 user ID</p>
+      <p>
+        LIFF 取得的 <code>userId</code>，跟聊天機器人在 webhook 收到的
+        <code>U</code> 開頭那串<strong>是同一個識別碼</strong>。
+        所以 bot 與 LIFF 網頁能認出是同一個人——這是把「LINE 帳號」綁到
+        「你系統裡的會員」的鑰匙。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>以點餐系統為例</h2>
+    <p class="sub">常見的誤解是「把系統搬到 LINE 上」。實際上系統完全沒有搬家。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 330" role="img" aria-label="點餐系統架構圖：LINE 圖文選單開啟 LIFF 網頁，該網頁是既有點餐系統的前端，訂單送往原本的後端資料庫，訂單狀態改變後以 Push 訊息通知使用者並產生費用">
+        <defs>
+          <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="a5g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C48"/>
+          </marker>
+          <marker id="a5r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#A83A26"/>
+          </marker>
+        </defs>
+
+        <!-- LINE side -->
+        <rect x="24" y="34" width="250" height="180" rx="6" fill="none" stroke="#0E7C48" stroke-width="1.5"/>
+        <text x="44" y="58" font-size="11.5" fill="#0E7C48" font-weight="600">LINE App 內</text>
+        <line x1="44" y1="68" x2="254" y2="68" stroke="#0E7C48" stroke-width="1" opacity=".25"/>
+
+        <rect x="46" y="82" width="206" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".5"/>
+        <text x="149" y="109" text-anchor="middle" font-size="11.5" fill="currentColor">圖文選單「立即點餐」</text>
+
+        <line x1="149" y1="126" x2="149" y2="152" stroke="#0E7C48" stroke-width="1.3" marker-end="url(#a5g)"/>
+
+        <rect x="46" y="156" width="206" height="44" rx="4" fill="none" stroke="#0E7C48" stroke-width="1.6"/>
+        <text x="149" y="176" text-anchor="middle" font-size="11.5" fill="#0E7C48" font-weight="600">LIFF 網頁</text>
+        <text x="149" y="192" text-anchor="middle" font-size="10" fill="#0E7C48" opacity=".8">LINE 內建瀏覽器</text>
+
+        <text x="149" y="238" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">使用者感覺「在 LINE 裡點餐」</text>
+
+        <!-- arrow across boundary -->
+        <line x1="274" y1="178" x2="356" y2="178" stroke="currentColor" stroke-width="1.4" marker-end="url(#a5)" opacity=".75"/>
+        <text x="315" y="169" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">HTTPS</text>
+
+        <!-- your infra -->
+        <rect x="362" y="34" width="330" height="180" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".65"/>
+        <text x="382" y="58" font-size="11.5" fill="currentColor" font-weight="600" opacity=".85">你的伺服器（完全沒搬家）</text>
+        <line x1="382" y1="68" x2="672" y2="68" stroke="currentColor" stroke-width="1" opacity=".2"/>
+
+        <rect x="384" y="82" width="286" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"/>
+        <text x="527" y="103" text-anchor="middle" font-size="11.5" fill="currentColor">點餐系統前端</text>
+        <text x="527" y="119" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">就是那個 LIFF 網頁本體</text>
+
+        <line x1="527" y1="126" x2="527" y2="152" stroke="currentColor" stroke-width="1.3" marker-end="url(#a5)" opacity=".7"/>
+
+        <rect x="384" y="156" width="286" height="44" rx="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".6"/>
+        <text x="527" y="177" text-anchor="middle" font-size="11.5" fill="currentColor">既有後端 + 資料庫</text>
+        <text x="527" y="193" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">訂單、庫存、金流</text>
+
+        <!-- push back -->
+        <path d="M 692 178 L 758 178" fill="none" stroke="#A83A26" stroke-width="1.4" marker-end="url(#a5r)"/>
+        <rect x="764" y="118" width="172" height="120" rx="5" fill="none" stroke="#A83A26" stroke-width="1.5"/>
+        <text x="850" y="144" text-anchor="middle" font-size="11.5" fill="#A83A26" font-weight="600">Push 訊息通知</text>
+        <text x="850" y="166" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">已接單</text>
+        <text x="850" y="184" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">製作中</text>
+        <text x="850" y="202" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">可取餐</text>
+        <text x="850" y="226" text-anchor="middle" font-size="10.5" fill="#A83A26" font-weight="600">每則計 1 則額度</text>
+
+        <text x="480" y="290" text-anchor="middle" font-size="11.5" fill="currentColor" opacity=".8">
+          LINE 只是換了一個入口 — 系統本身、資料庫、商業邏輯全部維持原狀
+        </text>
+        <text x="480" y="312" text-anchor="middle" font-size="11" fill="#A83A26">
+          一筆訂單通知三次 = 3 則。輕用量 200 則約等於 66 筆訂單
+        </text>
+      </svg>
+      <figcaption>
+        LIFF 網頁就是點餐系統的前端，只是被 LINE 的內建瀏覽器打開。
+        後端與資料庫完全不動。真正產生費用的是右邊的訂單狀態通知——那些是 Push，每則計費。
+      </figcaption>
+    </figure>
+
+    <hr class="divider">
+
+    <h2>為什麼點餐不用純對話做</h2>
+    <p class="sub">同一件事，兩種做法的落差。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 300" role="img" aria-label="流程對比圖：純對話點一杯飲料需要多次來回問答，LIFF 只需在一個畫面完成選擇並送出">
+        <!-- chat column -->
+        <rect x="24" y="30" width="420" height="248" rx="6" fill="none" stroke="#A83A26" stroke-width="1.4"/>
+        <text x="44" y="55" font-size="12" fill="#A83A26" font-weight="600">純對話：點一杯飲料</text>
+        <line x1="44" y1="65" x2="424" y2="65" stroke="#A83A26" stroke-width="1" opacity=".25"/>
+        <text x="44" y="88" font-size="11" fill="currentColor" opacity=".8">使用者：我要一杯珍奶</text>
+        <text x="44" y="110" font-size="11" fill="currentColor" opacity=".55">Bot：請問甜度？</text>
+        <text x="44" y="132" font-size="11" fill="currentColor" opacity=".8">使用者：半糖</text>
+        <text x="44" y="154" font-size="11" fill="currentColor" opacity=".55">Bot：冰塊呢？</text>
+        <text x="44" y="176" font-size="11" fill="currentColor" opacity=".8">使用者：少冰</text>
+        <text x="44" y="198" font-size="11" fill="currentColor" opacity=".55">Bot：要加料嗎？</text>
+        <text x="44" y="220" font-size="11" fill="currentColor" opacity=".4">⋯還要再問尺寸、數量、取餐時間⋯</text>
+        <text x="44" y="252" font-size="11.5" fill="#A83A26" font-weight="600">點三樣東西 → 二十幾次來回</text>
+
+        <!-- liff column -->
+        <rect x="516" y="30" width="420" height="248" rx="6" fill="none" stroke="#0E7C48" stroke-width="1.4"/>
+        <text x="536" y="55" font-size="12" fill="#0E7C48" font-weight="600">LIFF：同一件事</text>
+        <line x1="536" y1="65" x2="916" y2="65" stroke="#0E7C48" stroke-width="1" opacity=".25"/>
+
+        <rect x="536" y="80" width="380" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"/>
+        <text x="548" y="100" font-size="10.5" fill="currentColor" opacity=".75">珍珠奶茶　　　　　　　　　　　　 NT$60</text>
+        <rect x="536" y="116" width="122" height="26" rx="3" fill="none" stroke="#0E7C48" stroke-width="1.2"/>
+        <text x="597" y="134" text-anchor="middle" font-size="10" fill="#0E7C48">半糖</text>
+        <rect x="665" y="116" width="122" height="26" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"/>
+        <text x="726" y="134" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">少冰</text>
+        <rect x="794" y="116" width="122" height="26" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"/>
+        <text x="855" y="134" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">大杯</text>
+
+        <rect x="536" y="152" width="380" height="30" rx="3" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"/>
+        <text x="548" y="172" font-size="10.5" fill="currentColor" opacity=".75">四季青茶　　　　　　　　　　　　 NT$45</text>
+
+        <rect x="536" y="196" width="380" height="34" rx="4" fill="none" stroke="#0E7C48" stroke-width="1.6"/>
+        <text x="726" y="218" text-anchor="middle" font-size="11.5" fill="#0E7C48" font-weight="600">送出訂單　共 NT$105</text>
+
+        <text x="536" y="256" font-size="11.5" fill="#0E7C48" font-weight="600">一個畫面，全部看得見，一次送出</text>
+      </svg>
+      <figcaption>
+        判斷原則：<strong>需要「問答」用對話，需要「填表單、選選項、看清單」用 LIFF</strong>。
+        選規格、比價格、改數量、看小計——這些本質上是視覺任務，用文字做只會讓人放棄。
+      </figcaption>
+    </figure>
+
+    <hr class="divider">
+
+    <h2>實際怎麼做一個 LIFF</h2>
+
+    <ol class="steps">
+      <li>
+        <p class="step-h">寫一個網頁</p>
+        <p>React、Vue、純 HTML 都可以，你原本會的技術即可。放在有 <strong>HTTPS</strong> 的位址上。</p>
+      </li>
+      <li class="dev-step">
+        <p class="step-h"><span class="tag-dev">Developers</span> 在 LIFF 分頁註冊</p>
+        <p>填入網頁網址、選顯示尺寸，它會給你一個 <strong>LIFF ID</strong>。</p>
+      </li>
+      <li>
+        <p class="step-h">網頁裡引入 SDK 並初始化</p>
+        <div class="pre-wrap"><pre>await liff.init({ liffId: <span class="g">"你的-LIFF-ID"</span> });
+
+const profile = await liff.getProfile();
+profile.userId       <span class="c">// Ubbd58c5a…　跟 webhook 收到的同一個</span>
+profile.displayName  <span class="c">// 使用者名稱</span></pre></div>
+        <p>剩下就是一般的網頁開發。</p>
+      </li>
+      <li>
+        <p class="step-h">設定進入點</p>
+        <p>通常在圖文選單放一顆按鈕，或在對話中送連結。網址格式：</p>
+        <div class="pre-wrap"><pre>https://liff.line.me/{你的 LIFF ID}</pre></div>
+      </li>
+    </ol>
+
+    <h4>三種顯示尺寸</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>尺寸</th><th>佔畫面</th><th>適合</th></tr></thead>
+        <tbody>
+          <tr><td class="path">Compact</td><td>約一半</td><td>簡單選擇、確認對話框</td></tr>
+          <tr><td class="path">Tall</td><td>約八成</td><td>表單、清單</td></tr>
+          <tr><td class="path">Full</td><td>全螢幕</td><td>完整流程，如點餐結帳</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <h2>對話機器人 vs LIFF：怎麼選</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>對話機器人</th><th>LIFF</th></tr></thead>
+        <tbody>
+          <tr><td>形態</td><td>使用者打字問</td><td>使用者點選操作</td></tr>
+          <tr><td>適合</td><td>問答、查詢、客服</td><td>表單、流程、清單、結帳</td></tr>
+          <tr><td>訊息計費</td><td class="yes">Reply 免費</td><td class="yes">網頁內操作不計費</td></tr>
+          <tr><td>開發成本</td><td class="yes">低（Hermes 已處理九成）</td><td class="both">高（要自己開發前端）</td></tr>
+          <tr><td>典型用途</td><td>公司規章問答、常見問題</td><td>點餐、報修、請假申請</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <p class="note-title">開發成本的落差很大</p>
+      <p>
+        對話機器人接上 Hermes 幾乎不用寫程式；LIFF <strong>沒有現成方案</strong>，
+        是一個完整的前端開發專案。除非確實有「需要填表單」的需求，
+        否則先用對話把價值做出來，比較划算。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 07 疑難排解 ===== -->
+<section class="panel" id="p7" role="tabpanel" aria-labelledby="t7" hidden>
+  <div class="wrap">
+    <h2>常見狀況對照</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>症狀</th><th>原因</th><th>去哪解決</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Webhook 開關點不動</td>
+            <td>尚未填 Webhook URL</td>
+            <td><span class="tag-dev">Developers</span> Messaging API</td>
+          </tr>
+          <tr>
+            <td>使用者收到罐頭訊息</td>
+            <td>自動回應訊息未關</td>
+            <td><span class="tag-oa">OA Manager</span> 回應設定</td>
+          </tr>
+          <tr>
+            <td>Verify 失敗</td>
+            <td>網址錯、通道沒開、或伺服器沒跑</td>
+            <td>先自行 curl 測試，見下</td>
+          </tr>
+          <tr>
+            <td>顯示已讀但不回覆</td>
+            <td>訊息有送達，是你的程式拒絕或出錯</td>
+            <td>查你自己的伺服器 log</td>
+          </tr>
+          <tr>
+            <td>找不到改名稱的地方</td>
+            <td>走錯後台</td>
+            <td><span class="tag-oa">OA Manager</span> 帳號設定</td>
+          </tr>
+          <tr>
+            <td>找不到 Channel secret</td>
+            <td>走錯後台或走錯分頁</td>
+            <td><span class="tag-dev">Developers</span> Basic settings</td>
+          </tr>
+          <tr>
+            <td>同事進不去 Developers Console</td>
+            <td>兩套權限互不相通</td>
+            <td><span class="tag-dev">Developers</span> Roles</td>
+          </tr>
+          <tr>
+            <td>突然全部收不到訊息</td>
+            <td>通道網址變了（免費通道重啟即換）</td>
+            <td>重填 URL，見下方檢查指令</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <h2>用指令自己查，不要靠目視</h2>
+    <p class="sub">後台顯示的狀態未必等於實際狀態。以下三段可以直接定位問題在哪一環。</p>
+
+    <h4>一、你的伺服器活著嗎</h4>
+    <div class="pre-wrap"><pre><span class="c"># 本機直接測</span>
+<span class="c">$</span> curl -s -o /dev/null -w <span class="g">"HTTP %{http_code}\n"</span> \
+     http://127.0.0.1:8646/line/webhook/health</pre></div>
+
+    <h4>二、外面連得進來嗎</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> curl -s -o /dev/null -w <span class="g">"HTTP %{http_code}\n"</span> \
+     https://&lt;你的通道&gt;/line/webhook/health
+
+<span class="c"># 200 = 通　　000 = 通道斷了　　404 = 路徑錯</span></pre></div>
+
+    <h4>三、LINE 那邊登記的是什麼</h4>
+    <p>這是最有價值的一招——直接問 LINE 的 API，比在後台肉眼確認可靠：</p>
+    <div class="pre-wrap"><pre><span class="c">$</span> curl -s -H <span class="g">"Authorization: Bearer &lt;CHANNEL_ACCESS_TOKEN&gt;"</span> \
+     https://api.line.me/v2/bot/channel/webhook/endpoint
+
+{
+    <span class="g">"endpoint"</span>: <span class="g">"https://….trycloudflare.com/line/webhook"</span>,
+    <span class="g">"active"</span>: true
+}</pre></div>
+    <p>
+      <code>endpoint</code> 對不上就是網址過期了，<code>active: false</code> 就是開關沒開。
+      兩個欄位一次告訴你設定端的狀況。
+    </p>
+
+    <div class="note warn">
+      <p class="note-title">未簽章的請求應該被拒絕</p>
+      <p>
+        直接對 webhook 發一個沒有簽章的 POST，正確的行為是回
+        <code>401</code>。若回 <code>200</code>，代表你的伺服器沒有驗證 HMAC 簽章——
+        任何人都能偽造訊息，這是必須修的漏洞。
+      </p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <p>
+      內容依 LINE Official Account Manager 與 LINE Developers Console 實際操作整理 ·
+      範例帳號 Netronix_AI_Bot（@335uiwfi）· 2026-08-28
+    </p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    function select(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (focus) tab.focus();
+      window.scrollTo(0, 0);
+    }
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { select(tab, false); });
+      tab.addEventListener('keydown', function (e) {
+        var i = tabs.indexOf(tab), n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') n = tabs[0];
+        else if (e.key === 'End') n = tabs[tabs.length - 1];
+        if (n) { e.preventDefault(); select(n, true); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>
