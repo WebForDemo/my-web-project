@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hermes CLI 操作手冊</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+
+<style>
+  :root{
+    --bg:#F5F7F6; --surface:#FFFFFF; --surface-2:#EEF2F0;
+    --ink:#16201C; --ink-2:#5C6C65; --ink-3:#8A9992;
+    --line:#DCE4E0; --line-2:#C6D2CC;
+    --accent:#0E7C48; --accent-soft:#E4F1EA;
+    --warn:#96601A; --warn-soft:#F8EEDD;
+    --crit:#A83A26; --crit-soft:#F9E9E4;
+    --shadow:0 1px 2px rgba(22,32,28,.05), 0 8px 24px -16px rgba(22,32,28,.24);
+    --sans:'IBM Plex Sans','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    --mono:'IBM Plex Mono','Noto Sans TC',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1412; --surface:#151D1A; --surface-2:#1B2521;
+      --ink:#E3ECE7; --ink-2:#93A49B; --ink-3:#6E7F77;
+      --line:#25302B; --line-2:#33403A;
+      --accent:#45C084; --accent-soft:#12291E;
+      --warn:#D9A354; --warn-soft:#2A2114;
+      --crit:#E58166; --crit-soft:#2E1B16;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1412; --surface:#151D1A; --surface-2:#1B2521;
+    --ink:#E3ECE7; --ink-2:#93A49B; --ink-3:#6E7F77;
+    --line:#25302B; --line-2:#33403A;
+    --accent:#45C084; --accent-soft:#12291E;
+    --warn:#D9A354; --warn-soft:#2A2114;
+    --crit:#E58166; --crit-soft:#2E1B16;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 28px}
+
+  .masthead{padding:60px 0 28px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px;font-weight:500}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.14;margin:0 0 16px;font-weight:600;
+    letter-spacing:-.02em;text-wrap:balance}
+  .lede{font-size:17.5px;color:var(--ink-2);margin:0;max-width:64ch}
+  .meta-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+  .chip{font-family:var(--mono);font-size:11.5px;padding:5px 11px;border-radius:3px;
+    background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+  .chip.ok{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+
+  .tabbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+  .tablist{display:flex;gap:2px;overflow-x:auto;max-width:1000px;margin:0 auto;padding:0 28px}
+  .tab{flex:0 0 auto;appearance:none;background:none;border:0;cursor:pointer;
+    font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-2);
+    padding:15px 15px 13px;border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:3px}
+  .tab .num{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:7px}
+  .tab[aria-selected="true"] .num{color:var(--accent)}
+
+  .panel{padding:42px 0 90px}
+  .panel[hidden]{display:none}
+
+  h2{font-size:25px;font-weight:600;letter-spacing:-.015em;margin:0 0 6px;text-wrap:balance}
+  h2 + .sub{color:var(--ink-2);margin:0 0 28px;font-size:15.5px;max-width:62ch}
+  h3{font-size:17.5px;font-weight:600;margin:38px 0 12px;letter-spacing:-.01em;text-wrap:balance}
+  h4{font-size:14.5px;font-weight:600;margin:24px 0 8px}
+  p{margin:0 0 16px;max-width:68ch}
+  ul,ol{margin:0 0 18px;padding-left:22px;max-width:68ch}
+  li{margin-bottom:7px}
+  code{font-family:var(--mono);font-size:.875em;background:var(--surface-2);
+    padding:2px 5px;border-radius:3px;border:1px solid var(--line)}
+  a{color:var(--accent)}
+  .divider{height:1px;background:var(--line);margin:42px 0;border:0}
+
+  .pre-wrap{overflow-x:auto;margin:0 0 20px;border-radius:5px;border:1px solid var(--line);background:var(--surface)}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.66;margin:0;padding:15px 17px;color:var(--ink);white-space:pre}
+  pre .c{color:var(--ink-3)}
+  pre .g{color:var(--accent)}
+  pre .r{color:var(--crit)}
+
+  .table-wrap{overflow-x:auto;margin:0 0 22px;border:1px solid var(--line);border-radius:5px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{text-align:left;padding:10px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;background:var(--surface-2);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  td.cmd{font-family:var(--mono);font-size:12.5px;white-space:nowrap;color:var(--accent);font-weight:500}
+  td.cmd .flag{color:var(--ink-3);font-weight:400}
+  .yes{color:var(--accent);font-weight:600}
+  .no{color:var(--crit);font-weight:600}
+
+  .note{border:1px solid var(--line);border-left:3px solid var(--ink-3);background:var(--surface);
+    padding:16px 20px;border-radius:0 5px 5px 0;margin:0 0 22px}
+  .note.warn{border-left-color:var(--warn);background:var(--warn-soft);border-color:transparent}
+  .note.crit{border-left-color:var(--crit);background:var(--crit-soft);border-color:transparent}
+  .note.ok{border-left-color:var(--accent);background:var(--accent-soft);border-color:transparent}
+  .note-title{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+    font-weight:500;margin:0 0 7px;color:var(--ink-2)}
+  .note.warn .note-title{color:var(--warn)}
+  .note.crit .note-title{color:var(--crit)}
+  .note.ok .note-title{color:var(--accent)}
+  .note p{max-width:none}
+  .note p:last-child{margin-bottom:0}
+
+  figure{margin:0 0 30px;background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:24px 22px 16px;overflow-x:auto}
+  figure svg{display:block;max-width:100%;height:auto;color:var(--ink);min-width:640px}
+  figcaption{font-size:13px;color:var(--ink-2);margin-top:16px;padding-top:13px;
+    border-top:1px solid var(--line);max-width:none}
+
+  .grid{display:grid;gap:14px;margin-bottom:24px}
+  .grid.g3{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:17px 19px;box-shadow:var(--shadow)}
+  .card h4{margin:0 0 7px;font-size:14.5px}
+  .card p{margin:0;font-size:13.5px;color:var(--ink-2);max-width:none}
+  .stat{font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.02em;
+    line-height:1.2;margin:0 0 3px;font-variant-numeric:tabular-nums}
+  .stat.ok{color:var(--accent)}
+  .stat-label{font-size:12.5px;color:var(--ink-2);margin:0}
+
+  /* filter */
+  .filter-bar{position:sticky;top:49px;z-index:15;background:var(--bg);
+    padding:14px 0 16px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+  .filter-in{width:100%;max-width:420px;font-family:var(--mono);font-size:13.5px;
+    padding:9px 13px;border:1px solid var(--line-2);border-radius:5px;
+    background:var(--surface);color:var(--ink)}
+  .filter-in::placeholder{color:var(--ink-3)}
+  .filter-in:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .filter-count{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:12px;white-space:nowrap}
+  .cat-empty{display:none;color:var(--ink-3);font-size:14px;padding:14px 0}
+  .cat.is-empty .cat-empty{display:block}
+  .cat.is-empty .table-wrap{display:none}
+  tr[hidden]{display:none}
+
+  .steps{list-style:none;padding:0;margin:0 0 24px;max-width:none;counter-reset:s}
+  .steps > li{position:relative;padding:0 0 22px 42px;margin:0;counter-increment:s;
+    border-left:1px solid var(--line);margin-left:13px}
+  .steps > li:last-child{border-left-color:transparent;padding-bottom:0}
+  .steps > li::before{content:counter(s);position:absolute;left:-13px;top:0;
+    width:26px;height:26px;border-radius:50%;background:var(--accent-soft);
+    border:1px solid transparent;color:var(--accent);font-family:var(--mono);
+    font-size:11.5px;font-weight:500;display:flex;align-items:center;justify-content:center}
+  .step-h{font-weight:600;margin:0 0 5px;font-size:15px;padding-top:1px}
+  .steps p{font-size:14px;color:var(--ink-2);margin:0 0 9px;max-width:66ch}
+
+  .footer{border-top:1px solid var(--line);padding:26px 0 60px;color:var(--ink-3);font-size:13px}
+  .footer p{max-width:none;margin:0}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:640px){
+    .wrap,.tablist{padding:0 18px}
+    .masthead{padding:40px 0 22px}
+    .filter-bar{position:static}
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">操作手冊 · Hermes Agent v0.20.5</p>
+    <h1>Hermes CLI 操作手冊</h1>
+    <p class="lede">
+      Hermes 有兩套指令介面——終端機的 <code>hermes …</code> 和聊天裡的 <code>/…</code>，
+      兩者不通用，這是新手最常卡住的地方。本手冊的指令清單直接取自本機安裝的版本，
+      不是複製文件。
+    </p>
+    <div class="meta-strip">
+      <span class="chip ok">70+ 終端機指令</span>
+      <span class="chip ok">99 個斜線指令</span>
+      <span class="chip">實機驗證</span>
+      <span class="chip">2026-08-27</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar">
+  <div class="tablist" role="tablist" aria-label="手冊章節">
+    <button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true"><span class="num">01</span>入門</button>
+    <button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1"><span class="num">02</span>終端機指令</button>
+    <button class="tab" role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1"><span class="num">03</span>聊天內指令</button>
+    <button class="tab" role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1"><span class="num">04</span>設定與檔案</button>
+    <button class="tab" role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1"><span class="num">05</span>疑難排解</button>
+  </div>
+</nav>
+
+<main>
+<!-- ===== 01 入門 ===== -->
+<section class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+  <div class="wrap">
+    <h2>兩套介面，不要搞混</h2>
+    <p class="sub">同一個功能在兩邊可能都有，但能做的事不一樣。這是整個 Hermes 最容易卡住的地方。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 296" role="img" aria-label="兩套指令介面對照圖：終端機執行 hermes 開頭的指令可設定新供應商，聊天模式執行斜線指令只能切換已設定的項目，兩者以 hermes 與 /quit 互相進出">
+        <defs>
+          <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- left: shell -->
+        <rect x="34" y="46" width="330" height="196" rx="6" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+        <text x="52" y="74" font-size="12.5" fill="currentColor" font-weight="600">終端機 Shell</text>
+        <text x="52" y="92" font-size="10.5" fill="currentColor" opacity=".6">完整權限 — 可新增供應商、改全域設定</text>
+        <line x1="52" y1="104" x2="346" y2="104" stroke="currentColor" stroke-width="1" opacity=".2"/>
+        <text x="52" y="128" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">$ hermes setup</text>
+        <text x="52" y="150" font-family="monospace" font-size="12" fill="#0E7C48" font-weight="600">$ hermes model</text>
+        <text x="52" y="172" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">$ hermes tools</text>
+        <text x="52" y="194" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">$ hermes gateway setup</text>
+        <text x="52" y="216" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">$ hermes doctor</text>
+
+        <!-- right: chat -->
+        <rect x="596" y="46" width="330" height="196" rx="6" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"/>
+        <text x="614" y="74" font-size="12.5" fill="currentColor" font-weight="600">聊天模式 Chat</text>
+        <text x="614" y="92" font-size="10.5" fill="currentColor" opacity=".6">當次對話 — 只能切換已設定好的項目</text>
+        <line x1="614" y1="104" x2="908" y2="104" stroke="currentColor" stroke-width="1" opacity=".2"/>
+        <text x="614" y="128" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">&gt; /status</text>
+        <text x="614" y="150" font-family="monospace" font-size="12" fill="#0E7C48" font-weight="600">&gt; /model</text>
+        <text x="614" y="172" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">&gt; /reasoning low</text>
+        <text x="614" y="194" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">&gt; /compress</text>
+        <text x="614" y="216" font-family="monospace" font-size="12" fill="currentColor" opacity=".85">&gt; /help</text>
+
+        <!-- transitions -->
+        <line x1="368" y1="118" x2="590" y2="118" stroke="currentColor" stroke-width="1.3" marker-end="url(#m1)" opacity=".7"/>
+        <text x="479" y="110" text-anchor="middle" font-family="monospace" font-size="11.5" fill="currentColor" opacity=".8">hermes</text>
+
+        <line x1="590" y1="172" x2="368" y2="172" stroke="currentColor" stroke-width="1.3" marker-end="url(#m1)" opacity=".7"/>
+        <text x="479" y="164" text-anchor="middle" font-family="monospace" font-size="11.5" fill="currentColor" opacity=".8">/quit</text>
+
+        <!-- the trap -->
+        <text x="479" y="270" text-anchor="middle" font-size="11.5" fill="#96601A">
+          綠色兩者同名但不同事：hermes model 可新增供應商，/model 只能切換既有的
+        </text>
+      </svg>
+      <figcaption>
+        兩套介面各自獨立。<code>hermes</code> 進入聊天，<code>/quit</code> 退回終端機。
+        名稱相同的指令（如 <code>model</code>）在兩邊權限不同——設定新的供應商必須退出聊天，在終端機執行。
+      </figcaption>
+    </figure>
+
+    <div class="note warn">
+      <p class="note-title">最常見的錯誤</p>
+      <p>
+        在聊天裡打 <code>/model</code> 想新增一個供應商，卻發現清單裡沒有想要的。
+        因為 <code>/model</code> 只能在<strong>已經設定過</strong>的項目之間切換。
+        要新增，必須 <code>/quit</code> 退出，在終端機執行 <code>hermes model</code>。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>第一次使用的四個步驟</h2>
+
+    <ol class="steps">
+      <li>
+        <p class="step-h">跑一次設定精靈</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes setup</pre></div>
+        <p>會依序帶你走過模型、工具、終端機後端等設定。也可以只設某一段：<code>hermes setup model</code>、<code>hermes setup tools</code>、<code>hermes setup gateway</code>。</p>
+      </li>
+      <li>
+        <p class="step-h">選模型與供應商</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes model</pre></div>
+        <p>互動選單，會把 provider、base_url、model 三項一次接好。只改其中一項容易留下半套設定。</p>
+      </li>
+      <li>
+        <p class="step-h">確認環境沒問題</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes doctor</pre></div>
+        <p>檢查依賴、憑證、各供應商的連線健康度。裝完或出狀況時第一個該跑的指令。</p>
+      </li>
+      <li>
+        <p class="step-h">開始對話</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes                          <span class="c"># 互動模式</span>
+<span class="c">$</span> hermes chat -q <span class="g">"一句話問題"</span>      <span class="c"># 單次提問，問完就結束</span></pre></div>
+        <p><strong>注意：</strong><code>-q</code> 每次都是全新 process，會重新承擔啟動成本。連續提問請用互動模式。</p>
+      </li>
+    </ol>
+
+    <hr class="divider">
+
+    <h2>每天真正會用到的</h2>
+    <p class="sub">指令有 70 多個，但日常大概只會碰到這幾個。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>指令</th><th>做什麼</th></tr></thead>
+        <tbody>
+          <tr><td class="cmd">hermes</td><td>開始互動對話</td></tr>
+          <tr><td class="cmd">hermes chat -q <span class="flag">"…"</span></td><td>單次提問，不進入互動模式</td></tr>
+          <tr><td class="cmd">hermes model</td><td>換模型或新增供應商</td></tr>
+          <tr><td class="cmd">hermes status</td><td>看所有元件的狀態</td></tr>
+          <tr><td class="cmd">hermes doctor</td><td>健檢：依賴、憑證、連線</td></tr>
+          <tr><td class="cmd">hermes logs</td><td>查看與過濾日誌</td></tr>
+          <tr><td class="cmd">hermes update</td><td>更新到最新版</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g3">
+      <div class="card">
+        <p class="stat ok">70+</p>
+        <p class="stat-label">終端機子指令</p>
+      </div>
+      <div class="card">
+        <p class="stat ok">99</p>
+        <p class="stat-label">聊天內斜線指令<br>（另有別名）</p>
+      </div>
+      <div class="card">
+        <p class="stat ok">5</p>
+        <p class="stat-label">指令分類<br>（見下一頁）</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 02 終端機指令 ===== -->
+<section class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+  <div class="wrap">
+    <h2>終端機指令</h2>
+    <p class="sub">在 shell 執行，格式為 <code>hermes &lt;子指令&gt;</code>。以下依用途分組，說明取自本機 <code>--help</code> 輸出。</p>
+
+    <div class="filter-bar">
+      <input class="filter-in" type="search" id="f2" placeholder="輸入關鍵字過濾… 例如 gateway、skill、backup" aria-label="過濾終端機指令">
+      <span class="filter-count" id="c2"></span>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>設定</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes setup</td><td>互動設定精靈，可加區段：<code>model</code> / <code>tts</code> / <code>terminal</code> / <code>gateway</code> / <code>tools</code> / <code>agent</code></td></tr>
+        <tr><td class="cmd">hermes model</td><td>選擇預設模型與供應商</td></tr>
+        <tr><td class="cmd">hermes config</td><td>檢視與編輯設定（<code>show</code> / <code>edit</code> / <code>set</code> / <code>path</code> / <code>check</code>）</td></tr>
+        <tr><td class="cmd">hermes tools</td><td>設定各平台啟用哪些工具</td></tr>
+        <tr><td class="cmd">hermes auth</td><td>管理供應商憑證池</td></tr>
+        <tr><td class="cmd">hermes logout</td><td>清除某個推論供應商的認證</td></tr>
+        <tr><td class="cmd">hermes profile</td><td>管理多組互相隔離的 Hermes 實例</td></tr>
+        <tr><td class="cmd">hermes skin</td><td>列出、切換、微調顯示主題</td></tr>
+        <tr><td class="cmd">hermes migrate</td><td>遷移已淘汰模型或設定的組態</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>對話與工作階段</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes chat</td><td>與 agent 互動對話（<code>-q</code> 單次提問、<code>--resume</code> 續接）</td></tr>
+        <tr><td class="cmd">hermes sessions</td><td>管理歷史工作階段（列出、改名、匯出、清理、刪除）</td></tr>
+        <tr><td class="cmd">hermes console</td><td>開啟安全的 Hermes 指令主控台</td></tr>
+        <tr><td class="cmd">hermes checkpoints</td><td>檢視／修剪／清除 <code>~/.hermes/checkpoints/</code></td></tr>
+        <tr><td class="cmd">hermes insights</td><td>顯示使用量分析</td></tr>
+        <tr><td class="cmd">hermes prompt-size</td><td>拆解系統提示與工具 schema 的位元組佔比</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>訊息平台</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes gateway</td><td>訊息閘道管理（<code>setup</code> / <code>run</code> / <code>start</code> / <code>stop</code> / <code>restart</code> / <code>status</code> / <code>install</code>）</td></tr>
+        <tr><td class="cmd">hermes send</td><td>對已設定的平台送訊息，供腳本、cron、CI 使用</td></tr>
+        <tr><td class="cmd">hermes pairing</td><td>管理 DM 配對碼，用於使用者授權</td></tr>
+        <tr><td class="cmd">hermes whatsapp</td><td>設定 WhatsApp 整合</td></tr>
+        <tr><td class="cmd">hermes slack</td><td>Slack 輔助工具（產生 manifest 等）</td></tr>
+        <tr><td class="cmd">hermes webhook</td><td>管理動態 webhook 訂閱</td></tr>
+        <tr><td class="cmd">hermes peer</td><td>跨機器的 bot 對 bot 私訊</td></tr>
+        <tr><td class="cmd">hermes monitoring</td><td>檢視閘道監控（健康狀態與診斷匯出）</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>技能與記憶</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes skills</td><td>搜尋、安裝、設定、管理技能（<code>browse</code> / <code>search</code> / <code>install</code> / <code>list</code> / <code>audit</code> / <code>uninstall</code>）</td></tr>
+        <tr><td class="cmd">hermes bundles</td><td>建立與管理技能組合包</td></tr>
+        <tr><td class="cmd">hermes curator</td><td>背景技能維護（狀態、執行、暫停、釘選）</td></tr>
+        <tr><td class="cmd">hermes memory</td><td>設定外部記憶提供者</td></tr>
+        <tr><td class="cmd">hermes journey</td><td>學習歷程時間軸（別名 <code>learning</code> / <code>memory-graph</code>）</td></tr>
+        <tr><td class="cmd">hermes sync</td><td>跨裝置、跨團隊同步技能</td></tr>
+        <tr><td class="cmd">hermes plugins</td><td>管理與驗證外掛</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>自動化</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes cron</td><td>排程任務管理</td></tr>
+        <tr><td class="cmd">hermes kanban</td><td>多 profile 協作看板（任務、連結、留言）</td></tr>
+        <tr><td class="cmd">hermes project</td><td>管理專案（具名、多資料夾的工作區）</td></tr>
+        <tr><td class="cmd">hermes hooks</td><td>檢視與管理 shell script hooks</td></tr>
+        <tr><td class="cmd">hermes pause</td><td><strong>緊急停止</strong>：暫停 cron／kanban 派送與新的閘道回合</td></tr>
+        <tr><td class="cmd">hermes resume</td><td>解除 <code>hermes pause</code> 的緊急停止</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>介面</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes dashboard</td><td>啟動網頁 UI（預設 port 9119，含 Chat 頁）</td></tr>
+        <tr><td class="cmd">hermes desktop</td><td>建置並啟動原生桌面 App（別名 <code>gui</code>）</td></tr>
+        <tr><td class="cmd">hermes serve</td><td>啟動後端伺服器（headless，供桌面 App 與遠端用戶端連線）</td></tr>
+        <tr><td class="cmd">hermes acp</td><td>以 ACP（Agent Client Protocol）伺服器執行</td></tr>
+        <tr><td class="cmd">hermes completion</td><td>輸出 shell 補全腳本（bash / zsh / fish）</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>維運與診斷</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes doctor</td><td>檢查設定與依賴</td></tr>
+        <tr><td class="cmd">hermes status</td><td>顯示所有元件狀態</td></tr>
+        <tr><td class="cmd">hermes logs</td><td>檢視與過濾日誌檔</td></tr>
+        <tr><td class="cmd">hermes dump</td><td>輸出可分享的設定摘要，供求助除錯用</td></tr>
+        <tr><td class="cmd">hermes debug</td><td>上傳日誌與系統資訊並取得分享連結</td></tr>
+        <tr><td class="cmd">hermes security</td><td>供應鏈稽核（OSV.dev）— venv、外掛、MCP 伺服器</td></tr>
+        <tr><td class="cmd">hermes verify</td><td>偵測專案的執行方式並做冒煙測試</td></tr>
+        <tr><td class="cmd">hermes approvals</td><td>從歷史核准紀錄產生允許清單建議</td></tr>
+        <tr><td class="cmd">hermes backup</td><td>將 Hermes 家目錄備份成 zip</td></tr>
+        <tr><td class="cmd">hermes import</td><td>從 zip 還原備份</td></tr>
+        <tr><td class="cmd">hermes import-agent</td><td>匯入 Claude Code 或 Codex CLI 的設定</td></tr>
+        <tr><td class="cmd">hermes update</td><td>更新到最新版</td></tr>
+        <tr><td class="cmd">hermes uninstall</td><td>解除安裝（<code>--full</code> 連資料一併刪除）</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>進階</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">hermes moa</td><td>設定 Mixture of Agents 的供應商／模型欄位</td></tr>
+        <tr><td class="cmd">hermes fallback</td><td>管理備援供應商（主模型失敗時啟用）</td></tr>
+        <tr><td class="cmd">hermes proxy</td><td>本機 OpenAI 相容代理，轉接 OAuth 供應商</td></tr>
+        <tr><td class="cmd">hermes mcp</td><td>管理 MCP 伺服器，或讓 Hermes 本身作為 MCP 伺服器</td></tr>
+        <tr><td class="cmd">hermes lsp</td><td>Language Server Protocol 管理</td></tr>
+        <tr><td class="cmd">hermes secrets</td><td>管理外部密鑰來源（Bitwarden、1Password）</td></tr>
+        <tr><td class="cmd">hermes egress</td><td>管理 iron-proxy 對外連線的憑證注入防火牆</td></tr>
+        <tr><td class="cmd">hermes computer-use</td><td>管理 Computer Use（cua-driver）後端</td></tr>
+        <tr><td class="cmd">hermes worktree</td><td>稽核與回收累積的 git worktree 與已合併分支</td></tr>
+        <tr><td class="cmd">hermes browser</td><td>即時瀏覽輔助（關閉鎖住設定檔的瀏覽器）</td></tr>
+        <tr><td class="cmd">hermes portal</td><td>設定 Nous Portal（登入、選模型、Tool Gateway）</td></tr>
+        <tr><td class="cmd">hermes claw</td><td>OpenClaw 遷移工具</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <p class="cat-empty" id="e2">沒有符合的指令。</p>
+  </div>
+</section>
+
+<!-- ===== 03 聊天內指令 ===== -->
+<section class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+  <div class="wrap">
+    <h2>聊天內的斜線指令</h2>
+    <p class="sub">在對話中直接輸入。共 99 個（含別名更多），以下依 Hermes 自身的分類呈現。<code>/help</code> 可隨時叫出清單，<code>Ctrl+P</code> 開啟模糊搜尋面板。</p>
+
+    <div class="filter-bar">
+      <input class="filter-in" type="search" id="f3" placeholder="輸入關鍵字過濾… 例如 model、memory、session" aria-label="過濾斜線指令">
+      <span class="filter-count" id="c3"></span>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>最常用</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">/help</td><td>顯示可用指令</td></tr>
+        <tr><td class="cmd">/status</td><td>顯示工作階段、模型、token、脈絡資訊</td></tr>
+        <tr><td class="cmd">/model</td><td>切換模型（當次有效，<code>--global</code> 可持久化）</td></tr>
+        <tr><td class="cmd">/reasoning</td><td>管理推理強度與顯示方式</td></tr>
+        <tr><td class="cmd">/new</td><td>開始新的工作階段（別名 <code>/reset</code>）</td></tr>
+        <tr><td class="cmd">/compress</td><td>壓縮對話脈絡（別名 <code>/compact</code>）</td></tr>
+        <tr><td class="cmd">/palette</td><td>開啟模糊指令面板（等同 <code>Ctrl+P</code>）</td></tr>
+        <tr><td class="cmd">/quit</td><td>離開 CLI（別名 <code>/exit</code>）</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>工作階段控制</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">/history</td><td>顯示對話歷史</td></tr>
+        <tr><td class="cmd">/save</td><td>匯出目前對話</td></tr>
+        <tr><td class="cmd">/retry</td><td>重送上一則訊息</td></tr>
+        <tr><td class="cmd">/undo <span class="flag">[N]</span></td><td>回退 N 個使用者回合並重新提問</td></tr>
+        <tr><td class="cmd">/title</td><td>為目前工作階段命名</td></tr>
+        <tr><td class="cmd">/branch</td><td>分支目前對話以探索不同路徑（別名 <code>/fork</code>）</td></tr>
+        <tr><td class="cmd">/resume</td><td>續接先前命名過的工作階段</td></tr>
+        <tr><td class="cmd">/sessions</td><td>瀏覽並續接過往工作階段</td></tr>
+        <tr><td class="cmd">/context</td><td>脈絡視窗使用量詳細檢視（別名 <code>/ctx</code>）</td></tr>
+        <tr><td class="cmd">/rollback</td><td>列出或還原檔案系統檢查點</td></tr>
+        <tr><td class="cmd">/snapshot</td><td>建立或還原設定／狀態快照（別名 <code>/snap</code>）</td></tr>
+        <tr><td class="cmd">/handoff</td><td>把這個對話交接到訊息平台</td></tr>
+        <tr><td class="cmd">/prompt</td><td>在 <code>$EDITOR</code> 裡撰寫下一則提問（別名 <code>/compose</code>）</td></tr>
+        <tr><td class="cmd">/redraw</td><td>強制重繪介面，用於終端機顯示錯亂時</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>背景與長時任務</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">/background</td><td>在背景執行一則提問（別名 <code>/bg</code>、<code>/btw</code>）</td></tr>
+        <tr><td class="cmd">/agents</td><td>顯示執行中的 agent 與任務（別名 <code>/tasks</code>）</td></tr>
+        <tr><td class="cmd">/stop</td><td>終止所有背景程序</td></tr>
+        <tr><td class="cmd">/queue</td><td>把提問排入下一回合，不打斷目前作業（別名 <code>/q</code>）</td></tr>
+        <tr><td class="cmd">/steer</td><td>在下次工具呼叫後插入訊息，不中斷流程</td></tr>
+        <tr><td class="cmd">/goal</td><td>設定跨回合持續進行的長期目標</td></tr>
+        <tr><td class="cmd">/subgoal</td><td>為目前目標新增或管理附加條件</td></tr>
+        <tr><td class="cmd">/heartbeat</td><td>設定閒置時自動重新進入的循環提問（別名 <code>/hb</code>）</td></tr>
+        <tr><td class="cmd">/loop</td><td>在本對話中依間隔重複執行提問（別名 <code>/proactive</code>）</td></tr>
+        <tr><td class="cmd">/review</td><td>另開獨立子 agent 檢視剛才的成果</td></tr>
+        <tr><td class="cmd">/refine</td><td>回顧本次對話並把心得存進記憶／技能</td></tr>
+        <tr><td class="cmd">/moa</td><td>以預設的 Mixture of Agents 組合跑一次提問</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>顯示與行為</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">/verbose</td><td>循環切換工具進度顯示：off → new → all → verbose</td></tr>
+        <tr><td class="cmd">/focus</td><td>只顯示你的提問與最終回應</td></tr>
+        <tr><td class="cmd">/statusbar</td><td>切換脈絡／模型狀態列（別名 <code>/sb</code>）</td></tr>
+        <tr><td class="cmd">/timestamps</td><td>切換訊息時間戳（別名 <code>/ts</code>）</td></tr>
+        <tr><td class="cmd">/skin</td><td>顯示或變更主題</td></tr>
+        <tr><td class="cmd">/personality</td><td>套用預設的人格設定</td></tr>
+        <tr><td class="cmd">/fast</td><td>切換快速模式（OpenAI Priority Processing）</td></tr>
+        <tr><td class="cmd">/voice</td><td>切換語音模式</td></tr>
+        <tr><td class="cmd">/busy</td><td>設定 Hermes 忙碌時按 Enter 的行為</td></tr>
+        <tr><td class="cmd">/yolo</td><td><strong>跳過所有危險指令的核准</strong>（謹慎使用）</td></tr>
+        <tr><td class="cmd">/approvals</td><td>顯示或設定危險指令的核准模式</td></tr>
+        <tr><td class="cmd">/safe</td><td>安全模式相關設定</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>工具、技能與自動化</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">/tools</td><td>管理工具：<code>/tools [list|disable|enable] [名稱…]</code></td></tr>
+        <tr><td class="cmd">/toolsets</td><td>列出可用的工具集</td></tr>
+        <tr><td class="cmd">/skills</td><td>搜尋、安裝、檢視、管理技能</td></tr>
+        <tr><td class="cmd">/learn</td><td>從你描述的任何東西學成一個可重複使用的技能</td></tr>
+        <tr><td class="cmd">/memory</td><td>檢視待寫入的記憶／切換核准閘門</td></tr>
+        <tr><td class="cmd">/cron</td><td>管理排程任務</td></tr>
+        <tr><td class="cmd">/suggestions</td><td>檢視建議的自動化（接受／忽略，別名 <code>/suggest</code>）</td></tr>
+        <tr><td class="cmd">/blueprint</td><td>用範本建立自動化（別名 <code>/bp</code>）</td></tr>
+        <tr><td class="cmd">/init</td><td>掃描 repo 產生或更新 <code>AGENTS.md</code></td></tr>
+        <tr><td class="cmd">/kanban</td><td>多 profile 協作看板</td></tr>
+        <tr><td class="cmd">/reload</td><td>將 <code>.env</code> 變數重新載入執行中的工作階段</td></tr>
+        <tr><td class="cmd">/reload-skills</td><td>重新掃描 <code>~/.hermes/skills/</code></td></tr>
+        <tr><td class="cmd">/reload-mcp</td><td>依設定重新載入 MCP 伺服器</td></tr>
+        <tr><td class="cmd">/browser</td><td>透過 CDP 連接你正在使用的 Chromium 瀏覽器</td></tr>
+        <tr><td class="cmd">/plugins</td><td>列出已安裝的外掛與狀態</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <div class="cat" data-cat>
+      <h3>資訊查詢</h3>
+      <div class="table-wrap"><table><thead><tr><th>指令</th><th>說明</th></tr></thead><tbody>
+        <tr><td class="cmd">/usage</td><td>顯示 token 用量與速率限制</td></tr>
+        <tr><td class="cmd">/insights</td><td>使用量分析（可指定天數）</td></tr>
+        <tr><td class="cmd">/whoami</td><td>顯示你的指令權限層級（admin／user）</td></tr>
+        <tr><td class="cmd">/profile</td><td>顯示目前 profile 名稱與家目錄</td></tr>
+        <tr><td class="cmd">/platforms</td><td>顯示閘道／訊息平台狀態（別名 <code>/gateway</code>）</td></tr>
+        <tr><td class="cmd">/diff</td><td>顯示工作目錄的 git 變更</td></tr>
+        <tr><td class="cmd">/config</td><td>顯示目前設定</td></tr>
+        <tr><td class="cmd">/version</td><td>顯示版本（別名 <code>/v</code>）</td></tr>
+        <tr><td class="cmd">/copy</td><td>複製最後一則回應到剪貼簿</td></tr>
+        <tr><td class="cmd">/paste</td><td>貼上剪貼簿中的圖片</td></tr>
+        <tr><td class="cmd">/image</td><td>附加本機圖片檔到下一則提問</td></tr>
+        <tr><td class="cmd">/debug</td><td>上傳除錯報告並取得分享連結</td></tr>
+      </tbody></table></div>
+    </div>
+
+    <p class="cat-empty" id="e3">沒有符合的指令。</p>
+  </div>
+</section>
+
+<!-- ===== 04 設定與檔案 ===== -->
+<section class="panel" id="p4" role="tabpanel" aria-labelledby="t4" hidden>
+  <div class="wrap">
+    <h2>設定寫在哪、誰讀得到</h2>
+    <p class="sub">Hermes 有兩個設定來源，而它們不是可以互換的。搞錯會出現「設定成功但完全沒作用」。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 320" role="img" aria-label="設定流向圖：hermes config set 寫入 config.yaml 供 Hermes 核心讀取，gateway setup 與手動編輯寫入 .env 供平台外掛以 os.getenv 讀取，config.yaml 的值無法被平台外掛讀到">
+        <defs>
+          <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="m2r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#A83A26"/>
+          </marker>
+        </defs>
+
+        <text x="110" y="26" font-size="10.5" fill="currentColor" opacity=".55" font-weight="600">寫入</text>
+        <text x="110" y="140" font-size="10.5" fill="currentColor" opacity=".55" font-weight="600">儲存</text>
+        <text x="110" y="248" font-size="10.5" fill="currentColor" opacity=".55" font-weight="600">讀取</text>
+
+        <!-- column A -->
+        <rect x="190" y="34" width="220" height="46" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="300" y="62" text-anchor="middle" font-family="monospace" font-size="12" fill="currentColor">hermes config set</text>
+
+        <line x1="300" y1="80" x2="300" y2="130" stroke="currentColor" stroke-width="1.2" marker-end="url(#m2)" opacity=".65"/>
+
+        <rect x="210" y="134" width="180" height="46" rx="5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <text x="300" y="162" text-anchor="middle" font-family="monospace" font-size="12.5" fill="currentColor" font-weight="600">config.yaml</text>
+
+        <line x1="300" y1="180" x2="300" y2="230" stroke="currentColor" stroke-width="1.2" marker-end="url(#m2)" opacity=".65"/>
+
+        <rect x="190" y="234" width="220" height="46" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="300" y="255" text-anchor="middle" font-size="11.5" fill="currentColor">Hermes 核心設定</text>
+        <text x="300" y="271" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">模型、推理強度、介面</text>
+
+        <!-- column B -->
+        <rect x="560" y="34" width="240" height="46" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="680" y="56" text-anchor="middle" font-family="monospace" font-size="11.5" fill="currentColor">hermes gateway setup</text>
+        <text x="680" y="71" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">或手動編輯檔案</text>
+
+        <line x1="680" y1="80" x2="680" y2="130" stroke="currentColor" stroke-width="1.2" marker-end="url(#m2)" opacity=".65"/>
+
+        <rect x="600" y="134" width="160" height="46" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.7"/>
+        <text x="680" y="162" text-anchor="middle" font-family="monospace" font-size="12.5" fill="#0E7C48" font-weight="600">.env</text>
+
+        <line x1="680" y1="180" x2="680" y2="230" stroke="#0E7C48" stroke-width="1.3" marker-end="url(#m2)"/>
+
+        <rect x="560" y="234" width="240" height="46" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="680" y="255" text-anchor="middle" font-size="11.5" fill="currentColor">平台外掛</text>
+        <text x="680" y="271" text-anchor="middle" font-family="monospace" font-size="10" fill="currentColor" opacity=".6">os.getenv()</text>
+
+        <!-- the broken cross link -->
+        <path d="M 390 157 C 470 157, 480 250, 552 254" fill="none" stroke="#A83A26" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#m2r)"/>
+        <text x="474" y="196" text-anchor="middle" font-size="17" fill="#A83A26">✕</text>
+        <text x="474" y="220" text-anchor="middle" font-size="11" fill="#A83A26">讀不到</text>
+      </svg>
+      <figcaption>
+        平台外掛（LINE、Telegram、Discord 等）一律以 <code>os.getenv()</code> 讀取設定，
+        因此只認 <code>.env</code>。用 <code>hermes config set</code> 設定的平台變數會寫進
+        <code>config.yaml</code>——存得進去、也讀得回來，但外掛永遠看不到。
+      </figcaption>
+    </figure>
+
+    <div class="note crit">
+      <p class="note-title">實際踩過的坑</p>
+      <p>
+        設定 LINE 白名單時用 <code>hermes config set LINE_ALLOWED_USERS …</code>，
+        <code>hermes config get</code> 讀得回值，但 gateway 持續拒絕訊息。
+        原因是 <code>plugins/platforms/line/adapter.py</code> 用的是
+        <code>os.getenv("LINE_ALLOWED_USERS", "")</code>。
+      </p>
+      <p>
+        <strong>判斷原則：凡是全大寫、底線分隔的平台變數（<code>LINE_*</code>、<code>TELEGRAM_*</code>、
+        <code>DISCORD_*</code>），一律寫進 <code>.env</code>。</strong>
+      </p>
+    </div>
+
+    <h3>怎麼寫進 .env</h3>
+    <div class="pre-wrap"><pre><span class="c"># 新增一項</span>
+<span class="c">$</span> echo <span class="g">'LINE_ALLOWED_USERS=U1234…'</span> &gt;&gt; ~/.hermes/.env
+
+<span class="c"># 確認寫進去了</span>
+<span class="c">$</span> grep <span class="g">"^LINE_ALLOWED_USERS"</span> ~/.hermes/.env
+
+<span class="c"># 讓執行中的對話重新載入（不必重啟）</span>
+&gt; /reload</pre></div>
+
+    <hr class="divider">
+
+    <h2>檔案位置</h2>
+    <p class="sub">以下路徑已於本機安裝實際核對，全部存在。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>路徑</th><th>內容</th><th>該不該備份</th></tr></thead>
+        <tbody>
+          <tr><td class="cmd">~/.hermes/config.yaml</td><td>主要設定：模型、推理強度、介面</td><td class="yes">要</td></tr>
+          <tr><td class="cmd">~/.hermes/.env</td><td>API 金鑰、平台變數（權限 600）</td><td class="yes">要（含機密）</td></tr>
+          <tr><td class="cmd">~/.hermes/auth.json</td><td>OAuth 憑證</td><td class="yes">要（含機密）</td></tr>
+          <tr><td class="cmd">~/.hermes/memories/</td><td>持久記憶</td><td class="yes">要</td></tr>
+          <tr><td class="cmd">~/.hermes/skills/</td><td>技能</td><td class="yes">要</td></tr>
+          <tr><td class="cmd">~/.hermes/cron/</td><td>排程任務</td><td class="yes">要</td></tr>
+          <tr><td class="cmd">~/.hermes/sessions/</td><td>對話紀錄</td><td>看需求</td></tr>
+          <tr><td class="cmd">~/.hermes/logs/</td><td>日誌檔</td><td class="no">不用</td></tr>
+          <tr><td class="cmd">~/.hermes/hermes-agent/</td><td>程式碼本體（git 檢出）</td><td class="no">不用</td></tr>
+          <tr><td class="cmd">~/.hermes/node/</td><td>Hermes 專用的 Node.js</td><td class="no">不用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note ok">
+      <p class="note-title">整包備份最省事</p>
+      <p>
+        <code>hermes backup</code> 會把整個家目錄打包成 zip，<code>hermes import</code> 還原。
+        不必自己判斷該收哪些檔案。<strong>但備份檔內含金鑰與憑證，請當作機密保管。</strong>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 05 疑難排解 ===== -->
+<section class="panel" id="p5" role="tabpanel" aria-labelledby="t5" hidden>
+  <div class="wrap">
+    <h2>出狀況時的順序</h2>
+    <p class="sub">由淺入深，大部分問題在前兩步就能定位。</p>
+
+    <ol class="steps">
+      <li>
+        <p class="step-h">先健檢</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes doctor
+<span class="c">$</span> hermes status</pre></div>
+        <p>檢查依賴、憑證、各供應商連線。九成的設定問題這裡就會現形。</p>
+      </li>
+      <li>
+        <p class="step-h">看日誌</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes logs
+<span class="c">$</span> tail -f ~/.hermes/logs/gateway.log     <span class="c"># 訊息平台問題看這個</span></pre></div>
+        <p>Gateway 的 log 會逐筆記錄 <code>inbound message</code> → <code>response ready</code> → <code>Sending response</code>，可精確定位斷在哪一段。</p>
+      </li>
+      <li>
+        <p class="step-h">確認認證還在</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes auth list
+<span class="c">$</span> hermes auth status &lt;provider&gt;</pre></div>
+      </li>
+      <li>
+        <p class="step-h">還是不行就打包求助</p>
+        <div class="pre-wrap"><pre><span class="c">$</span> hermes dump      <span class="c"># 產生可分享的設定摘要</span>
+<span class="c">$</span> hermes debug     <span class="c"># 上傳日誌與系統資訊</span></pre></div>
+        <p><strong>注意：</strong>分享這些輸出前先確認沒有夾帶金鑰。</p>
+      </li>
+    </ol>
+
+    <hr class="divider">
+
+    <h2>常見狀況</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>症狀</th><th>成因與解法</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>設定了卻沒作用</td>
+            <td>平台變數寫錯地方。改寫進 <code>~/.hermes/.env</code>，見「設定與檔案」</td>
+          </tr>
+          <tr>
+            <td><code>/model</code> 找不到想要的模型</td>
+            <td>該供應商還沒設定過。<code>/quit</code> 退出後在終端機執行 <code>hermes model</code></td>
+          </tr>
+          <tr>
+            <td>重啟後訊息全部沒反應</td>
+            <td>埠號尚未釋放（<code>address already in use</code>），Hermes 會在 30 秒後自動重試。等約 40 秒再測</td>
+          </tr>
+          <tr>
+            <td>回應很慢</td>
+            <td>看日誌的 <code>api_calls</code>。大於 1 代表 agent 動用了工具。用 <code>/tools</code> 關閉不需要的工具最有效</td>
+          </tr>
+          <tr>
+            <td>首次執行特別慢</td>
+            <td>冷啟動成本，屬正常。<code>hermes chat -q</code> 每次都是新 process，連續提問請用互動模式</td>
+          </tr>
+          <tr>
+            <td>找不到 <code>hermes</code> 指令</td>
+            <td>PATH 未生效。macOS 的 Terminal 讀 <code>~/.bash_profile</code> 而非 <code>~/.bashrc</code></td>
+          </tr>
+          <tr>
+            <td>更新後壞掉</td>
+            <td>本機修改可能被覆蓋。檢查 <code>cd ~/.hermes/hermes-agent &amp;&amp; git status</code></td>
+          </tr>
+          <tr>
+            <td>想緊急全部停下</td>
+            <td><code>hermes pause</code> 立即暫停 cron、kanban 與新的閘道回合；<code>hermes resume</code> 恢復</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <h2>安全相關</h2>
+
+    <div class="note warn">
+      <p class="note-title">開放給他人使用前</p>
+      <p>
+        Hermes 預設帶終端機執行與檔案讀寫工具。若要把它接上訊息平台給別人用，
+        先以 <code>hermes tools</code> 關閉不需要的工具，並用 <code>hermes pairing</code>
+        或平台白名單控制誰能對話。
+      </p>
+      <p>
+        另外 <code>/yolo</code> 會跳過所有危險指令的核准——單機自用時很方便，
+        但在開放環境等於拆掉最後一道防線。
+      </p>
+    </div>
+
+    <div class="pre-wrap"><pre><span class="c"># 供應鏈稽核：檢查 venv、外掛、MCP 伺服器的已知漏洞</span>
+<span class="c">$</span> hermes security
+
+<span class="c"># 從歷史核准紀錄產生允許清單建議</span>
+<span class="c">$</span> hermes approvals</pre></div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <p>
+      Hermes Agent v0.20.5 · 指令清單取自本機安裝版本的 <code>--help</code> 與
+      <code>COMMAND_REGISTRY</code>，非轉抄文件 · 2026-08-27
+    </p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    function select(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (focus) tab.focus();
+      window.scrollTo(0, 0);
+    }
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { select(tab, false); });
+      tab.addEventListener('keydown', function (e) {
+        var i = tabs.indexOf(tab), n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') n = tabs[0];
+        else if (e.key === 'End') n = tabs[tabs.length - 1];
+        if (n) { e.preventDefault(); select(n, true); }
+      });
+    });
+
+    function wireFilter(inputId, countId, panelId, emptyId) {
+      var input = document.getElementById(inputId);
+      var count = document.getElementById(countId);
+      var panel = document.getElementById(panelId);
+      var empty = document.getElementById(emptyId);
+      var cats = Array.prototype.slice.call(panel.querySelectorAll('[data-cat]'));
+      var rows = Array.prototype.slice.call(panel.querySelectorAll('tbody tr'));
+      var total = rows.length;
+
+      function apply() {
+        var q = input.value.trim().toLowerCase();
+        var shown = 0;
+        rows.forEach(function (r) {
+          var hit = !q || r.textContent.toLowerCase().indexOf(q) !== -1;
+          r.hidden = !hit;
+          if (hit) shown++;
+        });
+        cats.forEach(function (c) {
+          var any = Array.prototype.slice.call(c.querySelectorAll('tbody tr'))
+            .some(function (r) { return !r.hidden; });
+          c.classList.toggle('is-empty', !any);
+          c.hidden = !any;
+        });
+        empty.style.display = shown === 0 ? 'block' : 'none';
+        count.textContent = q ? (shown + ' / ' + total) : (total + ' 個指令');
+      }
+      input.addEventListener('input', apply);
+      apply();
+    }
+
+    wireFilter('f2', 'c2', 'p2', 'e2');
+    wireFilter('f3', 'c3', 'p3', 'e3');
+  })();
+</script>
+</body>
+</html>

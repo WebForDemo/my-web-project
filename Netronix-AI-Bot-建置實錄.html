@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Netronix AI Bot 建置實錄</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+
+<style>
+  :root{
+    --bg:#F5F7F6;
+    --surface:#FFFFFF;
+    --surface-2:#EEF2F0;
+    --ink:#16201C;
+    --ink-2:#5C6C65;
+    --ink-3:#8A9992;
+    --line:#DCE4E0;
+    --line-2:#C6D2CC;
+    --accent:#0E7C48;
+    --accent-soft:#E4F1EA;
+    --warn:#96601A;
+    --warn-soft:#F8EEDD;
+    --crit:#A83A26;
+    --crit-soft:#F9E9E4;
+    --shadow:0 1px 2px rgba(22,32,28,.05), 0 8px 24px -16px rgba(22,32,28,.24);
+    --sans:'IBM Plex Sans','Noto Sans TC',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+    --mono:'IBM Plex Mono','Noto Sans TC',ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0E1412;
+      --surface:#151D1A;
+      --surface-2:#1B2521;
+      --ink:#E3ECE7;
+      --ink-2:#93A49B;
+      --ink-3:#6E7F77;
+      --line:#25302B;
+      --line-2:#33403A;
+      --accent:#45C084;
+      --accent-soft:#12291E;
+      --warn:#D9A354;
+      --warn-soft:#2A2114;
+      --crit:#E58166;
+      --crit-soft:#2E1B16;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1412;
+    --surface:#151D1A;
+    --surface-2:#1B2521;
+    --ink:#E3ECE7;
+    --ink-2:#93A49B;
+    --ink-3:#6E7F77;
+    --line:#25302B;
+    --line-2:#33403A;
+    --accent:#45C084;
+    --accent-soft:#12291E;
+    --warn:#D9A354;
+    --warn-soft:#2A2114;
+    --crit:#E58166;
+    --crit-soft:#2E1B16;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.72;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px;margin:0 auto;padding:0 28px}
+
+  /* ---------- masthead ---------- */
+  .masthead{padding:64px 0 30px;border-bottom:1px solid var(--line)}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px;font-weight:500;
+  }
+  h1{
+    font-size:clamp(30px,5vw,46px);line-height:1.14;margin:0 0 16px;
+    font-weight:600;letter-spacing:-.02em;text-wrap:balance;
+  }
+  .lede{font-size:17.5px;color:var(--ink-2);margin:0;max-width:64ch}
+  .meta-strip{
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:26px;
+  }
+  .chip{
+    font-family:var(--mono);font-size:11.5px;padding:5px 11px;border-radius:3px;
+    background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);
+  }
+  .chip.ok{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+  .chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+
+  /* ---------- tabs ---------- */
+  .tabbar{
+    position:sticky;top:0;z-index:20;background:var(--bg);
+    border-bottom:1px solid var(--line);
+  }
+  .tablist{
+    display:flex;gap:2px;overflow-x:auto;max-width:1000px;margin:0 auto;padding:0 28px;
+    scrollbar-width:thin;
+  }
+  .tab{
+    flex:0 0 auto;appearance:none;background:none;border:0;cursor:pointer;
+    font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-2);
+    padding:15px 15px 13px;border-bottom:2px solid transparent;
+    white-space:nowrap;transition:color .15s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+  .tab:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:3px}
+  .tab .num{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-right:7px}
+  .tab[aria-selected="true"] .num{color:var(--accent)}
+
+  .panel{padding:44px 0 90px}
+  .panel[hidden]{display:none}
+
+  /* ---------- typography ---------- */
+  h2{
+    font-size:25px;font-weight:600;letter-spacing:-.015em;margin:0 0 6px;
+    text-wrap:balance;
+  }
+  h2 + .sub{color:var(--ink-2);margin:0 0 30px;font-size:15.5px;max-width:62ch}
+  h3{
+    font-size:17.5px;font-weight:600;margin:40px 0 12px;letter-spacing:-.01em;
+    text-wrap:balance;
+  }
+  h4{font-size:14.5px;font-weight:600;margin:26px 0 8px}
+  p{margin:0 0 16px;max-width:68ch}
+  ul,ol{margin:0 0 18px;padding-left:22px;max-width:68ch}
+  li{margin-bottom:7px}
+  strong{font-weight:600}
+  code{
+    font-family:var(--mono);font-size:.875em;background:var(--surface-2);
+    padding:2px 5px;border-radius:3px;border:1px solid var(--line);
+  }
+  a{color:var(--accent)}
+
+  .section{margin-bottom:14px}
+  .divider{height:1px;background:var(--line);margin:44px 0;border:0}
+
+  /* ---------- blocks ---------- */
+  .pre-wrap{overflow-x:auto;margin:0 0 20px;border-radius:5px;border:1px solid var(--line);background:var(--surface)}
+  pre{
+    font-family:var(--mono);font-size:12.5px;line-height:1.66;margin:0;
+    padding:15px 17px;color:var(--ink);white-space:pre;
+  }
+  pre .c{color:var(--ink-3)}
+  pre .g{color:var(--accent)}
+  pre .r{color:var(--crit)}
+  pre .y{color:var(--warn)}
+
+  .table-wrap{overflow-x:auto;margin:0 0 22px;border:1px solid var(--line);border-radius:5px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:500;background:var(--surface-2);white-space:nowrap;
+  }
+  tbody tr:last-child td{border-bottom:0}
+  td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+  .yes{color:var(--accent);font-weight:600}
+  .no{color:var(--crit);font-weight:600}
+  .mid{color:var(--warn);font-weight:600}
+
+  /* ---------- callouts ---------- */
+  .note{
+    border:1px solid var(--line);border-left:3px solid var(--ink-3);
+    background:var(--surface);padding:16px 20px;border-radius:0 5px 5px 0;margin:0 0 22px;
+  }
+  .note.warn{border-left-color:var(--warn);background:var(--warn-soft);border-color:transparent}
+  .note.crit{border-left-color:var(--crit);background:var(--crit-soft);border-color:transparent}
+  .note.ok{border-left-color:var(--accent);background:var(--accent-soft);border-color:transparent}
+  .note-title{
+    font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;
+    font-weight:500;margin:0 0 7px;color:var(--ink-2);
+  }
+  .note.warn .note-title{color:var(--warn)}
+  .note.crit .note-title{color:var(--crit)}
+  .note.ok .note-title{color:var(--accent)}
+  .note p:last-child{margin-bottom:0}
+  .note p{max-width:none}
+
+  /* ---------- figures ---------- */
+  figure{
+    margin:0 0 30px;background:var(--surface);border:1px solid var(--line);
+    border-radius:6px;padding:24px 22px 16px;overflow-x:auto;
+  }
+  figure svg{display:block;max-width:100%;height:auto;color:var(--ink);min-width:640px}
+  figcaption{
+    font-size:13px;color:var(--ink-2);margin-top:16px;padding-top:13px;
+    border-top:1px solid var(--line);max-width:none;
+  }
+
+  /* ---------- cards ---------- */
+  .grid{display:grid;gap:14px;margin-bottom:24px}
+  .grid.g2{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .grid.g3{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:17px 19px;box-shadow:var(--shadow);
+  }
+  .card h4{margin:0 0 7px;font-size:14.5px}
+  .card p{margin:0;font-size:13.5px;color:var(--ink-2);max-width:none}
+  .stat{font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin:0 0 3px;font-variant-numeric:tabular-nums}
+  .stat-label{font-size:12.5px;color:var(--ink-2);margin:0}
+  .stat.ok{color:var(--accent)}
+  .stat.warn{color:var(--warn)}
+  .stat.crit{color:var(--crit)}
+
+  /* ---------- steps ---------- */
+  .steps{list-style:none;padding:0;margin:0 0 24px;max-width:none;counter-reset:s}
+  .steps > li{
+    position:relative;padding:0 0 22px 42px;margin:0;counter-increment:s;
+    border-left:1px solid var(--line);margin-left:13px;
+  }
+  .steps > li:last-child{border-left-color:transparent;padding-bottom:0}
+  .steps > li::before{
+    content:counter(s);position:absolute;left:-13px;top:0;
+    width:26px;height:26px;border-radius:50%;background:var(--surface);
+    border:1px solid var(--line-2);color:var(--ink-2);
+    font-family:var(--mono);font-size:11.5px;font-weight:500;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .steps > li.done::before{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+  .steps > li.todo::before{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+  .step-h{font-weight:600;margin:0 0 5px;font-size:15px;padding-top:1px}
+  .steps p{font-size:14px;color:var(--ink-2);margin:0 0 9px;max-width:66ch}
+
+  /* ---------- gotcha ---------- */
+  .gotcha{
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:20px 22px;margin-bottom:16px;
+  }
+  .gotcha-head{display:flex;align-items:baseline;gap:11px;margin-bottom:11px;flex-wrap:wrap}
+  .gotcha-n{
+    font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:500;
+    background:var(--accent-soft);padding:3px 8px;border-radius:3px;flex:0 0 auto;
+  }
+  .gotcha-t{font-weight:600;font-size:15.5px;margin:0}
+  .gotcha dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:7px 15px;font-size:14px}
+  .gotcha dt{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3);padding-top:5px;white-space:nowrap;
+  }
+  .gotcha dd{margin:0;color:var(--ink-2)}
+  .gotcha dd code{font-size:12.5px}
+
+  .footer{border-top:1px solid var(--line);padding:26px 0 60px;color:var(--ink-3);font-size:13px}
+  .footer p{max-width:none;margin:0}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media (max-width:640px){
+    .wrap,.tablist{padding:0 18px}
+    .masthead{padding:40px 0 24px}
+    .gotcha dl{grid-template-columns:1fr;gap:2px 0}
+    .gotcha dt{padding-top:9px}
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">建置實錄 · 2026-08-27</p>
+    <h1>Netronix AI Bot 建置實錄</h1>
+    <p class="lede">
+      在一台 2017 年的 Intel MacBook Pro 上，把 Hermes Agent 裝起來、接上 ChatGPT Codex 的額度，
+      再串成一個會回話的 LINE Bot。這份文件記錄實際做了什麼、哪裡卡住、以及還沒解決的問題。
+    </p>
+    <div class="meta-strip">
+      <span class="chip ok">端到端已打通</span>
+      <span class="chip">Hermes v0.20.5</span>
+      <span class="chip">gpt-5.6-sol</span>
+      <span class="chip">白名單 2 人</span>
+      <span class="chip warn">通道為臨時網址</span>
+      <span class="chip warn">工具未鎖定</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar">
+  <div class="tablist" role="tablist" aria-label="報告章節">
+    <button class="tab" role="tab" id="t1" aria-controls="p1" aria-selected="true"><span class="num">01</span>總覽</button>
+    <button class="tab" role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1"><span class="num">02</span>環境與安裝</button>
+    <button class="tab" role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1"><span class="num">03</span>模型串接</button>
+    <button class="tab" role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1"><span class="num">04</span>LINE 串接</button>
+    <button class="tab" role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1"><span class="num">05</span>踩過的坑</button>
+    <button class="tab" role="tab" id="t6" aria-controls="p6" aria-selected="false" tabindex="-1"><span class="num">06</span>風險與決策</button>
+    <button class="tab" role="tab" id="t7" aria-controls="p7" aria-selected="false" tabindex="-1"><span class="num">07</span>操作介面</button>
+    <button class="tab" role="tab" id="t8" aria-controls="p8" aria-selected="false" tabindex="-1"><span class="num">08</span>重建指令</button>
+  </div>
+</nav>
+
+<!-- ============ 01 總覽 ============ -->
+<main>
+<section class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+  <div class="wrap">
+    <h2>目前這套系統長什麼樣</h2>
+    <p class="sub">一則 LINE 訊息從手機送出，到回覆出現在螢幕上，中間經過五個環節。其中一個是臨時的。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 300" role="img" aria-label="執行架構圖：LINE 使用者的訊息經 LINE 平台、cloudflared 臨時通道進入本機 Hermes Gateway，通過白名單檢查後送往 ChatGPT Codex 推論，回覆沿原路返回">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C48"/>
+          </marker>
+        </defs>
+
+        <!-- boxes -->
+        <rect x="22" y="100" width="115" height="78" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="79.5" y="132" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">LINE 使用者</text>
+        <text x="79.5" y="151" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">手機</text>
+
+        <rect x="222" y="100" width="115" height="78" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="279.5" y="132" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">LINE 平台</text>
+        <text x="279.5" y="151" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">雲端伺服器</text>
+
+        <rect x="422" y="100" width="115" height="78" rx="5" fill="none" stroke="#0E7C48" stroke-width="1.6" stroke-dasharray="5 3"/>
+        <text x="479.5" y="132" text-anchor="middle" font-size="12.5" fill="#0E7C48" font-weight="600">cloudflared</text>
+        <text x="479.5" y="151" text-anchor="middle" font-size="11" fill="#0E7C48" opacity=".85">臨時通道</text>
+
+        <rect x="622" y="100" width="115" height="78" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="679.5" y="127" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">Hermes</text>
+        <text x="679.5" y="144" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">Gateway</text>
+        <text x="679.5" y="162" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">你的 Mac :8646</text>
+
+        <rect x="822" y="100" width="115" height="78" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/>
+        <text x="879.5" y="127" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">ChatGPT</text>
+        <text x="879.5" y="144" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">Codex</text>
+        <text x="879.5" y="162" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">gpt-5.6-sol</text>
+
+        <!-- forward arrows -->
+        <line x1="137" y1="139" x2="215" y2="139" stroke="currentColor" stroke-width="1.2" marker-end="url(#ah)" opacity=".7"/>
+        <text x="176" y="127" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">發送訊息</text>
+
+        <line x1="337" y1="139" x2="415" y2="139" stroke="currentColor" stroke-width="1.2" marker-end="url(#ah)" opacity=".7"/>
+        <text x="376" y="121" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">webhook</text>
+        <text x="376" y="133" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">HMAC 簽章</text>
+
+        <line x1="537" y1="139" x2="615" y2="139" stroke="#0E7C48" stroke-width="1.4" marker-end="url(#ahA)"/>
+        <text x="576" y="127" text-anchor="middle" font-size="10.5" fill="#0E7C48">轉入 :8646</text>
+
+        <line x1="737" y1="139" x2="815" y2="139" stroke="currentColor" stroke-width="1.2" marker-end="url(#ah)" opacity=".7"/>
+        <text x="776" y="127" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".75">推論請求</text>
+
+        <!-- annotations -->
+        <text x="479.5" y="196" text-anchor="middle" font-size="10.5" fill="#0E7C48" opacity=".9">網址重啟即失效</text>
+        <text x="679.5" y="196" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">白名單檢查在此</text>
+
+        <!-- return path -->
+        <path d="M 879.5 178 L 879.5 240 L 79.5 240 L 79.5 178" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#ah)" opacity=".5"/>
+        <text x="479.5" y="262" text-anchor="middle" font-size="11" fill="currentColor" opacity=".65">回覆沿原路返回 — 優先用免費 reply token，逾時改用計費的 Push API</text>
+      </svg>
+      <figcaption>
+        執行架構。實線是去程，虛線是回程。綠色標出的 cloudflared 通道是整條鏈路上唯一的臨時環節：
+        它給 LINE 一個打得進你 Mac 的公開網址，但那個網址在通道重啟後就會換掉。
+      </figcaption>
+    </figure>
+
+    <hr class="divider">
+
+    <h2>建置經過的六個階段</h2>
+    <p class="sub">兩個階段出現非預期的阻礙，都不是操作失誤，而是平台與工具本身的問題。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 190" role="img" aria-label="建置流程圖：六個階段依序為環境盤點、安裝 Hermes、接上 Codex、建立 LINE Bot、架設通道、打通驗證，其中安裝與驗證兩階段遭遇阻礙">
+        <line x1="80" y1="56" x2="880" y2="56" stroke="currentColor" stroke-width="1.2" opacity=".28"/>
+
+        <circle cx="80" cy="56" r="19" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/>
+        <text x="80" y="61" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">1</text>
+        <text x="80" y="100" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">環境盤點</text>
+        <text x="80" y="118" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">Intel Mac</text>
+        <text x="80" y="132" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">先天限制</text>
+
+        <circle cx="240" cy="56" r="19" fill="#96601A" stroke="#96601A" stroke-width="1.3"/>
+        <text x="240" y="61" text-anchor="middle" font-size="12.5" fill="#FFFFFF" font-weight="600">2</text>
+        <text x="240" y="100" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">安裝 Hermes</text>
+        <text x="240" y="118" text-anchor="middle" font-size="10.5" fill="#96601A">依賴衝突</text>
+        <text x="240" y="132" text-anchor="middle" font-size="10.5" fill="#96601A">cryptography 降版</text>
+
+        <circle cx="400" cy="56" r="19" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/>
+        <text x="400" y="61" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">3</text>
+        <text x="400" y="100" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">接上 Codex</text>
+        <text x="400" y="118" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">OAuth 裝置碼</text>
+        <text x="400" y="132" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">免 API key</text>
+
+        <circle cx="560" cy="56" r="19" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/>
+        <text x="560" y="61" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">4</text>
+        <text x="560" y="100" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">建 LINE Bot</text>
+        <text x="560" y="118" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">官方帳號</text>
+        <text x="560" y="132" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">+ 金鑰</text>
+
+        <circle cx="720" cy="56" r="19" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/>
+        <text x="720" y="61" text-anchor="middle" font-size="12.5" fill="currentColor" font-weight="600">5</text>
+        <text x="720" y="100" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">架設通道</text>
+        <text x="720" y="118" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">cloudflared</text>
+        <text x="720" y="132" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".62">公開網址</text>
+
+        <circle cx="880" cy="56" r="19" fill="#96601A" stroke="#96601A" stroke-width="1.3"/>
+        <text x="880" y="61" text-anchor="middle" font-size="12.5" fill="#FFFFFF" font-weight="600">6</text>
+        <text x="880" y="100" text-anchor="middle" font-size="12" fill="currentColor" font-weight="600">打通驗證</text>
+        <text x="880" y="118" text-anchor="middle" font-size="10.5" fill="#96601A">白名單讀不到</text>
+        <text x="880" y="132" text-anchor="middle" font-size="10.5" fill="#96601A">要寫 .env</text>
+      </svg>
+      <figcaption>
+        建置流程。第 2 與第 6 階段（琥珀色）是實際卡住的地方：前者源自 Intel Mac 缺少預編譯套件，
+        後者源自 Hermes 設定寫入與讀取路徑不一致。兩者的完整成因見「踩過的坑」。
+      </figcaption>
+    </figure>
+
+    <hr class="divider">
+
+    <h2>實測數據</h2>
+    <p class="sub">以下每個數字都來自實際執行，不是估計值。</p>
+
+    <div class="grid g3">
+      <div class="card">
+        <p class="stat ok">6.4–9.8s</p>
+        <p class="stat-label">LINE 端回應時間<br>（5 次實測區間）</p>
+      </div>
+      <div class="card">
+        <p class="stat">1.5 GB</p>
+        <p class="stat-label">安裝佔用<br>（<code>~/.hermes</code>）</p>
+      </div>
+      <div class="card">
+        <p class="stat">121</p>
+        <p class="stat-label">Python 套件<br>（14 組內建 skills）</p>
+      </div>
+    </div>
+
+    <div class="note ok">
+      <p class="note-title">已驗證可運作</p>
+      <p>
+        LINE 使用者發訊 → Hermes 收到 webhook → 白名單放行 → gpt-5.6-sol 推論 → 回覆送達手機，
+        整條鏈路實測通過。Gateway log 可見完整的
+        <code>inbound message</code> → <code>response ready</code> → <code>Sending response</code> 週期。
+      </p>
+    </div>
+
+    <div class="note crit">
+      <p class="note-title">但還不能開放給大眾</p>
+      <p>
+        目前 Agent 仍持有終端機與檔案讀寫權限，而進階指令掃描器（tirith）未安裝，
+        只有粗略的字串比對在把關。額度也綁在個人 ChatGPT 訂閱上。
+        在鎖定工具與切換計費方式之前，白名單不應該放寬。詳見「風險與決策」。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 環境與安裝 ============ -->
+<section class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+  <div class="wrap">
+    <h2>這台機器能做什麼、不能做什麼</h2>
+    <p class="sub">硬體年份決定了後面一連串的取捨，值得先講清楚。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>實際狀況</th><th>影響</th></tr></thead>
+        <tbody>
+          <tr><td>機型</td><td class="num">MacBookPro14,1（2017 13"）</td><td>Intel x86_64，非 Apple Silicon</td></tr>
+          <tr><td>作業系統</td><td class="num">macOS 13.6.1 Ventura</td><td class="no">無法再升級 — Sonoma 起不支援此機型</td></tr>
+          <tr><td>Xcode CLT</td><td class="yes">已安裝</td><td>編譯環境部分具備</td></tr>
+          <tr><td>Homebrew</td><td class="no">未安裝</td><td>ripgrep / ffmpeg / OpenSSL 皆無法自動補齊</td></tr>
+          <tr><td>Rust 工具鏈</td><td class="no">未安裝</td><td>需編譯的套件無法建置</td></tr>
+          <tr><td>OpenSSL</td><td class="mid">僅 LibreSSL 3.3.6</td><td>不含開發標頭檔</td></tr>
+          <tr><td>Python（系統）</td><td class="num">3.9.6</td><td>過舊，另由 uv 安裝 3.11.16</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note crit">
+      <p class="note-title">先天限制 · 無解</p>
+      <p>
+        Apple 從 macOS 14 Sonoma 起不再支援 MacBookPro14,1。系統升不上去，
+        而越來越多套件要求 macOS 14+ 或只發布 arm64 版本。
+        這在本次建置中已實際踩到兩次，未來還會再遇到。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>安裝結果</h2>
+    <p class="sub">官方安裝腳本共 3639 行，執行前已完整審閱。全部檔案集中在 <code>~/.hermes/</code>。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>元件</th><th>狀態</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>Hermes Agent</td><td class="yes">v0.20.5</td><td>upstream <code>824f7e08</code>，MIT 授權</td></tr>
+          <tr><td>Python</td><td class="yes">3.11.16</td><td>由 uv 管理，不影響系統的 3.9</td></tr>
+          <tr><td>Node.js</td><td class="yes">26.8.1</td><td>裝在 <code>~/.hermes/node</code>，非全域</td></tr>
+          <tr><td>Python 套件</td><td class="yes">121 個</td><td>含 <code>[all]</code> extra</td></tr>
+          <tr><td>內建 skills</td><td class="yes">14 組</td><td>apple、devops、research 等</td></tr>
+          <tr><td>Computer Use driver</td><td class="yes">已安裝</td><td><code>~/.local/bin/cua-driver</code></td></tr>
+          <tr><td>Playwright / Chromium</td><td class="no">失敗</td><td>此機器永久不可用，見下</td></tr>
+          <tr><td>ripgrep / ffmpeg</td><td class="mid">跳過</td><td>無 Homebrew；檔案搜尋退回 grep</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>瀏覽器自動化：永久不可用</h3>
+    <div class="pre-wrap"><pre><span class="r">Error: ERROR: Playwright does not support chromium on mac13</span></pre></div>
+    <p>
+      Playwright 已將最低需求提高到 macOS 14。這不是缺少依賴，補裝任何東西都無法解決，
+      而這台機器又升不上 macOS 14。Hermes 偵測後自動退回內建的網頁工具，一般查詢仍可運作，
+      但 Agent 無法實際操作瀏覽器。
+    </p>
+
+    <hr class="divider">
+
+    <h2>cryptography 的取捨</h2>
+    <p class="sub">安裝過程中唯一需要人為決策的地方，而且牽涉到已知漏洞。</p>
+
+    <p>
+      Hermes 的 <code>pyproject.toml</code> 硬性釘選 <code>cryptography==50.0.0</code>，
+      註解明確說明是為了修補多個漏洞：
+    </p>
+    <ul>
+      <li><strong>CVE-2026-69247</strong> — PKCS#7 EnvelopedData 的 Bleichenbacher oracle</li>
+      <li><strong>GHSA-m2h6-j472-rp4c</strong> — 萬用字元 DNS 名稱可逃脫 <code>permittedSubtrees</code></li>
+      <li><strong>GHSA-jwv3-5hgf-82ww</strong> — 重複自簽中介憑證造成指數級路徑建構</li>
+    </ul>
+
+    <p>問題是這個版本在 Intel Mac 上裝不起來：</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>版本</th><th>macOS wheel</th><th>可用於 Intel</th></tr></thead>
+        <tbody>
+          <tr><td class="num">50.0.0</td><td class="num">macosx_11_0_arm64</td><td class="no">否 — 僅 Apple Silicon</td></tr>
+          <tr><td class="num">48.0.1</td><td class="num">macosx_10_9_universal2</td><td class="yes">是 — 含 x86_64</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      上游從 50.0.0 起砍掉了涵蓋 Intel 的 universal2 wheel。剩下的路只有從原始碼編譯，
+      但那需要 OpenSSL 開發標頭與 Rust 工具鏈，這台機器兩者皆無。安裝腳本的四層 fallback 因此全數失敗。
+    </p>
+
+    <div class="note warn">
+      <p class="note-title">已採取的決定</p>
+      <p>
+        在知情的前提下，將 <code>cryptography</code> 降版至 <strong>48.0.1</strong>，接受上述三個漏洞。
+        判斷依據是受影響的程式路徑（企業微信、阿里雲請求簽名、GitHub App JWT）
+        在目前用途下不會被觸及。這是取捨，不是修好了。
+      </p>
+    </div>
+
+    <h4>本機修改，未來需留意</h4>
+    <p>
+      <code>~/.hermes/hermes-agent/pyproject.toml</code> 有兩行被改動（第 101 行與第 395 行），
+      原始檔備份於同目錄的 <code>pyproject.toml.orig</code>。
+      <code>hermes update</code> 會自動 autostash 再套回，通常能保留；
+      但若某次更新後安裝失敗且錯誤指向 cryptography 編譯，先確認這兩行是否還在。
+    </p>
+
+    <h3>順帶修正的一個問題</h3>
+    <p>
+      安裝腳本把 PATH 寫進 <code>~/.bashrc</code>，但 macOS 的 Terminal 開的是登入 shell，
+      只讀 <code>~/.bash_profile</code>——而該檔案並不存在。照原樣使用者開啟終端機會找不到
+      <code>hermes</code> 指令。已建立標準的橋接檔（單行 source <code>.bashrc</code>），並實測確認可用。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 03 模型串接 ============ -->
+<section class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+  <div class="wrap">
+    <h2>用 ChatGPT 訂閱額度驅動 Agent</h2>
+    <p class="sub">Hermes 對 Codex 有第一方支援，不需要 API key，也不需要任何第三方代理。</p>
+
+    <p>
+      Hermes 內建 <code>openai-codex</code> provider，定義位於
+      <code>plugins/model-providers/openai-codex/</code>：
+    </p>
+
+    <div class="pre-wrap"><pre>openai_codex = ProviderProfile(
+    name=<span class="g">"openai-codex"</span>,
+    aliases=(<span class="g">"codex"</span>, <span class="g">"openai_codex"</span>),
+    api_mode=<span class="g">"codex_responses"</span>,
+    env_vars=(),  <span class="c"># OAuth external — no API key</span>
+    base_url=<span class="g">"https://chatgpt.com/backend-api/codex"</span>,
+    auth_type=<span class="g">"oauth_external"</span>,
+)</pre></div>
+
+    <h3>登入方式：獨立的裝置碼流程</h3>
+    <p>
+      Hermes 能讀取 Codex CLI 的 <code>~/.codex/auth.json</code>，但原始碼明確建議另開獨立登入。
+      實際執行時它直接走了裝置碼流程，沒有詢問是否匯入——這正是期望的結果。
+    </p>
+
+    <div class="note">
+      <p class="note-title">為什麼不共用憑證</p>
+      <p>
+        OAuth 的 refresh token 是<strong>一次性</strong>的。若 Hermes 與 Codex CLI／VS Code
+        共用同一份 <code>auth.json</code>，兩邊會輪流讓對方的 token 失效，結果是雙方都時不時掉登入。
+        獨立 session 各自持有憑證，用的仍是同一份訂閱額度。
+      </p>
+    </div>
+
+    <h3>登入與驗證的完整指令</h3>
+    <p>登入是裝置碼流程，需在瀏覽器完成授權，終端機會停在 <code>Waiting for sign-in...</code> 輪詢。</p>
+
+    <div class="pre-wrap"><pre><span class="c"># 1. 發起 OAuth 登入（會印出網址與一組裝置碼）</span>
+<span class="c">$</span> hermes auth add openai-codex --type oauth
+
+To continue, follow these steps:
+  1. Open this URL in your browser:
+     https://auth.openai.com/codex/device
+  2. Enter this code:
+     XXXX-XXXXX
+
+Waiting for sign-in... (press Ctrl+C to cancel)
+<span class="g">Added openai-codex OAuth credential #1: "openai-codex-oauth-1"</span></pre></div>
+
+    <h4>此時要在瀏覽器做的四件事</h4>
+    <p>
+      終端機會停在 <code>Waiting for sign-in...</code> 持續輪詢。這是正常的，
+      <strong>不要按 Ctrl+C</strong>。換到瀏覽器完成授權：
+    </p>
+    <ol class="steps">
+      <li>
+        <p class="step-h">開啟裝置授權頁</p>
+        <p>網址是 <code>https://auth.openai.com/codex/device</code>。
+        若終端機沒有自動開啟瀏覽器，複製該網址自行貼上。</p>
+      </li>
+      <li>
+        <p class="step-h">輸入終端機顯示的代碼</p>
+        <p>格式為 <code>XXXX-XXXXX</code>，<strong>中間的連字號要一起輸入</strong>。</p>
+      </li>
+      <li>
+        <p class="step-h">用有付費訂閱的 ChatGPT 帳號登入</p>
+        <p>Codex 額度需要 Plus／Pro／Business 方案，<strong>免費帳號沒有</strong>。
+        登入的帳號決定之後 Hermes 會消耗誰的額度。</p>
+      </li>
+      <li>
+        <p class="step-h">在授權確認頁按同意</p>
+        <p>完成後終端機會自動繼續，<code>Waiting for sign-in...</code> 變成
+        <code>Added openai-codex OAuth credential #1</code>。</p>
+      </li>
+    </ol>
+
+    <div class="note warn">
+      <p class="note-title">代碼有時效</p>
+      <p>
+        裝置碼大約十分鐘後失效，過期就要重跑
+        <code>hermes auth add openai-codex --type oauth</code> 取得新的一組。
+        所以發起指令後就直接完成授權，不要中途去忙別的事。
+      </p>
+    </div>
+
+    <div class="note warn">
+      <p class="note-title">若詢問是否匯入現有憑證</p>
+      <p>
+        當畫面出現 <code>Found existing Codex CLI credentials at ~/.codex/auth.json — Import these
+        credentials? [y/N]</code> 時，<strong>回答 <code>n</code></strong>。
+        OAuth refresh token 是一次性的，共用同一份檔案會讓 Hermes 與 Codex CLI／VS Code
+        互相使對方的 token 失效。
+      </p>
+    </div>
+
+    <h4>驗證登入狀態</h4>
+    <div class="pre-wrap"><pre><span class="c"># 2. 確認該供應商已登入</span>
+<span class="c">$</span> hermes auth status openai-codex
+<span class="g">openai-codex: logged in</span>
+
+<span class="c"># 3. 列出憑證池，確認憑證已入列</span>
+<span class="c">$</span> hermes auth list
+openai-codex (1 credentials):
+  #1  openai-codex-oauth-1 oauth   device_code <span class="g">←</span></pre></div>
+
+    <h4>用實際 API 呼叫確認憑證真的能用</h4>
+    <p>
+      <code>logged in</code> 只代表本機存了憑證，不保證打得通。
+      下面這段會用該憑證向 Codex 後端請求模型清單——成功回傳就代表整條認證鏈路可用。
+    </p>
+    <div class="pre-wrap"><pre><span class="c">$</span> cd ~/.hermes/hermes-agent
+<span class="c">$</span> venv/bin/python -c "
+import sys; sys.path.insert(0,'.')
+from hermes_cli import models as M
+for i in M.provider_model_ids('openai-codex'): print(i)
+"
+<span class="g">gpt-5.6-sol</span>
+<span class="g">gpt-5.6-sol-900k</span>
+<span class="g">gpt-5.6-terra</span>
+<span class="c">…</span></pre></div>
+
+    <h4>切換模型並確認三項設定都接對</h4>
+    <div class="pre-wrap"><pre><span class="c"># 4. 互動選單：會一次接好 provider + base_url + model</span>
+<span class="c">$</span> hermes model
+
+<span class="c"># 5. 驗證設定實際寫入的值</span>
+<span class="c">$</span> hermes config | grep -A1 <span class="g">"◆ Model"</span>
+Model: {'default': <span class="g">'gpt-5.6-sol'</span>,
+        'provider': <span class="g">'openai-codex'</span>,
+        'base_url': <span class="g">'https://chatgpt.com/backend-api/codex'</span>}</pre></div>
+
+    <div class="note crit">
+      <p class="note-title">為什麼一定要用 <code>hermes model</code> 而非直接改設定</p>
+      <p>
+        預設設定的 <code>base_url</code> 指向 OpenRouter。若只用
+        <code>hermes config set model gpt-5.6-sol</code> 改模型名稱，
+        <code>provider</code> 與 <code>base_url</code> 不會跟著換，結果是拿著 Codex 的模型名稱
+        去打 OpenRouter，必然失敗。互動選單會把三項一起設定。
+      </p>
+    </div>
+
+    <h4>端到端煙霧測試</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> hermes chat -q <span class="g">"回答一句話就好：你現在用的是哪個模型？"</span>
+
+╭─ ⚕ Hermes ──────────────────────────────────────────╮
+<span class="g">我目前使用的是 OpenAI 的 GPT-5.6 Sol 模型。</span>
+╰─────────────────────────────────────────────────────╯
+Duration: 48s   <span class="c">← 首次執行含冷啟動；暖機後為 5–7 秒</span></pre></div>
+
+    <hr class="divider">
+
+    <h2>可用模型</h2>
+    <p class="sub">登入後由 Codex 後端實際回傳的清單。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>模型</th><th>脈絡上限</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td class="num">gpt-5.6-sol</td><td class="num">272K</td><td><strong>目前使用中</strong></td></tr>
+          <tr><td class="num">gpt-5.6-terra</td><td class="num">272K</td><td>與 sol 同級平行版本</td></tr>
+          <tr><td class="num">gpt-5.6-luna</td><td class="num">272K</td><td>與 sol 同級平行版本</td></tr>
+          <tr><td class="num">gpt-5.6-*-900k</td><td class="num">~911K</td><td>Hermes 自訂別名，送出前會移除後綴</td></tr>
+          <tr><td class="num">gpt-5.5 / 5.4</td><td class="num">272K</td><td>舊版，同時作為 5.6 的 fallback</td></tr>
+          <tr><td class="num">gpt-5.4-mini</td><td class="num">272K</td><td>更快，能力較弱</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      關於 <code>sol</code> / <code>terra</code> / <code>luna</code>：Hermes 的程式碼把這三者當作
+      <strong>完全對等</strong>處理——相同的脈絡上限、相同的 fallback 鏈。
+      原始碼未說明能力差異，因此本報告不做推測。
+    </p>
+
+    <hr class="divider">
+
+    <h2>速度：一個被誤判的問題</h2>
+    <p class="sub">最初測得 48 秒，一度以為是推理強度設太高。實測後證明不是。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>推理強度</th><th>耗時</th><th>測試條件</th></tr></thead>
+        <tbody>
+          <tr><td class="num">— （首次執行）</td><td class="num">48s</td><td>冷啟動，<code>0 tool calls</code></td></tr>
+          <tr><td class="num">minimal</td><td class="num">7s</td><td rowspan="3">暖機後，同一個問題</td></tr>
+          <tr><td class="num">low</td><td class="num">5s</td></tr>
+          <tr><td class="num">medium（預設）</td><td class="num">7s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      三種強度差異幾乎不存在。那 48 秒是<strong>首次執行的冷啟動成本</strong>——
+      載入套件、skills、抓取模型清單。當次紀錄顯示 <code>0 tool calls</code>，模型並未做額外動作。
+    </p>
+
+    <div class="note ok">
+      <p class="note-title">對 LINE Bot 的實際意義</p>
+      <p>
+        Gateway 是常駐服務，不會每則訊息重啟，因此不需承擔冷啟動成本。
+        實測 LINE 端回應落在 <strong>6.4 至 9.8 秒</strong>，遠低於 LINE plugin 的 45 秒慢速門檻，
+        使用者會直接收到回覆，不會退化成「先給按鈕再點開」的體驗。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 LINE 串接 ============ -->
+<section class="panel" id="p4" role="tabpanel" aria-labelledby="t4" hidden>
+  <div class="wrap">
+    <h2>從零到收得到訊息</h2>
+    <p class="sub">Hermes 內建完整的 LINE adapter，不需自行撰寫任何串接程式碼。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>官方帳號</td><td class="num">Netronix_AI_Bot（@335uiwfi）</td></tr>
+          <tr><td>Channel ID</td><td class="num">2011282819</td></tr>
+          <tr><td>方案</td><td class="num">輕用量</td></tr>
+          <tr><td>Webhook 路徑</td><td class="num">/line/webhook</td></tr>
+          <tr><td>監聽埠</td><td class="num">8646</td></tr>
+          <tr><td>健康檢查</td><td class="num">/line/webhook/health</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <h2>實際執行的步驟</h2>
+
+    <ol class="steps">
+      <li class="done">
+        <p class="step-h">在 LINE Developers Console 建立 Provider 與 Channel</p>
+        <p>到 <code>developers.line.biz/console/</code>，用 LINE 帳號登入，然後：</p>
+        <ul>
+          <li>建立 <strong>Provider</strong>——就是一個組織容器，名字隨意（本例為 <code>NetronixAI</code>）</li>
+          <li>在該 Provider 底下建立 <strong>Messaging API channel</strong></li>
+          <li>填基本資料：bot 名稱、頭像、類別</li>
+        </ul>
+        <p>
+          <strong>別選成 LINE Login</strong>——那是網站登入用的，不會產生 bot。
+          必須是 Messaging API。
+        </p>
+        <p>過程中會要求填「隱私權政策」與「服務條款」網址，兩者都標示<strong>（選填）</strong>，測試階段留空即可，日後隨時能補。</p>
+      </li>
+      <li class="done">
+        <p class="step-h">在 Official Account Manager 關閉自動回應</p>
+        <p>到 <code>manager.line.biz</code> → 設定 → <strong>回應設定</strong>：</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>項目</th><th>設定</th><th>原因</th></tr></thead>
+            <tbody>
+              <tr><td>自動回應訊息</td><td class="no">停用</td><td>否則使用者收到的是 LINE 罐頭訊息，不是模型回答</td></tr>
+              <tr><td>聊天</td><td class="no">停用</td><td>bot 模式不需要人工客服介面</td></tr>
+              <tr><td>加入好友的歡迎訊息</td><td>可留</td><td>不影響運作</td></tr>
+              <tr><td>Webhook</td><td class="mid">此時仍鎖住</td><td>需先填 Webhook URL 才會解鎖，見步驟 6</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+      <li class="done">
+        <p class="step-h">取得兩把金鑰</p>
+        <p>回到 Developers Console，進入你的 channel，兩把金鑰分別在<strong>不同分頁</strong>：</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>金鑰</th><th>位置</th><th>取得方式</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Channel secret</strong></td>
+                <td><code>Basic settings</code> 分頁</td>
+                <td>往下捲，在 Channel ID 下方，約 32 位英數字，旁邊有複製鈕</td>
+              </tr>
+              <tr>
+                <td><strong>Channel access token</strong></td>
+                <td><code>Messaging API</code> 分頁</td>
+                <td>捲到<strong>最下面</strong>，找到 Channel access token (long-lived)，按 <strong>Issue</strong> 發行，約 170 字元</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Access token 屬長期有效、不會過期。若遺失可按 <strong>Reissue</strong> 重發，
+          但<strong>舊的會立即失效</strong>，需同步更新 <code>.env</code> 並重啟 gateway。
+        </p>
+        <p>兩者最終寫入 <code>~/.hermes/.env</code>（權限 600）。</p>
+      </li>
+      <li class="done">
+        <p class="step-h">設定 Gateway</p>
+        <p>執行 <code>hermes gateway setup</code> 選擇 LINE，它會逐項詢問：</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>提問</th><th>怎麼答</th></tr></thead>
+            <tbody>
+              <tr><td>LINE channel access token</td><td>貼上長 token（<strong>密碼欄位，畫面不會顯示任何字</strong>，貼完直接 Enter，別重複貼）</td></tr>
+              <tr><td>LINE channel secret</td><td>貼上 32 位 secret，同樣不顯示</td></tr>
+              <tr><td>Webhook port / host</td><td>Enter 用預設（8646 / 全介面）</td></tr>
+              <tr><td>Public HTTPS base URL</td><td><strong>留空</strong>。這格是給 bot 傳圖片、語音、影片用的，<u>不是</u> webhook 網址，純文字問答用不到</td></tr>
+              <tr><td>Allowed user IDs</td><td>先留空——此時還不知道自己的 LINE user ID，見步驟 7</td></tr>
+              <tr><td>Allow all users?</td><td><strong>留空或 false</strong>，切勿設 true</td></tr>
+              <tr><td>Slow response threshold</td><td>Enter 用預設 45 秒</td></tr>
+              <tr><td>Start the gateway now?</td><td>Y</td></tr>
+              <tr><td>開機自動啟動為 launchd 服務？</td><td>測試階段建議 n（但見踩坑 05——此回答未必生效）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+      <li class="done">
+        <p class="step-h">架設公開通道</p>
+        <p>
+          LINE 的伺服器必須主動連進你的 Mac，但家用網路在 NAT 後面。
+          通道工具提供一個公開 HTTPS 網址，把請求轉進本機 8646。
+        </p>
+        <p>
+          選 <strong>cloudflared</strong> 而非 ngrok，因為它的快速通道<strong>免註冊帳號</strong>，
+          且有免安裝的執行檔可下載（本機無 Homebrew）。
+        </p>
+        <div class="pre-wrap"><pre><span class="c">$</span> cloudflared tunnel --url http://localhost:8646
+
++------------------------------------------------------+
+|  <span class="g">https://&lt;隨機單字&gt;.trycloudflare.com</span>              |
++------------------------------------------------------+</pre></div>
+        <p><strong>這個視窗要保持開啟</strong>，關掉通道就斷。</p>
+      </li>
+      <li class="done">
+        <p class="step-h">回填 webhook 網址並解鎖開關</p>
+        <p>Developers Console → <code>Messaging API</code> 分頁 → <strong>Webhook settings</strong>：</p>
+        <ol>
+          <li><strong>Webhook URL</strong> 填 <code>https://&lt;通道網址&gt;/line/webhook</code>
+            ——<strong>結尾的 <code>/line/webhook</code> 一定要有</strong>，只填域名會失敗</li>
+          <li>按 <strong>Update</strong></li>
+          <li><strong>Use webhook</strong> 開關 → 打開</li>
+          <li>按 <strong>Verify</strong>，應顯示 Success</li>
+          <li>回 OA Manager 的「回應設定」，先前灰掉的 <strong>Webhook 開關</strong>此時已解鎖 → 打開</li>
+        </ol>
+        <p>
+          兩個後台都要開 Webhook，只開一邊不會運作。
+          OA Manager 的開關必須等這裡填好 URL 才會解鎖，這是順序限制而非故障。
+        </p>
+      </li>
+      <li class="todo">
+        <p class="step-h">設定白名單</p>
+        <p>
+          Hermes 預設<strong>拒絕未知寄件者</strong>，所以第一次發訊會被擋——這是防護正常運作。
+          被拒絕的同時，log 會記下對方的 user ID，這正是加入白名單所需要的。
+        </p>
+        <div class="pre-wrap"><pre><span class="c"># 1. 請對方加好友並發一句話，然後撈出 user ID</span>
+<span class="c">$</span> grep -o "U[0-9a-f]\{32\}" ~/.hermes/logs/gateway.log | sort -u
+
+<span class="c"># log 中的原始樣貌：</span>
+<span class="c">#  LINE: rejecting unauthorized source</span>
+<span class="c">#  {'type': 'user', 'userId': 'Uxxxxxxxx…'}</span>
+
+<span class="c"># 2. 寫進 .env（多人用逗號分隔，不可有空格）</span>
+<span class="c">$</span> echo 'LINE_ALLOWED_USERS=U第一位,U第二位' &gt;&gt; ~/.hermes/.env
+
+<span class="c"># 3. 重啟後等 40 秒（見踩坑 02）</span>
+<span class="c">$</span> hermes gateway restart &amp;&amp; sleep 40 &amp;&amp; hermes gateway status</pre></div>
+        <p>
+          目前 2 人。<strong>每新增一人都要重複這套流程並重啟服務</strong>，
+          這是尚未解決的規模化瓶頸——解法見「風險與決策」的 pairing 模式。
+        </p>
+      </li>
+    </ol>
+
+    <hr class="divider">
+
+    <h2>驗證方式</h2>
+    <p class="sub">不靠猜測，用三個獨立的檢查確認每一段。</p>
+
+    <h4>一、通道是否可達</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> curl -s -o /dev/null -w "HTTP %{http_code}\n" \
+    https://&lt;通道網址&gt;/line/webhook/health
+<span class="g">HTTP 200</span>
+
+<span class="c"># 未簽章的請求應被拒絕</span>
+<span class="c">$</span> curl -s -X POST https://&lt;通道網址&gt;/line/webhook -d '{"events":[]}'
+<span class="g">HTTP 401</span>   <span class="c">← HMAC 驗證正常運作</span></pre></div>
+
+    <h4>二、LINE 後台登記的設定</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> curl -H "Authorization: Bearer $TOKEN" \
+    https://api.line.me/v2/bot/channel/webhook/endpoint
+
+{
+    <span class="g">"endpoint"</span>: <span class="g">"https://&lt;通道網址&gt;/line/webhook"</span>,
+    <span class="g">"active"</span>: true
+}</pre></div>
+    <p>這個 API 直接回報 LINE 端登記的狀態，比在後台目視確認可靠。</p>
+
+    <h4>三、完整往返</h4>
+    <div class="pre-wrap"><pre>13:24:46 INFO gateway.run: <span class="g">inbound message</span>: platform=line user=Ubbd58c5a...
+13:24:53 INFO gateway.run: <span class="g">response ready</span>: platform=line time=7.3s api_calls=1
+13:24:53 INFO gateway.platforms.base: <span class="g">[Line] Sending response</span> (29 chars)</pre></div>
+    <p>訊息進入、模型推論 7.3 秒、回覆送出，週期完整。白名單放行，未出現 <code>rejecting unauthorized</code>。</p>
+  </div>
+</section>
+
+<!-- ============ 05 踩過的坑 ============ -->
+<section class="panel" id="p5" role="tabpanel" aria-labelledby="t5" hidden>
+  <div class="wrap">
+    <h2>六個實際卡住的地方</h2>
+    <p class="sub">記錄成因與解法，避免重建時重蹈覆轍。其中一個是本次協作中我給出的錯誤指示。</p>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">01</span>
+        <p class="gotcha-t">白名單設了卻無效</p>
+      </div>
+      <dl>
+        <dt>症狀</dt>
+        <dd><code>hermes config get</code> 讀得回值，但 gateway 仍拒絕訊息。</dd>
+        <dt>成因</dt>
+        <dd><code>hermes config set</code> 把值寫入 <code>config.yaml</code>，但 <code>adapter.py:740</code> 用的是 <code>os.getenv("LINE_ALLOWED_USERS", "")</code>——只讀環境變數，永遠看不到 <code>config.yaml</code>。</dd>
+        <dt>解法</dt>
+        <dd>改寫入 <code>~/.hermes/.env</code>，重啟 gateway。</dd>
+        <dt>註記</dt>
+        <dd>這是 Hermes 設定介面的不一致：它照單全收、也讀得回來，讓人以為設定成功。<strong>本次協作中我最初給出的就是錯誤的 <code>config set</code> 指示</strong>，導致多繞了一段。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">02</span>
+        <p class="gotcha-t">重啟後 30 秒內訊息會遺失</p>
+      </div>
+      <dl>
+        <dt>症狀</dt>
+        <dd>重啟 gateway 後立刻測試，訊息毫無反應，log 連拒絕紀錄都沒有。</dd>
+        <dt>成因</dt>
+        <dd>舊程序尚未釋放 8646，新程序綁定失敗：<code>[Errno 48] address already in use</code>。Hermes 會在 30 秒後自動重試並成功，但那段空窗期 LINE 推送過來會直接失敗，訊息就掉了。</dd>
+        <dt>解法</dt>
+        <dd>每次 <code>hermes gateway restart</code> 後<strong>等約 40 秒</strong>，並以 <code>hermes gateway status</code> 確認已連線再測試。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">03</span>
+        <p class="gotcha-t">Webhook 開關無法打開</p>
+      </div>
+      <dl>
+        <dt>症狀</dt>
+        <dd>OA Manager 的「回應設定」中，Webhook 開關呈灰色點不動。</dd>
+        <dt>成因</dt>
+        <dd>並非故障，而是順序限制。必須先在 Developers Console 填入 Webhook URL，該開關才會解鎖。</dd>
+        <dt>解法</dt>
+        <dd>先架好通道拿到公開網址 → 填入 Developers Console → 再回 OA Manager 開啟。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">04</span>
+        <p class="gotcha-t">安裝腳本的依賴階段全數失敗</p>
+      </div>
+      <dl>
+        <dt>症狀</dt>
+        <dd>四層 fallback 逐一失敗，venv 完全是空的，<code>hermes</code> 指令不存在。日誌只顯示 pip 輸出的開頭，看不到真正錯誤。</dd>
+        <dt>成因</dt>
+        <dd><code>cryptography==50.0.0</code> 在 Intel Mac 無預編譯 wheel，改從原始碼編譯時因缺少 OpenSSL 開發標頭而失敗。</dd>
+        <dt>解法</dt>
+        <dd>以 <code>uv pip install --override</code> 降版至 48.0.1，並修改本機 <code>pyproject.toml</code> 讓安裝腳本能跑完後半段。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">05</span>
+        <p class="gotcha-t">launchd 選項未依回答生效</p>
+      </div>
+      <dl>
+        <dt>症狀</dt>
+        <dd>對「是否開機自動啟動」回答 <code>n</code>，但服務仍被安裝，且會自動啟動。</dd>
+        <dt>成因</dt>
+        <dd>產生的 plist 中 <code>RunAtLoad</code> 與 <code>KeepAlive</code> 皆為 <code>true</code>，與回答相反。</dd>
+        <dt>解法</dt>
+        <dd>目前選擇保留（後續本來就需要常駐）。若要移除：<code>hermes gateway uninstall</code>。</dd>
+        <dt>註記</dt>
+        <dd>值得留意的是，這代表<strong>開機時會自動跑起一個 bot</strong>。在工具尚未鎖定前，這件事本身就是風險。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">06</span>
+        <p class="gotcha-t">金鑰被貼入對話紀錄</p>
+      </div>
+      <dl>
+        <dt>狀況</dt>
+        <dd>Channel secret 與 access token 被貼進協作對話中。</dd>
+        <dt>影響</dt>
+        <dd>兩者因而存在於本機的純文字對話紀錄檔（<code>~/.claude/projects/…/*.jsonl</code>），並隨對話傳送至 API。原本它們只存在於 LINE 後台與權限 600 的 <code>.env</code>。</dd>
+        <dt>建議</dt>
+        <dd>於 Developers Console 執行 Reissue，舊金鑰即刻失效，紀錄中的字串隨之作廢。</dd>
+        <dt>現況</dt>
+        <dd><strong>使用者已知悉並選擇不重發</strong>，維持現有金鑰運作。此處記錄以備日後決策參考。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">07</span>
+        <p class="gotcha-t">看起來卡住，其實是收到按鈕沒點</p>
+      </div>
+      <dl>
+        <dt>症狀</dt>
+        <dd>問「今天股票大盤跌幅」後遲遲沒有答案，以為 bot 掛了。</dd>
+        <dt>成因</dt>
+        <dd>該問題需要查資料，Agent 連續做了 6 輪 API 往返，耗時 57.7 秒，超過 LINE plugin 的 45 秒門檻（<code>LINE_SLOW_RESPONSE_THRESHOLD</code>）。免費 reply token 撐不了那麼久，Hermes 因此改送一顆<strong>「點我看答案」的按鈕氣泡</strong>——答案其實早就備妥，只是要點開。</dd>
+        <dt>判斷方法</dt>
+        <dd>看 log 的 <code>api_calls</code>。等於 1 表示直接回答；大於 1 表示 Agent 動用了工具，時間會顯著拉長。</dd>
+        <dt>解法</dt>
+        <dd>維持現狀（觸發率低）；或設 <code>LINE_SLOW_RESPONSE_THRESHOLD=0</code> 停用按鈕、一律改用 Push API 直送（<strong>但 Push 訊息計入 LINE 方案的免費額度</strong>）；或關閉查資料的工具。</dd>
+      </dl>
+    </div>
+
+    <div class="gotcha">
+      <div class="gotcha-head">
+        <span class="gotcha-n">08</span>
+        <p class="gotcha-t">連「1+2」都要十幾秒</p>
+      </div>
+      <dl>
+        <dt>實測</dt>
+        <dd><code>1+2</code> → 耗時 17.4 秒、<code>api_calls=2</code>、回覆長度 1 字元（就是「3」）。</dd>
+        <dt>成因</dt>
+        <dd>這是 agent 架構的固有成本，不是故障。Hermes 被設計成「會拿工具做事的人」，因此連簡單算術都可能先評估要不要用工具，多花一輪 API。加上 gpt-5.6 屬推理模型，本來就會先思考再回答。</dd>
+        <dt>實測下限</dt>
+        <dd>純對話約 <strong>2.5 至 9.8 秒</strong>，不會再快。答案太短時容易讓人以為沒收到。</dd>
+        <dt>最有效的加速</dt>
+        <dd>關閉不需要的工具（<code>hermes tools</code> 或聊天中 <code>/tools</code>），讓 <code>api_calls</code> 穩定在 1。調整 <code>agent.reasoning_effort</code> 的效果有限——實測 minimal／low／medium 在簡單問題上差距不到 2 秒。</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 風險與決策 ============ -->
+<section class="panel" id="p6" role="tabpanel" aria-labelledby="t6" hidden>
+  <div class="wrap">
+    <h2>開放給大眾之前必須先解決的事</h2>
+    <p class="sub">目前的白名單模式無法規模化，但直接放寬會同時放大三個風險。</p>
+
+    <div class="note crit">
+      <p class="note-title">風險一 · Agent 持有這台電腦的控制權</p>
+      <p>
+        Hermes 預設帶終端機執行、檔案讀寫、程式執行等工具。開放給不特定使用者，
+        等於讓陌生人透過打字間接操作這台 Mac。這不需要對方有惡意——
+        誘導 LLM 執行危險指令（prompt injection）是已知且活躍的攻擊面。
+      </p>
+      <p>
+        而 gateway 啟動時已出現警告：<code>tirith security scanner enabled but not available</code>，
+        代表進階指令掃描器未安裝，目前只有粗略的字串比對在把關。
+      </p>
+    </div>
+
+    <div class="note crit">
+      <p class="note-title">風險二 · 額度綁在個人訂閱上</p>
+      <p>
+        每一則訊息都在消耗個人 ChatGPT 訂閱的 Codex 額度。額度用盡時，
+        <strong>本人的 Codex 也會一併停擺</strong>。目前沒有任何用量上限或分帳機制，
+        亦無法區分是誰用掉的。
+      </p>
+    </div>
+
+    <div class="note warn">
+      <p class="note-title">風險三 · 服務不具持續性</p>
+      <p>
+        cloudflared 快速通道的網址在重啟後即失效，一失效就必須回 LINE 後台重新填寫。
+        且服務綁在一台 2017 年的筆電上——闔上蓋子、睡眠、或斷網，bot 就下線。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>存取模式的三個選項</h2>
+    <p class="sub">Hermes 的 <code>dm_policy</code> 支援 open / allowlist / pairing / disabled。差別在於「誰決定誰能進來」。</p>
+
+    <figure>
+      <svg viewBox="0 0 960 300" role="img" aria-label="存取模式比較圖：allowlist 需人工加入，pairing 由使用者自助配對，open 則讓任何人直達 Agent">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+          <marker id="ah2c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#A83A26"/>
+          </marker>
+          <marker id="ah2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0E7C48"/>
+          </marker>
+        </defs>
+
+        <!-- ROW 1 : allowlist -->
+        <rect x="20" y="32" width="96" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
+        <text x="68" y="52" text-anchor="middle" font-size="11.5" fill="currentColor" font-weight="600">allowlist</text>
+        <text x="68" y="68" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">目前</text>
+
+        <rect x="150" y="32" width="104" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".45"/>
+        <text x="202" y="60" text-anchor="middle" font-size="11.5" fill="currentColor">陌生使用者</text>
+
+        <line x1="254" y1="55" x2="304" y2="55" stroke="currentColor" stroke-width="1.1" marker-end="url(#ah2)" opacity=".6"/>
+
+        <rect x="310" y="32" width="130" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <text x="375" y="60" text-anchor="middle" font-size="11.5" fill="currentColor" font-weight="600">白名單比對</text>
+
+        <line x1="440" y1="55" x2="500" y2="55" stroke="currentColor" stroke-width="1.1" stroke-dasharray="3 3" opacity=".45"/>
+        <text x="470" y="46" text-anchor="middle" font-size="15" fill="#A83A26">✕</text>
+
+        <rect x="506" y="32" width="104" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".45"/>
+        <text x="558" y="60" text-anchor="middle" font-size="11.5" fill="currentColor">Agent</text>
+
+        <text x="640" y="52" font-size="11" fill="currentColor" opacity=".72">需你人工撈 ID、寫入 .env、重啟</text>
+        <text x="640" y="68" font-size="11" fill="#A83A26">無法規模化</text>
+
+        <!-- ROW 2 : pairing -->
+        <rect x="20" y="127" width="96" height="46" rx="4" fill="#0E7C48" stroke="#0E7C48" stroke-width="1.2"/>
+        <text x="68" y="147" text-anchor="middle" font-size="11.5" fill="#FFFFFF" font-weight="600">pairing</text>
+        <text x="68" y="163" text-anchor="middle" font-size="10" fill="#FFFFFF" opacity=".85">建議</text>
+
+        <rect x="150" y="127" width="104" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".45"/>
+        <text x="202" y="155" text-anchor="middle" font-size="11.5" fill="currentColor">陌生使用者</text>
+
+        <line x1="254" y1="145" x2="304" y2="145" stroke="#0E7C48" stroke-width="1.2" marker-end="url(#ah2g)"/>
+        <line x1="304" y1="162" x2="254" y2="162" stroke="#0E7C48" stroke-width="1.2" marker-end="url(#ah2g)" stroke-dasharray="3 2"/>
+        <text x="279" y="137" text-anchor="middle" font-size="9.5" fill="#0E7C48">回傳碼</text>
+
+        <rect x="310" y="127" width="130" height="46" rx="4" fill="none" stroke="#0E7C48" stroke-width="1.6"/>
+        <text x="375" y="155" text-anchor="middle" font-size="11.5" fill="#0E7C48" font-weight="600">配對碼驗證</text>
+
+        <line x1="440" y1="150" x2="500" y2="150" stroke="#0E7C48" stroke-width="1.2" marker-end="url(#ah2g)"/>
+
+        <rect x="506" y="127" width="104" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".45"/>
+        <text x="558" y="155" text-anchor="middle" font-size="11.5" fill="currentColor">Agent</text>
+
+        <text x="640" y="147" font-size="11" fill="currentColor" opacity=".72">使用者自助完成，你不介入</text>
+        <text x="640" y="163" font-size="11" fill="#0E7C48">保留一道門檻，擋掉機器人</text>
+
+        <!-- ROW 3 : open -->
+        <rect x="20" y="222" width="96" height="46" rx="4" fill="none" stroke="#A83A26" stroke-width="1.4"/>
+        <text x="68" y="242" text-anchor="middle" font-size="11.5" fill="#A83A26" font-weight="600">open</text>
+        <text x="68" y="258" text-anchor="middle" font-size="10" fill="#A83A26" opacity=".85">高風險</text>
+
+        <rect x="150" y="222" width="104" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".45"/>
+        <text x="202" y="250" text-anchor="middle" font-size="11.5" fill="currentColor">任何人</text>
+
+        <line x1="254" y1="245" x2="500" y2="245" stroke="#A83A26" stroke-width="1.3" marker-end="url(#ah2c)"/>
+        <text x="377" y="236" text-anchor="middle" font-size="10.5" fill="#A83A26">無任何檢查</text>
+
+        <rect x="506" y="222" width="104" height="46" rx="4" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".45"/>
+        <text x="558" y="250" text-anchor="middle" font-size="11.5" fill="currentColor">Agent</text>
+
+        <text x="640" y="242" font-size="11" fill="currentColor" opacity=".72">須另設 GATEWAY_ALLOW_ALL_USERS</text>
+        <text x="640" y="258" font-size="11" fill="#A83A26">否則 Hermes 拒絕啟動</text>
+      </svg>
+      <figcaption>
+        三種存取模式的差異在中間那道閘門。<code>allowlist</code> 的閘門由你手動開；
+        <code>pairing</code> 讓使用者用配對碼自己開；<code>open</code> 則沒有閘門——
+        Hermes 對此設有啟動保護，必須額外明確開啟旗標才願意執行。
+      </figcaption>
+    </figure>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>模式</th><th>誰決定</th><th>可規模化</th><th>適用情境</th></tr></thead>
+        <tbody>
+          <tr><td class="num">allowlist</td><td>你，逐一手動</td><td class="no">否</td><td>目前狀態；少數固定成員</td></tr>
+          <tr><td class="num">pairing</td><td>使用者自助</td><td class="yes">是</td><td>公司同事、已知社群</td></tr>
+          <tr><td class="num">open</td><td>無人把關</td><td class="yes">是</td><td>僅在工具完全鎖定後才可考慮</td></tr>
+          <tr><td class="num">另建輕量後端</td><td>由你設計</td><td class="yes">是</td><td>對外公開產品</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p class="note-title">關於第四個選項</p>
+      <p>
+        若目標是做給不特定多數人使用的產品，Hermes 這種「個人 agent」的架構本來就不是為此而生。
+        它的價值在於持有你的工具與權限；把它開放給大眾，等於把最大的優點變成最大的風險。
+        該情境下更合適的做法是直接以 LINE Messaging API 撰寫輕量後端接 LLM，
+        不讓一個擁有機器控制權的 agent 暴露在公開入口。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>建議的執行順序</h2>
+    <p class="sub">順序有意義：前一項未完成前，不應進行下一項。</p>
+
+    <ol class="steps">
+      <li class="todo">
+        <p class="step-h">鎖定工具</p>
+        <p>執行 <code>hermes tools</code>（需互動終端機），關閉終端機執行、檔案讀寫、Computer Use，僅保留純對話與必要的網頁查詢。</p>
+        <p><strong>這一步未完成前，不要放寬任何存取限制。</strong></p>
+      </li>
+      <li class="todo">
+        <p class="step-h">改用 API key 計費</p>
+        <p><code>hermes auth add openrouter --type api-key</code>。用量可控、可設預算上限，且不再牽連個人 ChatGPT 訂閱——額度被灌爆時損失的是可控的金額，而不是自己的工作工具。</p>
+      </li>
+      <li class="todo">
+        <p class="step-h">切換為 pairing 模式</p>
+        <p>使用者自助配對加入，你不需逐一處理，同時保留一道門檻擋掉機器人與隨機流量。</p>
+      </li>
+      <li class="todo">
+        <p class="step-h">處理服務持續性</p>
+        <p>固定網域取代臨時通道；若要長期營運，將 Hermes 移至雲端主機，而非依賴一台無法升級系統的筆電。</p>
+      </li>
+    </ol>
+
+    <div class="note warn">
+      <p class="note-title">尚待確認</p>
+      <p>
+        以個人 ChatGPT 訂閱額度轉供第三方使用，是否符合 OpenAI 的服務條款，
+        本報告無法代為判斷，建議在擴大使用者範圍前自行確認。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 操作介面 ============ -->
+<section class="panel" id="p7" role="tabpanel" aria-labelledby="t7" hidden>
+  <div class="wrap">
+    <h2>三種用法，挑順手的</h2>
+    <p class="sub">同一個 Hermes、同一份設定與對話紀錄，只是入口不同。</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>介面</th><th>啟動方式</th><th>適合</th><th>本機狀態</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>網頁 Dashboard</strong></td>
+            <td class="num">hermes dashboard</td>
+            <td>最直覺，有圖形介面</td>
+            <td class="yes">可用</td>
+          </tr>
+          <tr>
+            <td><strong>終端機</strong></td>
+            <td class="num">hermes</td>
+            <td>最快、功能最完整</td>
+            <td class="yes">可用</td>
+          </tr>
+          <tr>
+            <td>桌面 App</td>
+            <td class="num">hermes desktop</td>
+            <td>Electron 打包版</td>
+            <td class="mid">未測試</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <h2>內建的網頁 Dashboard</h2>
+    <p class="sub">Hermes 自帶一個 Web UI，不需另外安裝任何東西。</p>
+
+    <div class="pre-wrap"><pre><span class="c">$</span> hermes dashboard
+
+<span class="c"># 首次執行會先建置前端（實測約 5.8 秒）</span>
+<span class="g">✓ Web UI built</span>
+<span class="g">HERMES_DASHBOARD_READY port=9119</span></pre></div>
+
+    <p>
+      建置完成後會自動開啟瀏覽器。網址是
+      <strong><code>http://127.0.0.1:9119</code></strong>。
+    </p>
+
+    <h4>裡面有什麼</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>頁面</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Chat</strong></td><td><strong>直接在網頁上問問題</strong>，等同終端機的對話</td></tr>
+          <tr><td>Sessions</td><td>瀏覽與續接過往對話</td></tr>
+          <tr><td>Skills</td><td>技能管理</td></tr>
+          <tr><td>Cron</td><td>排程任務</td></tr>
+          <tr><td>System / Config</td><td>設定與 API 金鑰</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h4>控制指令</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> hermes dashboard            <span class="c"># 啟動並自動開瀏覽器</span>
+<span class="c">$</span> hermes dashboard --no-open  <span class="c"># 啟動但不搶走瀏覽器</span>
+<span class="c">$</span> hermes dashboard --status   <span class="c"># 查看是否執行中（含 PID）</span>
+<span class="c">$</span> hermes dashboard --stop     <span class="c"># 關閉</span>
+<span class="c">$</span> hermes dashboard --port N   <span class="c"># 換埠號</span></pre></div>
+
+    <div class="note ok">
+      <p class="note-title">只綁本機</p>
+      <p>
+        Dashboard 監聽 <code>127.0.0.1</code>，只有這台機器連得到，不對外開放。
+        與 LINE gateway 的 8646 是不同服務、不同埠號，互不影響，可同時執行。
+      </p>
+    </div>
+
+    <div class="note warn">
+      <p class="note-title">記得關掉</p>
+      <p>
+        它是常駐服務，用完請執行 <code>hermes dashboard --stop</code>。
+        <code>hermes serve</code>（headless 後端，預設同樣是 9119）與它共用埠號，
+        兩者不能同時跑。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>終端機模式的一個實用差別</h2>
+    <div class="pre-wrap"><pre><span class="c">$</span> hermes                       <span class="c"># 互動模式：連續對話，只付一次啟動成本</span>
+<span class="c">$</span> hermes chat -q <span class="g">"單一問題"</span>     <span class="c"># 每次都是新 process，每次重付啟動成本</span></pre></div>
+    <p>
+      測速或連續提問時務必用互動模式。先前量到的 48 秒就是
+      <code>-q</code> 首次執行的冷啟動，並非模型本身慢。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 08 重建指令 ============ -->
+<section class="panel" id="p8" role="tabpanel" aria-labelledby="t8" hidden>
+  <div class="wrap">
+    <h2>從零重建的完整指令</h2>
+    <p class="sub">
+      以下是實際執行過的每一條指令，依順序排列。在同型機器（Intel Mac / macOS 13）上照著跑可重現同樣結果；
+      若是 Apple Silicon，<strong>階段三可整段跳過</strong>。
+    </p>
+
+    <div class="note warn">
+      <p class="note-title">閱讀方式</p>
+      <p>
+        <code>$</code> 開頭是你要輸入的指令，其餘是輸出。灰色是註解。
+        含有金鑰的地方一律以 <code>&lt;…&gt;</code> 標示，不要照抄。
+      </p>
+    </div>
+
+    <h3>階段一 · 安裝前的環境確認</h3>
+    <p>先確認手上有什麼、缺什麼。這一步決定後面會不會踩雷。</p>
+    <div class="pre-wrap"><pre><span class="c"># 硬體與系統</span>
+<span class="c">$</span> uname -m                    <span class="c"># x86_64  ← Intel，關鍵資訊</span>
+<span class="c">$</span> sw_vers -productVersion     <span class="c"># 13.6.1</span>
+<span class="c">$</span> sysctl -n hw.model          <span class="c"># MacBookPro14,1</span>
+
+<span class="c"># 工具鏈盤點</span>
+<span class="c">$</span> for c in git node npm python3 uv docker brew cargo; do
+      echo "$c: $(command -v $c || echo none)"
+  done
+
+<span class="c"># 磁碟空間與編譯環境</span>
+<span class="c">$</span> df -h / | tail -1
+<span class="c">$</span> xcode-select -p</pre></div>
+
+    <hr class="divider">
+
+    <h3>階段二 · 下載並審閱安裝腳本</h3>
+    <p>
+      官方文件寫的是 <code>curl … | bash</code>。這裡改成<strong>先下載再執行</strong>——
+      腳本有 3639 行，會裝 Python、Node、改你的 shell 設定檔，值得先看過。
+      這樣執行的也確定就是你讀過的那份。
+    </p>
+    <div class="pre-wrap"><pre><span class="c">$</span> curl -fsSL https://hermes-agent.nousresearch.com/install.sh -o install.sh
+<span class="c">$</span> wc -l install.sh          <span class="c"># 3639</span>
+<span class="c">$</span> shasum -a 256 install.sh   <span class="c"># c0380bc1f78d3d662a77663ce20cc17e14cbc4be…</span>
+
+<span class="c"># 看它會動到系統的哪些地方</span>
+<span class="c">$</span> grep -n "brew install\|sudo \|xcode-select\|astral.sh" install.sh
+
+<span class="c"># 看有哪些選項</span>
+<span class="c">$</span> bash install.sh --help</pre></div>
+
+    <div class="note">
+      <p class="note-title">腳本實際會做的事</p>
+      <p>
+        裝 <code>uv</code> → 用 uv 裝 Python 3.11（不動系統的 3.9）→ 下載 Node 26 到
+        <code>~/.hermes/node</code>（不裝全域）→ clone repo 到
+        <code>~/.hermes/hermes-agent</code> → 建 venv 裝
+        <code>.[all]</code> → 裝 Playwright／cua-driver → 寫 PATH 進 shell 設定檔。
+        除了最後一項，全部集中在 <code>~/.hermes/</code>。
+      </p>
+    </div>
+
+    <h4>執行安裝</h4>
+    <div class="pre-wrap"><pre><span class="c"># --skip-setup：設定精靈需要互動終端機，稍後手動跑</span>
+<span class="c"># --non-interactive：避免在無 TTY 環境卡在提問</span>
+<span class="c">$</span> bash install.sh --skip-setup --non-interactive &lt; /dev/null 2&gt;&amp;1 | tee install.log</pre></div>
+
+    <hr class="divider">
+
+    <h3>階段三 · 修復 Intel Mac 的依賴失敗</h3>
+    <p class="sub">Apple Silicon 不會遇到這段，可整段跳過。</p>
+
+    <p>安裝腳本的四層依賴 fallback 會全數失敗。先取得真正的錯誤訊息：</p>
+    <div class="pre-wrap"><pre><span class="c"># 腳本把 uv 裝在這，不在 PATH 上</span>
+<span class="c">$</span> export PATH="$HOME/.hermes/bin:$PATH"
+
+<span class="c">$</span> cd ~/.hermes/hermes-agent
+<span class="c">$</span> UV_NO_CONFIG=1 uv pip install --python venv/bin/python -e .
+
+<span class="r">Could not find directory of OpenSSL installation …</span>
+<span class="r">openssl-sys = 0.9.117</span>
+<span class="r">💥 maturin failed</span>
+<span class="r">hint: cryptography (v50.0.0) was included because hermes-agent depends on it</span></pre></div>
+
+    <h4>確認是不是 wheel 缺失</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> curl -s https://pypi.org/pypi/cryptography/50.0.0/json | python3 -c "
+import json,sys
+for u in json.load(sys.stdin)['urls']:
+    if 'macos' in u['filename']: print(u['filename'])
+"
+cryptography-50.0.0-cp311-abi3-<span class="r">macosx_11_0_arm64</span>.whl   <span class="c">← 只有 arm64</span>
+
+<span class="c">$</span> <span class="c"># 對照 48.0.1</span>
+cryptography-48.0.1-cp311-abi3-<span class="g">macosx_10_9_universal2</span>.whl <span class="c">← 含 x86_64</span></pre></div>
+
+    <h4>以 override 降版安裝</h4>
+    <div class="pre-wrap"><pre><span class="c">$</span> echo 'cryptography==48.0.1' &gt; overrides.txt
+
+<span class="c">$</span> UV_NO_CONFIG=1 uv pip install \
+      --python venv/bin/python \
+      --override overrides.txt \
+      -e ".[all]"
+
+<span class="g">Installed 121 packages</span></pre></div>
+
+    <h4>改 pyproject 讓安裝腳本能跑完後半段</h4>
+    <p>
+      安裝腳本是在依賴階段倒下的，後面的 PATH 設定、skills、Playwright、cua-driver 都沒執行。
+      把版本釘選改掉後重跑一次，讓它自己完成。
+    </p>
+    <div class="pre-wrap"><pre><span class="c">$</span> cd ~/.hermes/hermes-agent
+<span class="c">$</span> cp pyproject.toml pyproject.toml.orig      <span class="c"># 先備份</span>
+
+<span class="c">$</span> sed -i '' \
+    -e 's/^  "cryptography==50\.0\.0",/  "cryptography==48.0.1",/' \
+    -e 's/^  "cryptography&gt;=50,&lt;51",/  "cryptography==48.0.1",/' \
+    pyproject.toml
+
+<span class="c">$</span> git diff --stat                            <span class="c"># 應為 2 insertions, 2 deletions</span>
+
+<span class="c"># 重跑，這次會走完全部階段</span>
+<span class="c">$</span> bash install.sh --skip-setup --non-interactive &lt; /dev/null</pre></div>
+
+    <div class="note crit">
+      <p class="note-title">這是取捨，不是修好</p>
+      <p>
+        降版重新引入 CVE-2026-69247、GHSA-m2h6-j472-rp4c、GHSA-jwv3-5hgf-82ww。
+        <code>hermes update</code> 之後若安裝失敗且錯誤指向 cryptography 編譯，
+        先檢查 <code>git diff pyproject.toml</code> 這兩行是否還在。
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h3>階段四 · 修正 PATH（macOS bash 專有問題）</h3>
+    <p>
+      安裝腳本把 PATH 寫進 <code>~/.bashrc</code>，但 macOS 的 Terminal 開的是<strong>登入 shell</strong>，
+      只讀 <code>~/.bash_profile</code>。若該檔不存在，新開的終端機找不到 <code>hermes</code>。
+    </p>
+    <div class="pre-wrap"><pre><span class="c"># 確認問題是否存在</span>
+<span class="c">$</span> ls ~/.bash_profile ~/.profile     <span class="c"># 兩者皆不存在 → 需要修</span>
+
+<span class="c"># 建立標準橋接檔</span>
+<span class="c">$</span> cat &gt; ~/.bash_profile &lt;&lt;'EOF'
+[ -f "$HOME/.bashrc" ] &amp;&amp; . "$HOME/.bashrc"
+EOF
+
+<span class="c"># 用登入 shell 實測</span>
+<span class="c">$</span> bash -lc 'command -v hermes &amp;&amp; hermes --version'
+<span class="g">/Users/&lt;you&gt;/.local/bin/hermes</span>
+<span class="g">Hermes Agent v0.20.5</span></pre></div>
+
+    <hr class="divider">
+
+    <h3>階段五 · 驗證安裝結果</h3>
+    <div class="pre-wrap"><pre><span class="c">$</span> hermes --version
+<span class="c">$</span> hermes doctor
+
+<span class="c"># 元件盤點</span>
+<span class="c">$</span> ls ~/.hermes/skills | wc -l                      <span class="c"># 14 組 skills</span>
+<span class="c">$</span> ls ~/.local/bin/                                 <span class="c"># hermes, cua-driver, node, npm…</span>
+<span class="c">$</span> du -sh ~/.hermes                                 <span class="c"># 1.5G</span>
+
+<span class="c"># 套件清單</span>
+<span class="c">$</span> export PATH="$HOME/.hermes/bin:$PATH"
+<span class="c">$</span> cd ~/.hermes/hermes-agent
+<span class="c">$</span> UV_NO_CONFIG=1 uv pip list --python venv/bin/python</pre></div>
+
+    <h4>裝了什麼（121 個套件中的主要成員）</h4>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>套件</th><th>版本</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td class="num">hermes-agent</td><td class="num">0.20.5</td><td>本體（以 <code>-e</code> 可編輯模式安裝）</td></tr>
+          <tr><td class="num">openai</td><td class="num">2.24.0</td><td>LLM SDK，Codex 走這條</td></tr>
+          <tr><td class="num">cryptography</td><td class="num">48.0.1</td><td><strong>降版後的版本</strong></td></tr>
+          <tr><td class="num">mcp</td><td class="num">2.0.0</td><td>Model Context Protocol</td></tr>
+          <tr><td class="num">aiohttp</td><td class="num">3.14.3</td><td>LINE webhook 伺服器</td></tr>
+          <tr><td class="num">httpx</td><td class="num">0.28.1</td><td>非同步 HTTP 用戶端</td></tr>
+          <tr><td class="num">fastapi</td><td class="num">0.133.1</td><td>dashboard 與 serve 後端</td></tr>
+          <tr><td class="num">uvicorn</td><td class="num">0.41.0</td><td>ASGI 伺服器</td></tr>
+          <tr><td class="num">starlette</td><td class="num">1.3.1</td><td>FastAPI 底層</td></tr>
+          <tr><td class="num">pydantic</td><td class="num">2.13.4</td><td>設定與資料驗證</td></tr>
+          <tr><td class="num">rich</td><td class="num">14.3.3</td><td>終端機介面渲染</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      另有非 Python 元件：<strong>Node.js 26.8.1</strong>（<code>~/.hermes/node</code>，供瀏覽器工具與 TUI）、
+      <strong>cua-driver</strong>（Computer Use）、<strong>uv</strong>（<code>~/.hermes/bin/uv</code>）。
+      Playwright／Chromium 在此機器安裝失敗。
+    </p>
+
+    <hr class="divider">
+
+    <h3>階段六 · 接上 Codex 並驗證</h3>
+    <p>完整流程與輸出見「模型串接」分頁，此處僅列指令序列。</p>
+    <div class="pre-wrap"><pre><span class="c">$</span> hermes auth add openai-codex --type oauth   <span class="c"># 瀏覽器授權；若問是否匯入答 n</span>
+<span class="c">$</span> hermes auth status openai-codex             <span class="c"># logged in</span>
+<span class="c">$</span> hermes auth list                            <span class="c"># 憑證 #1 已入列</span>
+<span class="c">$</span> hermes model                                <span class="c"># 選 openai-codex → gpt-5.6-sol</span>
+<span class="c">$</span> hermes config | grep -A1 "◆ Model"          <span class="c"># 確認三項都對</span>
+<span class="c">$</span> hermes chat -q "測試"                        <span class="c"># 端到端煙霧測試</span></pre></div>
+
+    <hr class="divider">
+
+    <h3>階段七 · LINE 串接</h3>
+    <div class="pre-wrap"><pre><span class="c"># 1. 設定平台（互動，會問 token 與 secret）</span>
+<span class="c">$</span> hermes gateway setup
+
+<span class="c"># 2. 白名單必須寫進 .env，不是 config.yaml</span>
+<span class="c">$</span> echo 'LINE_ALLOWED_USERS=&lt;你的 user ID&gt;' &gt;&gt; ~/.hermes/.env
+<span class="c">$</span> grep "^LINE_ALLOWED_USERS" ~/.hermes/.env
+
+<span class="c"># 3. 啟動並確認</span>
+<span class="c">$</span> hermes gateway restart
+<span class="c">$</span> sleep 40                                    <span class="c"># 埠號釋放需時間，見踩坑 02</span>
+<span class="c">$</span> hermes gateway status
+
+<span class="c"># 4. 架公開通道（另開視窗，需保持執行）</span>
+<span class="c">$</span> curl -fsSL -o /tmp/cf.tgz \
+     "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz"
+<span class="c">$</span> tar -xzf /tmp/cf.tgz -C ~/.local/bin/ &amp;&amp; chmod +x ~/.local/bin/cloudflared
+<span class="c">$</span> cloudflared tunnel --url http://localhost:8646</pre></div>
+
+    <h4>三段驗證</h4>
+    <div class="pre-wrap"><pre><span class="c"># 通道可達？</span>
+<span class="c">$</span> curl -s -o /dev/null -w "HTTP %{http_code}\n" https://&lt;通道&gt;/line/webhook/health
+<span class="g">HTTP 200</span>
+
+<span class="c"># 簽章驗證有作用？（未簽章的請求應被拒）</span>
+<span class="c">$</span> curl -s -o /dev/null -w "HTTP %{http_code}\n" -X POST https://&lt;通道&gt;/line/webhook -d '{}'
+<span class="g">HTTP 401</span>
+
+<span class="c"># LINE 端登記的設定是否正確？</span>
+<span class="c">$</span> TOKEN=$(grep "^LINE_CHANNEL_ACCESS_TOKEN=" ~/.hermes/.env | cut -d= -f2-)
+<span class="c">$</span> curl -s -H "Authorization: Bearer $TOKEN" \
+     https://api.line.me/v2/bot/channel/webhook/endpoint
+{"endpoint": "https://&lt;通道&gt;/line/webhook", <span class="g">"active": true</span>}
+
+<span class="c"># 撈出被拒絕者的 user ID（用來加白名單）</span>
+<span class="c">$</span> grep -o "U[0-9a-f]\{32\}" ~/.hermes/logs/gateway.log | sort -u</pre></div>
+
+    <div class="note ok">
+      <p class="note-title">確認整條路通了</p>
+      <p>
+        在 <code>~/.hermes/logs/gateway.log</code> 中應看到完整的三段週期：
+        <code>inbound message</code> → <code>response ready</code> → <code>Sending response</code>。
+        缺任何一段，就從對應環節往回查。
+      </p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <p>
+      建置與驗證日期 2026-08-27 · Hermes Agent v0.20.5（upstream 824f7e08）·
+      macOS 13.6.1 / MacBookPro14,1 · 文中所有數據均取自實際執行結果。
+    </p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+
+    function select(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (focus) tab.focus();
+      window.scrollTo({ top: 0, behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' });
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { select(tab, false); });
+      tab.addEventListener('keydown', function (e) {
+        var i = tabs.indexOf(tab), n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') n = tabs[0];
+        else if (e.key === 'End') n = tabs[tabs.length - 1];
+        if (n) { e.preventDefault(); select(n, true); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>
