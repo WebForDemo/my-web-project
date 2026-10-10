@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10/19–10/23 日韓團比較</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fdf3ea;--paper:#fff;--ink:#4a3b4e;--soft:#8f7f93;--rose:#e8789a;--jp:#ffd9e3;--kr:#d6ecf7;--ok:#d6f0e1;--wait:#fff1b8;--no:#eee8ea;--line:rgba(91,74,95,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1a24;--paper:#2a2430;--ink:#f1eaf3;--soft:#b3a7b8;--jp:#5a2f3d;--kr:#244354;--ok:#24443a;--wait:#4d4320;--no:#3a3340;--line:rgba(255,255,255,.1)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.6;font-size:15px}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 70px}
+.en{font-family:"Caveat",cursive;color:var(--rose);font-size:1.9rem;line-height:1}
+h1{font-size:clamp(1.6rem,4vw,2.3rem);margin:4px 0 6px;font-weight:900}
+.lead{color:var(--soft);margin:0 0 18px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 20px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--paper);border-radius:18px;padding:12px 16px;box-shadow:0 6px 18px -10px rgba(0,0,0,.25)}
+.stat b{display:block;font-size:1.6rem;font-weight:900}
+.stat span{font-size:.85rem;color:var(--soft)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;align-items:center}
+.filters span{font-size:.85rem;color:var(--soft);margin-right:2px}
+.fb{border:0;border-radius:999px;padding:6px 14px;background:var(--paper);color:var(--ink);font:inherit;font-size:.88rem;font-weight:700;cursor:pointer;box-shadow:0 3px 8px -4px rgba(0,0,0,.3)}
+.fb.on{background:var(--rose);color:#fff}
+.card{background:var(--paper);border-radius:22px;padding:6px 6px 10px;box-shadow:0 8px 24px -14px rgba(0,0,0,.35);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th{position:sticky;top:0;background:var(--paper);text-align:left;font-size:.8rem;color:var(--soft);padding:10px 8px;border-bottom:2px solid var(--line);cursor:pointer;white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top;font-size:.9rem}
+td.p{font-weight:900;white-space:nowrap;text-align:right}
+td.p small{display:block;font-weight:400;color:var(--soft);text-decoration:line-through;font-size:.75rem}
+.c{display:inline-block;border-radius:999px;padding:0 9px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.c.jp{background:var(--jp)}.c.kr{background:var(--kr)}
+.s{display:inline-block;border-radius:8px;padding:1px 8px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.s.ok{background:var(--ok)}.s.wait{background:var(--wait)}.s.no{background:var(--no);color:var(--soft)}
+td a{color:var(--rose);font-weight:700;text-decoration:none}
+td a:hover{text-decoration:underline}
+.note{font-size:.78rem;color:var(--soft);display:block;margin-top:2px}
+tr.hide{display:none}
+h2{font-size:1.2rem;margin:34px 0 10px}
+.memo{background:var(--paper);border-radius:18px;padding:14px 18px;margin:10px 0;box-shadow:0 6px 18px -12px rgba(0,0,0,.3);font-size:.92rem}
+.memo b.t{display:block;margin-bottom:4px}
+ul{margin:4px 0;padding-left:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="en">Japan & Korea tours</span>
+  <h1>10/19（一）出發・10/23（五）回來 日韓五日團比較</h1>
+  <p class="lead">2026/10/11 查詢・價格是每人最低價（台幣）・雄獅系列顯示優惠價，劃線是原價・點標題可以排序</p>
+
+  <div class="stats">
+    <div class="stat" style="background:var(--ok)"><b id="nOk">–</b><span>現在可報名</span></div>
+    <div class="stat" style="background:var(--wait)"><b id="nWait">–</b><span>可候補／要電洽</span></div>
+    <div class="stat"><b>14</b><span>查過的旅行社／平台</span></div>
+    <div class="stat"><b>$12,999</b><span>最便宜可報名（高雄出發首爾）</span></div>
+  </div>
+
+  <div class="filters">
+    <span>國家</span><button class="fb on" data-f="cty" data-v="all">全部</button><button class="fb" data-f="cty" data-v="jp">🇯🇵 日本</button><button class="fb" data-f="cty" data-v="kr">🇰🇷 韓國</button>
+    <span style="margin-left:10px">出發</span><button class="fb on" data-f="ap" data-v="all">全部</button><button class="fb" data-f="ap" data-v="n">桃園／台北</button><button class="fb" data-f="ap" data-v="s">台中／高雄</button>
+    <span style="margin-left:10px">狀態</span><button class="fb" data-f="st" data-v="all">全部</button><button class="fb on" data-f="st" data-v="ok">只看可報名</button><button class="fb" data-f="st" data-v="wait">可候補／電洽</button><button class="fb" data-f="st" data-v="no">額滿／截止</button>
+  </div>
+
+  <div class="card"><table id="t">
+    <thead><tr><th data-k="0">國家・地區</th><th data-k="1">旅行社</th><th data-k="2">團名</th><th data-k="3">出發</th><th data-k="4">航空</th><th data-k="5" style="text-align:right">每人 ▾</th><th data-k="6">狀態</th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table></div>
+
+  <h2>📝 要注意的</h2>
+  <div class="memo"><b class="t">🔁 同一團在不同網站重複賣</b>
+    <ul>
+      <li><b>旅天下</b>的北海道 3 團、東京 1 團，團號和雄獅一模一樣（26JHO19ITS-ZP 等），就是同一團；易遊網也有代賣。</li>
+      <li><b>東森購物網</b>的關西「每月一物」$34,888、「好食在京阪神奈」$44,900 跟雄獅同名同價；北海道「清艙」$32,242 跟雄獅 $32,900 那團行程一樣。</li>
+      <li><b>品冠</b>的關西「好食在 京阪神奈」$44,900 也是雄獅聯營。</li>
+      <li>表格裡同一團只列一次，旁邊註明「其他網站也有賣」。</li>
+    </ul>
+  </div>
+  <div class="memo"><b class="t">✈️ 廉航要另外算</b>台灣虎航、酷航、易斯達、真航空、泰亞洲、泰國獅航是廉航，托運行李和機上餐可能要加價，報名前問清楚。</div>
+  <div class="memo"><b class="t">👥 「8 人成行」「未成團」</b>東南的關西 5 團寫「8 人成行」、五福釜山還沒成團（要 16 人），人數不夠可能會取消，報名前問會不會出團。</div>
+  <div class="memo"><b class="t">🌐 易遊網</b>它列了 630 筆，但目前<b>全部不能網路下單</b>。它自己出的 15 團（都是星宇，$29,900–49,900）頁面寫「即將成團、還有 20 幾位」，可能只是網路報名截止，<b>可以打電話問</b>。</div>
+  <div class="memo"><b class="t">🚫 查不到的</b>長汎（網站擋查詢）、KKday、Klook（拒絕連線）、Trip.com（沒有台灣出發跟團）、天喜、創造、永利、吉帝、大興（找不到官網）。巨匠、上順、吉光、百威 10/19 沒有日韓五日團。</div>
+</div>
+
+<script>
+// [國家, 地區, 旅行社, 團名, 出發(n/s), 出發文字, 航空, 價, 原價, 狀態(ok/wait/no), 狀態文字, url, 備註]
+const D=[
+["jp","北海道","雄獅","旅展・保住大倉日航・螃蟹溫泉","n","桃園→函館","台灣虎航",20500,22000,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JHO19ITS-ZP","旅天下、易遊網也有賣同一團"],
+["jp","北海道","雄獅","紅葉絕景・洞爺湖花火・螃蟹吃到飽","n","桃園→函館","台灣虎航",26388,28388,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JHO19IT7-ZP","另有第 2 團 IT71；旅天下也有賣"],
+["jp","北海道","雄獅","特選北海道・洞爺湖・企鵝遊行","n","桃園→函館","台灣虎航",27900,29900,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JHO19ITH-ZP","旅天下也有賣"],
+["jp","北海道","雄獅","秒殺北海道・螃蟹溫泉（你給的那團）","n","桃園","星宇",32900,35900,"ok","熱銷中","https://travel.liontravel.com/detail?GroupID=26JHO19JX-T","東森購物網清艙價 $32,242 是同行程"],
+["jp","北海道","雄獅","好食在北海道・美瑛青池","n","桃園","長榮",42900,46900,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JHO19BRD-T",""],
+["jp","北海道","五福","北海道紅葉賞・黑岳纜車・旭山動物園","n","桃園","中華",45900,0,"ok","已成團・剩 1 位","https://tour.lifetour.com.tw/detail?mg=CTST5JX26010&sg=CTS05CI26O19T01",""],
+["jp","北海道","五福","道北秋季賞楓・大雪山紅葉纜車・溫泉","s","高雄","泰國獅航",41800,0,"ok","已成團・剩 7 位","https://tour.lifetour.com.tw/detail?mg=CTSK5SL26009&sg=CTS05SL26O19K01","燦星也有賣同一團"],
+["jp","北海道","山富","秋戀北海道・洞爺直升機・三大螃蟹","s","高雄","泰國獅航",42000,0,"ok","保證出團・剩 2 位","https://www.travel4u.com.tw/group/product/SPK05261019G/",""],
+["jp","東京","雄獅","東京迪士尼・箱根・富士","n","桃園→成田","星宇",30900,33900,"ok","熱銷中","https://travel.liontravel.com/detail?GroupID=26JTO19JXC-T",""],
+["jp","東京","可樂","東京愛星野・迪士尼・富士纜車・星野1955","n","桃園","長榮",35888,0,"ok","保證出團・剩 7 位","https://tour.colatour.com.tw/itinerary?PatternNo=246887",""],
+["jp","東京","東森購物","清艙・東京迪士尼・箱根・富士","n","桃園","長榮",32242,32900,"ok","預購（要等旅行社確認）","https://www.etmall.com.tw/i/100005090280","歡樂旅行社出團，不顯示剩幾位"],
+["jp","東京","雄獅","橫濱・鎌倉・富士纜車・迪士尼","s","高雄→成田","長榮",41900,44900,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JTO19BR9-K","東森購物網 $41,062 同團"],
+["jp","東京","東南","燦爛東京・迪士尼・晴空塔・富士纜車・溫泉","s","高雄","華航",39900,0,"ok","成團・剩 4 位","https://tour.settour.com.tw/product/GFG0000029169/KHTCBF261019A",""],
+["jp","關西","可樂","關西 OMG・環球影城・燒肉吃到飽","n","桃園→神戶","長榮",29888,0,"ok","保證出團・剩 6 位","https://tour.colatour.com.tw/itinerary?PatternNo=240950",""],
+["jp","關西","東南","8人成行・大阪環球影城・保住五星・神戶牛吃到飽","n","桃園","長榮",29900,0,"ok","可報名・8 人成行","https://tour.settour.com.tw/product/GFG0000035462/JXQ5B9261019A","人數不夠可能不出團"],
+["jp","關西","可樂","萬歲關西瑪利歐・環球影城・黑毛和牛","n","桃園→神戶","星宇",31800,0,"ok","保證出團・剩 4 位","https://tour.colatour.com.tw/itinerary?PatternNo=246745",""],
+["jp","關西","雄獅","每月一物・神戶大阪・姬路城・環球影城","n","桃園→神戶","長榮",32888,34888,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JXO19BRI-T","東森購物網 $34,888 同團"],
+["jp","關西","東南","限時限量・大阪環球影城・神戶牛吃到飽","n","桃園","長榮",34900,0,"ok","可報名・8 人成行","https://tour.settour.com.tw/product/GFG0000029999/JXQ5A7261019A","人數不夠可能不出團"],
+["jp","關西","東南","精選關西・天橋立・美山町・伊根舟屋","n","桃園","長榮",36900,0,"ok","可報名","https://tour.settour.com.tw/product/GFG0000025895/JXC006261019C",""],
+["jp","關西","東南","保住溫泉飯店・螃蟹吃到飽・關西四都","n","桃園","長榮",37900,0,"ok","可報名・8 人成行","https://tour.settour.com.tw/product/GFG0000023099/JXQXQ3261019B",""],
+["jp","關西","東南","典藏關西・兩晚五星・二條城・貴船神社","n","桃園","長榮",39900,0,"ok","可報名","https://tour.settour.com.tw/product/GFG0000029852/JXL5W5261019A",""],
+["jp","關西","雄獅","好食在 京阪神奈・嵐山屋形船","n","桃園","長榮",40900,44900,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JXO19BRG-T","東森、品冠 $44,900 同團"],
+["jp","北陸","雄獅","經典北陸・立山黑部","n","桃園→小松","長榮",42900,45900,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JPO19BR-T",""],
+["jp","九州","東南","九州素食旅遊・湯布院・熊本城・溫泉","n","桃園","華航",42900,0,"ok","成團・剩 5 位","https://tour.settour.com.tw/product/GFG0000034506/JFVVEG261019A","全程素食"],
+["jp","九州","易飛","九州陸海空・雙樂園・豪斯登堡・熊本城","n","桃園","華航",42900,0,"ok","可報名・剩 15 位","https://ea.ezfly.com/ProdWP/Prod/WGRP000015307/FUKG05CIA1926A",""],
+["jp","山陰山陽","燦星","星繫山陰山陽・出雲大社・鳥取砂丘・溫泉","n","台北（問松山或桃園）","台灣虎航",37900,0,"ok","保證出團・剩 4 位","https://tour.startravel.com.tw/detail/00001-YGJ05IT01A#YGJ05261019B",""],
+["jp","東北","品冠","楓采東北・銀山溫泉・五色沼・松島","n","桃園","台灣虎航",39900,0,"ok","可報名・剩 6 位","https://www.pktravel.com.tw/products/group/detail?id=KIJ05261019A&sacct_no=80499677","旅遊家出團；AsiaYo 寫 32,900 起（未確認）"],
+["kr","首爾","雄獅","旅展優惠・韓楓再起","n","桃園","長榮",22888,24888,"ok","成團可報名","https://travel.liontravel.com/detail?GroupID=26JKO19BRN-T",""],
+["kr","首爾","雄獅","快閃首爾・景福宮・南山・聖水洞","s","高雄","長榮",12999,13999,"ok","熱銷中","https://travel.liontravel.com/detail?GroupID=26JKO19BR9-K","東森購物網 $13,999 同團"],
+["kr","首爾","雄獅","四季採果・DMZ 纜車・抱川","s","高雄","長榮",17900,19900,"ok","熱銷中","https://travel.liontravel.com/detail?GroupID=26JKO19BRK-K","東森購物網 $19,502 同團"],
+["kr","釜山","五福","超值釜山・海岸列車・海東龍宮寺・天空步道","n","桃園","長榮",21900,0,"ok","可報名・剩 19 位（未成團）","https://tour.lifetour.com.tw/detail?mg=PUS05BR26T06&sg=PUS05BR26O19T01","要 16 人才成團"],
+["kr","釜山","品冠","保證入住南浦洞・巨濟外島・膠囊列車","n","桃園","釜山航空",23900,0,"ok","可報名・剩 19 位","https://www.pktravel.com.tw/products/group/detail?id=PUS056O19BXQ&sacct_no=13124139",""],
+["kr","釜山","品冠","樂透釜慶蔚・松島海上纜車","n","桃園","華航",25900,0,"ok","可報名・剩 19 位","https://www.pktravel.com.tw/products/group/detail?id=PUS056O19CIL&sacct_no=13124139",""],
+["kr","釜山","雄獅","無購物・慶州雙世界遺產","n","桃園","長榮",28900,30900,"ok","熱銷中","https://travel.liontravel.com/detail?GroupID=26JKO19BRV-T",""],
+["kr","釜山","品冠","星宇釜山開航特惠・外島海上花園","n","桃園","星宇",31900,0,"ok","可報名・剩 15 位","https://www.pktravel.com.tw/products/group/detail?id=PUS056O19JXN&sacct_no=13124139","雄獅同名團顯示暫時額滿"],
+["kr","釜山","品冠","星宇釜山開航特惠・大邱 83 塔","n","桃園","星宇",34900,0,"ok","可報名・剩 15 位","https://www.pktravel.com.tw/products/group/detail?id=PUS056O19JX1&sacct_no=13124139",""],
+["kr","釜山","品冠","旗艦釜山・無購物・無自理餐・含小費","n","桃園","星宇",55900,0,"ok","可報名・剩 15 位","https://www.pktravel.com.tw/products/group/detail?id=PUS056O19JXP&sacct_no=13124139",""],
+["kr","釜山","可樂","高雄釜山搶好康・光影藝術展・遊艇・甘川洞","s","高雄","釜山航空",14888,0,"ok","保證出團・剩 4 位","https://tour.colatour.com.tw/itinerary?PatternNo=241121",""],
+["kr","濟州","品冠","暢遊濟州・彩虹海岸・泰迪熊","n","桃園","台灣虎航",18900,0,"ok","可報名・剩 12 位","https://www.pktravel.com.tw/products/group/detail?id=CJU056O19ITM&sacct_no=13124139",""],
+["kr","濟州","品冠","濟州玩很大・神話世界樂園","n","桃園","真航空",21900,0,"ok","可報名・剩 19 位","https://www.pktravel.com.tw/products/group/detail?id=CJU056O19LJE&sacct_no=13124139",""],
+["kr","濟州","品冠","輕鬆遊濟・海水汗蒸幕・韓服","n","桃園","台灣虎航",22900,0,"ok","可報名・剩 11 位","https://www.pktravel.com.tw/products/group/detail?id=CJU056O19ITY&sacct_no=13124139",""],
+// wait / call
+["kr","清州首爾","山富","限量促銷・清洲首爾・彩妝一站","n","桃園","易斯達",10900,0,"wait","額滿・可候補","https://www.travel4u.com.tw/group/product/CJJ05261019B/","凌晨 02:00 出發、10/24 01:00 回到台灣"],
+["kr","釜山","可樂","釜山感恩回饋季・360 度海景咖啡廳","n","桃園","長榮",16900,0,"wait","額滿・候補 2 位","https://tour.colatour.com.tw/itinerary?PatternNo=245116",""],
+["jp","北海道","山富","北海道紅葉物語","n","桃園","泰亞洲",34900,0,"wait","額滿・可候補","https://www.travel4u.com.tw/group/product/SPK05261019E/",""],
+["jp","山陰","理想","山陰鳥取島根・松葉蟹和牛","n","桃園→米子","台灣虎航",48800,0,"wait","請電洽","https://www.perfect.com.tw/RWEB/GO/L_GRUP.asp?GAREA_CD=JPN&MGRUP_CD=2026SANIN&GRUP_CD=KTYO0526X19A","新視界假期聯營"],
+["jp","東京","易遊網","富士山輕旅行（易遊網自己的團，星宇）","n","桃園","星宇",29900,0,"wait","網路截止・可電洽","https://vacation.eztravel.com.tw/pkgfrn/introduction/FRN0000019781/20261019","易遊網自己 15 團都是這狀態（$29,900–49,900）"],
+// full / closed
+["jp","北海道","雄獅","限定北海道・無自理餐","n","桃園→函館","星宇",29888,31888,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JHO19JXG-T",""],
+["jp","北海道","東南","每月一物・函館夜景・企鵝遊行","n","桃園","華航",43900,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000033296/JHQSNK261019A",""],
+["jp","北海道","東南","星宇紅葉賞・函館進出","n","桃園","星宇",52900,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000034534/JHBJXM261019A",""],
+["jp","北海道","鳳凰","北海道雙溫泉漫遊","n","桃園","長榮",62800,0,"no","結團","https://www.travel.com.tw/TOU/TOU0020/NJH0500535/NJH101905BR26A",""],
+["jp","北海道","雄獅","紅葉・支笏湖・企鵝遊行","s","台中","星宇",43900,46900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JHO19JXV-X",""],
+["jp","東京","旅天下","東京迪士尼・西湖合掌村（雄獅同團）","n","桃園→成田","酷航",27000,28888,"no","額滿","https://travel.liontravel.com/detail?GroupID=26JTO19TRA-ZP",""],
+["jp","關西","鳳凰","關西三都京阪神・白濱溫泉・環球影城","n","桃園","長榮",42800,0,"no","結團","https://www.travel.com.tw/TOU/TOU0020/NJY0500206/NJK101905BR26A",""],
+["jp","關西","雄獅","長榮高爾夫・神戶大阪","n","桃園→神戶","長榮",46900,49900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JXO19BR-T",""],
+["jp","關西","山富","暢遊京阪神","s","台中","星宇",36000,0,"no","額滿","https://www.travel4u.com.tw/group/product/UKB05261019A/",""],
+["jp","關西","東南","搶鮮丹後・姬路城・天橋立・伊根灣","s","高雄","華航",39900,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000002219/KHBOOG261019A",""],
+["jp","九州","雄獅","限定九州・長腳蟹","n","桃園→福岡","長榮",29888,31888,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JFO19BR-T",""],
+["jp","九州","雄獅","無自理餐・黑川溫泉","s","高雄→熊本","華航",35900,38900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JFO19CIK9-K",""],
+["jp","北陸","雄獅","好食在北陸賞楓・白川鄉","n","桃園→名古屋","星宇",45900,49900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JPO19JXA-T",""],
+["jp","北陸","永信","楓紅立山黑部・上高地・合掌村","n","桃園","星宇",38900,0,"no","截止","https://www.ystravel.com.tw/products/group/detail?id=NGO05JXN261019P",""],
+["jp","東北","東南","仙台・楓之細道・奧入瀨・十和田","n","桃園","長榮",54900,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000027040/JAC5SS261019A",""],
+["jp","東北","雄獅","紅葉東北・青森×仙台","n","桃園→青森","長榮",48900,51900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JSO19BRB-T",""],
+["jp","東北","雄獅","初心遊・SATONO 觀光列車","n","桃園→仙台","星宇",49900,53900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JSO19JX-T",""],
+["jp","山陰","鳳凰","山陰鳥取・島根神話・柯南小鎮","n","桃園→米子","台灣虎航",40800,0,"no","結團","https://www.travel.com.tw/TOU/TOU0020/NJY0500211/NJY101905IT26A",""],
+["jp","四國","雄獅","姬路城・淡路・渦之道","s","台中→高松","星宇",32900,35900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JYO19JXE-X",""],
+["jp","四國","永信","高松四國・道後溫泉・小豆島","s","台中","星宇",37000,0,"no","截止","https://www.ystravel.com.tw/products/group/detail?id=TAK05JXK261019P",""],
+["jp","沖繩","喜鴻","超值沖繩・古宇利・海博館","n","桃園","泰國獅航",19999,0,"no","額滿","https://www.besttour.com.tw/itinerary/OKA05SL261019A",""],
+["kr","首爾","東南","精選首爾・獨家渡假村・臥牛精舍","s","高雄","德威",10888,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000035835/KORT20261019A",""],
+["kr","濟州","東南","濟州五星飯店・萬丈窟・雪綠茶牧場","n","桃園","易斯達",14900,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000033676/CJULJB261019B",""],
+["kr","釜山","燦星","悠閒釜山漫遊等 4 團","n","台北","濟州航空",19500,0,"no","9/22 已截止","https://tour.startravel.com.tw/detail/00001-PUS057C69#PUS05261019I","$19,500–21,900"],
+["kr","釜山","東南","釜山買一送一・遊艇派對","s","高雄","濟州航空",20800,0,"no","額滿","https://tour.settour.com.tw/product/GFG0000034824/KOR7C8261019A",""],
+["kr","釜山","雄獅","星宇釜山開航特惠","n","桃園","星宇",27900,29900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JKO19JXG-T",""],
+["kr","釜山","雄獅","好鄰居釜山・斜坡滑車","n","桃園","長榮",27388,29888,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JKO19BRQ-ZP",""],
+["kr","釜山","雄獅","早鳥預購・無購物","n","桃園","釜山航空",29900,31900,"no","暫時額滿","https://travel.liontravel.com/detail?GroupID=26JKO19BXD-T",""],
+["kr","釜山","易飛","真航易起飛・魅力釜山／楓采釜山","s","台中","真航空",13900,0,"no","結團／暫滿","https://ea.ezfly.com/ProdWP/Prod/WGRP000015186/PUSG05LJA1926D","另一團 $18,900"],
+];
+const fmt=n=>'$'+n.toLocaleString();
+const tb=document.getElementById('tb');
+D.forEach(r=>{const tr=document.createElement('tr');tr.dataset.cty=r[0];tr.dataset.ap=r[4];tr.dataset.st=r[9];tr.dataset.p=r[7];
+ tr.innerHTML=`<td><span class="c ${r[0]}">${r[0]=='jp'?'🇯🇵 日本':'🇰🇷 韓國'}</span><span class="note">${r[1]}</span></td><td><b>${r[2]}</b></td><td><a href="${r[11]}" target="_blank" rel="noopener">${r[3]}</a>${r[12]?`<span class="note">${r[12]}</span>`:''}</td><td>${r[5]}</td><td>${r[6]}</td><td class="p">${fmt(r[7])}${r[8]?`<small>${fmt(r[8])}</small>`:''}</td><td><span class="s ${r[9]}">${r[10]}</span></td>`;tb.appendChild(tr);});
+document.getElementById('nOk').textContent=D.filter(r=>r[9]=='ok').length;
+document.getElementById('nWait').textContent=D.filter(r=>r[9]=='wait').length;
+const st={cty:'all',ap:'all',st:'ok'};
+function apply(){[...tb.rows].forEach(tr=>{const show=(st.cty=='all'||tr.dataset.cty==st.cty)&&(st.ap=='all'||tr.dataset.ap==st.ap)&&(st.st=='all'||tr.dataset.st==st.st);tr.classList.toggle('hide',!show);});}
+document.querySelectorAll('.fb').forEach(b=>b.onclick=()=>{st[b.dataset.f]=b.dataset.v;document.querySelectorAll(`.fb[data-f="${b.dataset.f}"]`).forEach(x=>x.classList.toggle('on',x==b));apply();});
+let dir=1;document.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=+th.dataset.k;dir=-dir;const rows=[...tb.rows];rows.sort((a,b)=>k==5?(a.dataset.p-b.dataset.p)*dir:a.cells[k].textContent.localeCompare(b.cells[k].textContent,'zh-Hant')*dir);rows.forEach(r=>tb.appendChild(r));});
+[...tb.rows].sort((a,b)=>a.dataset.p-b.dataset.p).forEach(r=>tb.appendChild(r));
+apply();
+</script>
+</body>
+</html>
